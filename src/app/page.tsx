@@ -1,7 +1,5 @@
 //rita-base\src\app\page.tsx
 
-// 完全版：診断タイル表示・詳細モーダル付き
-
 'use client';
 
 import { useState } from 'react';
@@ -82,17 +80,20 @@ export default function Home() {
     await pc1.setRemoteDescription(answer);
     pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
     pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
+
     return new Promise(resolve => {
       setTimeout(async () => {
         const stats = await pc1.getStats();
         stats.forEach(report => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') logs.push('candidate-pair: succeeded');
-          if (report.type === 'local-candidate' && report.candidateType === 'srflx') {
-            logs.push(`外部IP: ${report.address}`);
-            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${report.address} ${report.port} typ ${report.candidateType}`);
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            logs.push('candidate-pair: succeeded');
           }
-          if (report.type === 'local-candidate' && report.candidateType === 'host') {
-            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${report.address} ${report.port} typ ${report.candidateType}`);
+          if (report.type === 'local-candidate') {
+            const ip = report.address || report.ip || 'N/A';
+            if (report.candidateType === 'srflx') {
+              logs.push(`外部IP: ${ip}`);
+            }
+            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
           }
         });
         logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
