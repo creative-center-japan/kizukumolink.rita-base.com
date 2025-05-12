@@ -61,6 +61,7 @@ const CHECK_ITEMS = [
   }
 ];
 
+
 export default function Home() {
   const [status, setStatus] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +79,7 @@ export default function Home() {
     const answer = await pc2.createAnswer();
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
+
     pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
     pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
 
@@ -93,7 +95,8 @@ export default function Home() {
             if (report.candidateType === 'srflx') {
               logs.push(`外部IP: ${ip}`);
             }
-            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
+            const candidate = `candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`;
+            logs.push(`STUN candidate: ${candidate}`);
           }
         });
         logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
