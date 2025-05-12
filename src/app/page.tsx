@@ -122,12 +122,12 @@ export default function Home() {
         setLoading(false);
         setDiagnosed(true);
       }, 2000);
-    } catch (err) {
-      setStatus(prev => [...prev, '接続に失敗しました']);
-      setLoading(false);
-      setDiagnosed(true);
-    }
-  };
+
+  .catch(() => {
+  setStatus(prev => [...prev, '接続に失敗しました']);
+  setLoading(false);
+  setDiagnosed(true);
+});
 
   const downloadResults = () => {
     const timestamp = new Date().toISOString().slice(0, 10);
