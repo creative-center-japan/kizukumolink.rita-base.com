@@ -136,7 +136,7 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  const renderResultCard = (item, idx) => {
+  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     const logs = status.filter((log) => log.includes(item.keyword));
     let resultContent = 'NG';
     let color = 'text-rose-700';
