@@ -99,7 +99,7 @@ export default function Home() {
             logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${report.address} ${report.port} typ ${report.candidateType}`);
           }
         });
-        logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
+        logs.push(` 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
         resolve(logs);
       }, 3000);
     });
