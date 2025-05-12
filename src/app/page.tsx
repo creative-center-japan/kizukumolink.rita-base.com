@@ -1,5 +1,7 @@
 //rita-base\src\app\page.tsx
 
+// 完全版：診断タイル表示・詳細モーダル付き
+
 'use client';
 
 import { useState } from 'react';
@@ -71,26 +73,20 @@ export default function Home() {
     const logs: string[] = [];
     const pc1 = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
     const pc2 = new RTCPeerConnection();
-
     pc1.createDataChannel("test");
-
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
     await pc2.setRemoteDescription(offer);
     const answer = await pc2.createAnswer();
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
-
     pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
     pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
-
     return new Promise(resolve => {
       setTimeout(async () => {
         const stats = await pc1.getStats();
         stats.forEach(report => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            logs.push('candidate-pair: succeeded');
-          }
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') logs.push('candidate-pair: succeeded');
           if (report.type === 'local-candidate' && report.candidateType === 'srflx') {
             logs.push(`外部IP: ${report.address}`);
             logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${report.address} ${report.port} typ ${report.candidateType}`);
@@ -99,7 +95,7 @@ export default function Home() {
             logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${report.address} ${report.port} typ ${report.candidateType}`);
           }
         });
-        logs.push(` 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
+        logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
         resolve(logs);
       }, 3000);
     });
@@ -109,25 +105,23 @@ export default function Home() {
     setLoading(true);
     setDiagnosed(false);
     setStatus(['診断を開始しています...']);
-
     try {
       const webrtcLogs = await runWebRtcLoopbackCheck();
       const res = await fetch('/api/check');
       const data = await res.json();
       const apiLogs = Array.isArray(data) ? data : [String(data)];
-
       setTimeout(() => {
         const combined = [...webrtcLogs, ...apiLogs];
         setStatus(combined);
         setLoading(false);
         setDiagnosed(true);
       }, 2000);
-
-  .catch(() => {
-  setStatus(prev => [...prev, '接続に失敗しました']);
-  setLoading(false);
-  setDiagnosed(true);
-});
+    } catch {
+      setStatus(prev => [...prev, '接続に失敗しました']);
+      setLoading(false);
+      setDiagnosed(true);
+    }
+  };
 
   const downloadResults = () => {
     const timestamp = new Date().toISOString().slice(0, 10);
@@ -144,16 +138,13 @@ export default function Home() {
 
   const renderResultCard = (item, idx) => {
     const logs = status.filter((log) => log.includes(item.keyword));
-
     let resultContent = 'NG';
     let color = 'text-rose-700';
-
     if (item.keyword === 'NATタイプ:') {
       const candidates = status.filter((l) => l.startsWith('STUN candidate:'));
       const srflx = candidates.filter(c => c.includes('typ srflx'));
       const ports = srflx.map(c => c.match(/\d+ typ srflx/)?.[0]?.split(' ')[0]);
       const uniquePorts = new Set(ports);
-
       if (srflx.length >= 2 && uniquePorts.size > 1) {
         resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
         color = 'text-slate-800';
@@ -182,14 +173,13 @@ export default function Home() {
       resultContent = isOK ? 'OK' : 'NG';
       color = isOK ? 'text-emerald-700' : 'text-rose-700';
     }
-
     return (
       <div key={idx} className="bg-white hover:bg-blue-50 border border-blue-200 rounded-xl p-4 shadow space-y-2 transition" title={item.tooltip}>
         <div className="text-sm text-slate-600 font-medium">{item.label}</div>
         <div className="text-xs text-slate-500">{item.description}</div>
         <div className={`text-2xl font-bold text-center ${color}`}>{resultContent}</div>
-        <div className="text-right">
-          <button onClick={() => setShowDetail(item.label)} className="text-blue-600 text-xs underline hover:text-blue-800">【詳細】</button>
+        <div className="text-right text-xs">
+          <button onClick={() => setShowDetail(item.label)} className="text-blue-600 underline hover:text-blue-800">【詳細】</button>
         </div>
       </div>
     );
