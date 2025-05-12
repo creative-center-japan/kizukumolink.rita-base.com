@@ -138,7 +138,7 @@ export default function Home() {
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     const logs = status.filter((log) => log.includes(item.keyword));
-    let resultContent = 'NG';
+    let resultContent: React.ReactNode = 'NG';
     let color = 'text-rose-700';
     if (item.keyword === 'NATタイプ:') {
       const candidates = status.filter((l) => l.startsWith('STUN candidate:'));
