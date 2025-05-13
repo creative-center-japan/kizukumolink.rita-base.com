@@ -132,7 +132,7 @@ export default function Home() {
         await new Promise((res) => setTimeout(res, 3000)); // 3秒 pause
       }
 
-      const res = await fetch('/api/check'); // Next.js 経由で AWS Flask API 呼び出し
+      const res = await fetch('/api/check');
       const data = await res.json();
       const apiLogs = Array.isArray(data) ? data : [JSON.stringify(data, null, 2)];
 
@@ -227,7 +227,6 @@ export default function Home() {
       </div>
     );
   };
-
   return (
     <main className="min-h-screen bg-blue-50 text-slate-800 flex flex-col">
       <div className="max-w-5xl w-full mx-auto px-6 py-10 space-y-8 flex-grow">
