@@ -123,19 +123,21 @@ const runDiagnosis = async () => {
   setStatus(['診断を開始しています...']);
 
   try {
-    // ✅ 2回診断してマージ（1秒間隔）
-    const logs1 = await runWebRtcLoopbackCheck();
-    await new Promise(res => setTimeout(res, 1000));
-    const logs2 = await runWebRtcLoopbackCheck();
+    const mergedLogs: string[] = [];
 
-    const webrtcLogs = [...logs1, ...logs2];
+    for (let i = 1; i <= 3; i++) {
+      const logs = await runWebRtcLoopbackCheck();
+      mergedLogs.push(...logs);
+      mergedLogs.push(`📎 診断 ${i} 回目 終了`);
+      await new Promise((res) => setTimeout(res, 3000)); // ✅ 3秒pause
+    }
 
     const res = await fetch('http://3.80.218.25:5050/check');
     const data = await res.json();
     const apiLogs = Array.isArray(data) ? data : [JSON.stringify(data, null, 2)];
 
     setTimeout(() => {
-      const combined = [...webrtcLogs, ...apiLogs];
+      const combined = [...mergedLogs, ...apiLogs];
       setStatus(combined);
       setLoading(false);
       setDiagnosed(true);
@@ -146,6 +148,7 @@ const runDiagnosis = async () => {
     setDiagnosed(true);
   }
 };
+
 
   const downloadResults = () => {
     const timestamp = new Date().toISOString().slice(0, 10);
