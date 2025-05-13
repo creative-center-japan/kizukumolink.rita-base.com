@@ -61,7 +61,6 @@ const CHECK_ITEMS = [
   }
 ];
 
-
 export default function Home() {
   const [status, setStatus] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,7 +78,6 @@ export default function Home() {
     const answer = await pc2.createAnswer();
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
-
     pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
     pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
 
@@ -87,16 +85,11 @@ export default function Home() {
       setTimeout(async () => {
         const stats = await pc1.getStats();
         stats.forEach(report => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            logs.push('candidate-pair: succeeded');
-          }
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') logs.push('candidate-pair: succeeded');
           if (report.type === 'local-candidate') {
-            const ip = report.address || report.ip || 'N/A';
-            if (report.candidateType === 'srflx') {
-              logs.push(`外部IP: ${ip}`);
-            }
-            const candidate = `candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`;
-            logs.push(`STUN candidate: ${candidate}`);
+            const ip = report.address || report.ip || report.remoteAddress || report.remoteIp || 'N/A';
+            if (report.candidateType === 'srflx') logs.push(`外部IP: ${ip}`);
+            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
           }
         });
         logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
@@ -104,7 +97,7 @@ export default function Home() {
       }, 3000);
     });
   };
-
+ 
   const runDiagnosis = async () => {
     setLoading(true);
     setDiagnosed(false);
@@ -140,55 +133,6 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
-    const logs = status.filter((log) => log.includes(item.keyword));
-    let resultContent: React.ReactNode = 'NG';
-    let color = 'text-rose-700';
-    if (item.keyword === 'NATタイプ:') {
-      const candidates = status.filter((l) => l.startsWith('STUN candidate:'));
-      const srflx = candidates.filter(c => c.includes('typ srflx'));
-      const ports = srflx.map(c => c.match(/\d+ typ srflx/)?.[0]?.split(' ')[0]);
-      const uniquePorts = new Set(ports);
-      if (srflx.length >= 2 && uniquePorts.size > 1) {
-        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-        color = 'text-slate-800';
-      } else if (srflx.length >= 2 && uniquePorts.size === 1) {
-        resultContent = <>Port-Restricted NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-        color = 'text-slate-800';
-      } else if (srflx.length === 1) {
-        resultContent = <>Symmetric NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-        color = 'text-slate-800';
-      }
-    } else if (item.keyword === '外部IP:') {
-      const log = logs.find((l) => l.startsWith('外部IP:'));
-      if (log) {
-        const ip = log.replace(/[^\d.]/g, '').trim();
-        resultContent = ip;
-        color = 'text-slate-800';
-      }
-    } else if (item.keyword === 'srflx') {
-      const found = status.find((l) => l.includes('typ srflx'));
-      if (found) {
-        resultContent = 'OK';
-        color = 'text-emerald-700';
-      }
-    } else {
-      const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
-      resultContent = isOK ? 'OK' : 'NG';
-      color = isOK ? 'text-emerald-700' : 'text-rose-700';
-    }
-    return (
-      <div key={idx} className="bg-white hover:bg-blue-50 border border-blue-200 rounded-xl p-4 shadow space-y-2 transition" title={item.tooltip}>
-        <div className="text-sm text-slate-600 font-medium">{item.label}</div>
-        <div className="text-xs text-slate-500">{item.description}</div>
-        <div className={`text-2xl font-bold text-center ${color}`}>{resultContent}</div>
-        <div className="text-right text-xs">
-          <button onClick={() => setShowDetail(item.label)} className="text-blue-600 underline hover:text-blue-800">【詳細】</button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <main className="min-h-screen bg-blue-50 text-slate-800 flex flex-col">
       <div className="max-w-5xl w-full mx-auto px-6 py-10 space-y-8 flex-grow">
@@ -222,7 +166,62 @@ export default function Home() {
 
         {diagnosed && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
+            {CHECK_ITEMS.map((item, idx) => {
+              const logs = status.filter((log) => log.includes(item.keyword));
+              let resultContent: React.ReactNode = 'NG';
+              let color = 'text-rose-700';
+
+              if (item.keyword === 'NATタイプ:') {
+                const candidates = status.filter((l) => l.startsWith('STUN candidate:'));
+                const srflx = candidates.filter(c => c.includes('typ srflx'));
+                const ports = srflx.map(c => c.match(/\d+ typ srflx/)?.[0]?.split(' ')[0]);
+                const uniquePorts = new Set(ports);
+                if (srflx.length >= 2 && uniquePorts.size > 1) {
+                  resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
+                  color = 'text-slate-800';
+                } else if (srflx.length >= 2 && uniquePorts.size === 1) {
+                  resultContent = <>Port-Restricted NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
+                  color = 'text-slate-800';
+                } else if (srflx.length === 1) {
+                  resultContent = <>Symmetric NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
+                  color = 'text-slate-800';
+                }
+              } else if (item.keyword === '外部IP:') {
+                const log = logs.find((l) => l.startsWith('外部IP:'));
+                if (log) {
+                  const ip = log.replace(/[^\d.]/g, '').trim();
+                  resultContent = ip;
+                  color = 'text-slate-800';
+                }
+              } else if (item.keyword === 'srflx') {
+                const found = status.find((l) => l.includes('typ srflx'));
+                if (found) {
+                  resultContent = 'OK';
+                  color = 'text-emerald-700';
+                }
+              } else {
+                const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+                resultContent = isOK ? 'OK' : 'NG';
+                color = isOK ? 'text-emerald-700' : 'text-rose-700';
+              }
+
+              return (
+                <div key={idx} className="bg-white hover:bg-blue-50 border border-blue-200 rounded-xl p-4 shadow space-y-2 transition" title={item.tooltip}>
+                  <div className="text-sm text-slate-600 font-medium flex justify-between items-center">
+                    {item.label}
+                    <button
+                      onClick={() => setShowDetail(item.label)}
+                      className="ml-2 cursor-pointer hover:text-blue-600"
+                      title="詳細はこちら"
+                    >
+                      <span role="img" aria-label="詳細">❔</span>
+                    </button>
+                  </div>
+                  <div className="text-xs text-slate-500">{item.description}</div>
+                  <div className={`text-2xl font-bold text-center ${color}`}>{resultContent}</div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
