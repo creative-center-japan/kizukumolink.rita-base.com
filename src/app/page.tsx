@@ -89,15 +89,21 @@ return new Promise(resolve => {
         logs.push('candidate-pair: succeeded');
       }
 
+return new Promise(resolve => {
+  setTimeout(async () => {
+    const stats = await pc1.getStats();
+    stats.forEach(report => {
+      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+        logs.push('candidate-pair: succeeded');
+      }
+
       if (report.type === 'local-candidate') {
         const ip = report.address ?? report.ip ?? '0.0.0.0';
 
-        // 外部IP（srflx のときのみ）
         if (report.candidateType === 'srflx') {
           logs.push(`外部IP: ${ip}`);
         }
 
-        // STUN candidate は常に出力
         logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
       }
     });
@@ -105,7 +111,8 @@ return new Promise(resolve => {
     logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
     resolve(logs);
   }, 3000);
-});
+});  // ← このPromiseの閉じ
+};   // ← 🔴 これ！runWebRtcLoopbackCheck関数の閉じカッコが抜けていた
  
   const runDiagnosis = async () => {
     setLoading(true);
