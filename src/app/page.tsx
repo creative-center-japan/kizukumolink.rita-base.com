@@ -85,17 +85,13 @@ export default function Home() {
     setTimeout(async () => {
       const stats = await pc1.getStats();
       stats.forEach(report => {
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          logs.push('candidate-pair: succeeded');
-        }
-
         if (report.type === 'local-candidate') {
-          const ip = report.address ?? report.ip ?? '0.0.0.0';
-
-          if (report.candidateType === 'srflx') {
+          const rawIp = report.address || report.ip || report.remoteAddress || report.remoteIp || '';
+          const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
+          
+          if (report.candidateType === 'srflx' && ip !== 'N/A') {
             logs.push(`外部IP: ${ip}`);
           }
-
           logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
         }
       });
