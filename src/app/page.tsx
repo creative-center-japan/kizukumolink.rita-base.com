@@ -72,26 +72,40 @@ export default function Home() {
   const pc1 = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
   const pc2 = new RTCPeerConnection();
   pc1.createDataChannel("test");
+
   const offer = await pc1.createOffer();
   await pc1.setLocalDescription(offer);
   await pc2.setRemoteDescription(offer);
   const answer = await pc2.createAnswer();
   await pc2.setLocalDescription(answer);
   await pc1.setRemoteDescription(answer);
-  pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
-  pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
+
+  pc1.onicecandidate = (e) => {
+    if (e.candidate) pc2.addIceCandidate(e.candidate);
+  };
+  pc2.onicecandidate = (e) => {
+    if (e.candidate) pc1.addIceCandidate(e.candidate);
+  };
 
   return new Promise(resolve => {
     setTimeout(async () => {
       const stats = await pc1.getStats();
+
       stats.forEach(report => {
+        logs.push(`debug: ${JSON.stringify(report)}`); // ✅ 全ログ表示
+
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          logs.push('candidate-pair: succeeded');
+        }
+
         if (report.type === 'local-candidate') {
           const rawIp = report.address || report.ip || report.remoteAddress || report.remoteIp || '';
           const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
-          
+
           if (report.candidateType === 'srflx' && ip !== 'N/A') {
             logs.push(`外部IP: ${ip}`);
           }
+
           logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
         }
       });
@@ -100,29 +114,38 @@ export default function Home() {
       resolve(logs);
     }, 3000);
   });
-}; // ✅ 正しい閉じカッコはこの1個だけ！
+};
+
  
-  const runDiagnosis = async () => {
-    setLoading(true);
-    setDiagnosed(false);
-    setStatus(['診断を開始しています...']);
-    try {
-      const webrtcLogs = await runWebRtcLoopbackCheck();
-      const res = await fetch('/api/check');
-      const data = await res.json();
-      const apiLogs = Array.isArray(data) ? data : [String(data)];
-      setTimeout(() => {
-        const combined = [...webrtcLogs, ...apiLogs];
-        setStatus(combined);
-        setLoading(false);
-        setDiagnosed(true);
-      }, 2000);
-    } catch {
-      setStatus(prev => [...prev, '接続に失敗しました']);
+const runDiagnosis = async () => {
+  setLoading(true);
+  setDiagnosed(false);
+  setStatus(['診断を開始しています...']);
+
+  try {
+    // ✅ 2回診断してマージ（1秒間隔）
+    const logs1 = await runWebRtcLoopbackCheck();
+    await new Promise(res => setTimeout(res, 1000));
+    const logs2 = await runWebRtcLoopbackCheck();
+
+    const webrtcLogs = [...logs1, ...logs2];
+
+    const res = await fetch('http://3.80.218.25:5050/check');
+    const data = await res.json();
+    const apiLogs = Array.isArray(data) ? data : [JSON.stringify(data, null, 2)];
+
+    setTimeout(() => {
+      const combined = [...webrtcLogs, ...apiLogs];
+      setStatus(combined);
       setLoading(false);
       setDiagnosed(true);
-    }
-  };
+    }, 1000);
+  } catch {
+    setStatus(prev => [...prev, '接続に失敗しました']);
+    setLoading(false);
+    setDiagnosed(true);
+  }
+};
 
   const downloadResults = () => {
     const timestamp = new Date().toISOString().slice(0, 10);
