@@ -132,7 +132,7 @@ const runDiagnosis = async () => {
       await new Promise((res) => setTimeout(res, 3000)); // ✅ 3秒pause
     }
 
-    const res = await fetch('http://3.80.218.25:5050/check');
+    const res = await fetch('/api/check'); // ✅ ←これに戻す！！
     const data = await res.json();
     const apiLogs = Array.isArray(data) ? data : [JSON.stringify(data, null, 2)];
 
