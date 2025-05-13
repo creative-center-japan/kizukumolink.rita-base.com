@@ -68,51 +68,43 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
   const runWebRtcLoopbackCheck = async (): Promise<string[]> => {
-    const logs: string[] = [];
-    const pc1 = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    const pc2 = new RTCPeerConnection();
-    pc1.createDataChannel("test");
-    const offer = await pc1.createOffer();
-    await pc1.setLocalDescription(offer);
-    await pc2.setRemoteDescription(offer);
-    const answer = await pc2.createAnswer();
-    await pc2.setLocalDescription(answer);
-    await pc1.setRemoteDescription(answer);
-    pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
-    pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
+  const logs: string[] = [];
+  const pc1 = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  const pc2 = new RTCPeerConnection();
+  pc1.createDataChannel("test");
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  pc1.onicecandidate = (e) => { if (e.candidate) pc2.addIceCandidate(e.candidate); };
+  pc2.onicecandidate = (e) => { if (e.candidate) pc1.addIceCandidate(e.candidate); };
 
-return new Promise(resolve => {
-  setTimeout(async () => {
-    const stats = await pc1.getStats();
-    stats.forEach(report => {
-      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-        logs.push('candidate-pair: succeeded');
-      }
-
-return new Promise(resolve => {
-  setTimeout(async () => {
-    const stats = await pc1.getStats();
-    stats.forEach(report => {
-      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-        logs.push('candidate-pair: succeeded');
-      }
-
-      if (report.type === 'local-candidate') {
-        const ip = report.address ?? report.ip ?? '0.0.0.0';
-
-        if (report.candidateType === 'srflx') {
-          logs.push(`外部IP: ${ip}`);
+  return new Promise(resolve => {
+    setTimeout(async () => {
+      const stats = await pc1.getStats();
+      stats.forEach(report => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          logs.push('candidate-pair: succeeded');
         }
 
-        logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
-      }
-    });
+        if (report.type === 'local-candidate') {
+          const ip = report.address ?? report.ip ?? '0.0.0.0';
 
-    logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
-    resolve(logs);
-  }, 3000);
-});  // ← このPromiseの閉じ
-};   // ← 🔴 これ！runWebRtcLoopbackCheck関数の閉じカッコが抜けていた
+          if (report.candidateType === 'srflx') {
+            logs.push(`外部IP: ${ip}`);
+          }
+
+          logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
+        }
+      });
+
+      logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
+      resolve(logs);
+    }, 3000);
+  });
+}; // ✅ 正しい閉じカッコはこの1個だけ！
  
   const runDiagnosis = async () => {
     setLoading(true);
