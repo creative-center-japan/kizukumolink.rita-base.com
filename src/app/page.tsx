@@ -201,39 +201,57 @@ const runDiagnosis = async () => {
               let resultContent: React.ReactNode = 'NG';
               let color = 'text-rose-700';
 
-              if (item.keyword === 'NATタイプ:') {
-                const candidates = status.filter((l) => l.startsWith('STUN candidate:'));
-                const srflx = candidates.filter(c => c.includes('typ srflx'));
-                const ports = srflx.map(c => c.match(/\d+ typ srflx/)?.[0]?.split(' ')[0]);
-                const uniquePorts = new Set(ports);
-                if (srflx.length >= 2 && uniquePorts.size > 1) {
-                  resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-                  color = 'text-slate-800';
-                } else if (srflx.length >= 2 && uniquePorts.size === 1) {
-                  resultContent = <>Port-Restricted NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-                  color = 'text-slate-800';
-                } else if (srflx.length === 1) {
-                  resultContent = <>Symmetric NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-                  color = 'text-slate-800';
-                }
-              } else if (item.keyword === '外部IP:') {
-                const log = logs.find((l) => l.startsWith('外部IP:'));
-                if (log) {
-                  const ip = log.replace(/[^\d.]/g, '').trim();
-                  resultContent = ip;
-                  color = 'text-slate-800';
-                }
-              } else if (item.keyword === 'srflx') {
-                const found = status.find((l) => l.includes('typ srflx'));
-                if (found) {
-                  resultContent = 'OK';
-                  color = 'text-emerald-700';
-                }
-              } else {
-                const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
-                resultContent = isOK ? 'OK' : 'NG';
-                color = isOK ? 'text-emerald-700' : 'text-rose-700';
-              }
+				if (item.keyword === 'NATタイプ:') {
+				  const srflxCandidates = status.filter((l) => l.includes('typ srflx'));
+				  const ports = srflxCandidates.map(c => c.match(/(\d+)\s+typ\s+srflx/)?.[1]).filter(Boolean);
+				  const uniquePorts = new Set(ports);
+				
+				  if (srflxCandidates.length >= 2 && uniquePorts.size === 1) {
+				    resultContent = (
+				      <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>
+				    );
+				    color = 'text-emerald-700';
+				  } else if (srflxCandidates.length >= 2 && uniquePorts.size > 1) {
+				    resultContent = (
+				      <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>
+				    );
+				    color = 'text-rose-700';
+				  } else if (srflxCandidates.length === 1) {
+				    resultContent = (
+				      <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>
+				    );
+				    color = 'text-rose-700';
+				  } else {
+				    resultContent = (
+				      <>NAT判定不可<br /><span className="text-xs text-slate-500">（srflx候補なし）</span></>
+				    );
+				    color = 'text-slate-400';
+				  }
+				} else if (item.keyword === '外部IP:') {
+				  const log = status.find((l) => l.startsWith('外部IP:'));
+				  const ipMatch = log?.match(/(\d+\.\d+\.\d+\.\d+)/);
+				  if (ipMatch) {
+				    resultContent = ipMatch[1];
+				    color = 'text-slate-800';
+				  } else {
+				    resultContent = 'N/A';
+				    color = 'text-slate-400';
+				  }
+				} else if (item.keyword === 'srflx') {
+				  const found = status.find((l) => l.includes('typ srflx'));
+				  if (found) {
+				    resultContent = 'OK';
+				    color = 'text-emerald-700';
+				  } else {
+				    resultContent = 'NG';
+				    color = 'text-rose-700';
+				  }
+				} else {
+				  const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+				  resultContent = isOK ? 'OK' : 'NG';
+				  color = isOK ? 'text-emerald-700' : 'text-rose-700';
+				}
+
 
               return (
                 <div key={idx} className="bg-white hover:bg-blue-50 border border-blue-200 rounded-xl p-4 shadow space-y-2 transition" title={item.tooltip}>
