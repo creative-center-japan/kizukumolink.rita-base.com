@@ -75,47 +75,62 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
   const runWebRtcLoopbackCheck = async (): Promise<string[]> => {
-    const logs: string[] = [];
-    const pc1 = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    const pc2 = new RTCPeerConnection();
-    pc1.createDataChannel("test");
+  const logs: string[] = [];
 
-    const offer = await pc1.createOffer();
-    await pc1.setLocalDescription(offer);
-    await pc2.setRemoteDescription(offer);
-    const answer = await pc2.createAnswer();
-    await pc2.setLocalDescription(answer);
-    await pc1.setRemoteDescription(answer);
+  const pc1 = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  });
 
-    pc1.onicecandidate = (e) => {
-      if (e.candidate) pc2.addIceCandidate(e.candidate);
-    };
-    pc2.onicecandidate = (e) => {
-      if (e.candidate) pc1.addIceCandidate(e.candidate);
-    };
+  const pc2 = new RTCPeerConnection();
+  pc1.createDataChannel("test");
 
-    return new Promise(resolve => {
-      setTimeout(async () => {
-        const stats = await pc1.getStats();
-        stats.forEach(report => {
-          logs.push(`debug: ${JSON.stringify(report)}`);
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            logs.push('candidate-pair: succeeded');
-          }
-          if (report.type === 'local-candidate') {
-            const rawIp = report.address || report.ip || report.remoteAddress || report.remoteIp || '';
-            const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
-            if (report.candidateType === 'srflx' && ip !== 'N/A') {
-              logs.push(`外部IP: ${ip}`);
-            }
-            logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
-          }
-        });
-        logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
-        resolve(logs);
-      }, 3000);
-    });
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+
+  pc1.onicecandidate = (e) => {
+    if (e.candidate) pc2.addIceCandidate(e.candidate);
   };
+  pc2.onicecandidate = (e) => {
+    if (e.candidate) pc1.addIceCandidate(e.candidate);
+  };
+
+  return new Promise(resolve => {
+    setTimeout(async () => {
+      const stats = await pc1.getStats();
+      stats.forEach(report => {
+        logs.push(`debug: ${JSON.stringify(report)}`);
+
+        // ✅ 成功判定
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          logs.push('candidate-pair: succeeded');
+        }
+
+        // ✅ STUN candidate 解析（local / remote 両方）
+        if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+          const rawIp = report.address || report.ip || '';
+          const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
+
+          if (report.candidateType === 'srflx' && ip !== 'N/A') {
+            logs.push(`外部IP: ${ip}`);
+          }
+
+          logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
+        }
+      });
+
+      logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
+      resolve(logs);
+    }, 3000);
+  });
+};  
 
   const runDiagnosis = async () => {
     setLoading(true);
@@ -169,7 +184,7 @@ export default function Home() {
 
     if (item.keyword === 'NATタイプ:') {
       const srflxCandidates = status.filter((l) => l.includes('typ srflx'));
-      const ports = srflxCandidates.map(c => c.match(/(\\d+)\\s+typ\\s+srflx/)?.[1]).filter(Boolean);
+      const ports = srflxCandidates.map(c => c.match(/(\d+)\s+typ\s+srflx/)?.[1]).filter(Boolean);
       const uniquePorts = new Set(ports);
 
       if (srflxCandidates.length >= 2 && uniquePorts.size === 1) {
