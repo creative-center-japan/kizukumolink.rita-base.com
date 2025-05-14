@@ -196,7 +196,7 @@ export default function Home() {
         resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
         color = 'text-rose-700';
       } else if (srflxCandidates.length >= 1 && uniqueIps.size === 1) {
-        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定／IP一致)</span></>;
+        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">（自動判定）</span></>;
         color = 'text-emerald-700';
       } else if (srflxCandidates.length >= 1) {
         resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
