@@ -184,7 +184,9 @@ export default function Home() {
 
     if (item.keyword === 'NATタイプ:') {
       const srflxCandidates = status.filter((l) => l.includes('typ srflx'));
+      const ips = srflxCandidates.map(c => c.match(/(\d+\.\d+\.\d+\.\d+)/)?.[1]).filter(Boolean);
       const ports = srflxCandidates.map(c => c.match(/(\d+)\s+typ\s+srflx/)?.[1]).filter(Boolean);
+      const uniqueIps = new Set(ips);
       const uniquePorts = new Set(ports);
 
       if (srflxCandidates.length >= 2 && uniquePorts.size === 1) {
@@ -193,7 +195,10 @@ export default function Home() {
       } else if (srflxCandidates.length >= 2 && uniquePorts.size > 1) {
         resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
         color = 'text-rose-700';
-      } else if (srflxCandidates.length === 1) {
+      } else if (srflxCandidates.length >= 1 && uniqueIps.size === 1) {
+        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定／IP一致)</span></>;
+        color = 'text-emerald-700';
+      } else if (srflxCandidates.length >= 1) {
         resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
         color = 'text-rose-700';
       } else {
