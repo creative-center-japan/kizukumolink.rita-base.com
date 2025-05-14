@@ -203,7 +203,7 @@ export default function Home() {
 
     } else if (item.keyword === '外部IP:') {
       const log = status.find((l) => l.startsWith('外部IP:') || l.startsWith('🌐 外部IP:'));
-      const ipMatch = log?.match(/(\\d+\\.\\d+\\.\\d+\\.\\d+)/);
+      const ipMatch = log?.match(/(\d+\.\d+\.\d+\.\d+)/);
       if (ipMatch) {
         resultContent = ipMatch[1];
         color = 'text-slate-800';
@@ -272,7 +272,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        
+
         {diagnosed && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
