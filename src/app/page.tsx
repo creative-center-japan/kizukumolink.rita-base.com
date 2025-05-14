@@ -268,11 +268,11 @@ export default function Home() {
           <div className="bg-white border border-blue-200 rounded-xl p-6 shadow">
             <p className="text-sm text-center text-slate-600 mb-2">診断中...</p>
             <div className="w-full h-3 bg-blue-100 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 animate-[progress_2s_linear_forwards] w-full" />
+              <div className="h-full w-1/3 bg-blue-500 animate-pulse rounded-full" />
             </div>
           </div>
         )}
-
+        
         {diagnosed && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
