@@ -348,20 +348,19 @@ export default function Home() {
   );
 }
 
-// ✅ OK（export を外せば Next.js でも問題なし）
+// ✅ WebRTCで使用されたcandidate情報から"実際に使われた経路"を明確にログ出力
+// P2PできるのにTURNしか使えなかった、という誤認を避ける方針に沿ったもの
 async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
-
   const logs: string[] = [];
   const stats = await pc.getStats();
 
   let selectedPairId = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const candidates: Record<string, any> = {};
 
   stats.forEach(report => {
     if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
       selectedPairId = report.id;
-      logs.push('✅ 使用された candidate-pair が見つかりました');
+      logs.push('✅ 実際に使用された candidate-pair が見つかりました');
     }
     if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
       candidates[report.id] = report;
@@ -369,13 +368,13 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
   });
 
   if (!selectedPairId) {
-    logs.push('❌ nominated な candidate-pair が見つかりませんでした');
+    logs.push('❌ 使用された candidate-pair が見つかりませんでした');
     return logs;
   }
 
   const selectedPair = Array.from(stats.values()).find(r => r.id === selectedPairId);
   if (!selectedPair) {
-    logs.push('⚠️ candidate-pair詳細が取得できませんでした');
+    logs.push('⚠️ 使用された candidate-pair の詳細が取得できませんでした');
     return logs;
   }
 
@@ -383,13 +382,27 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
   const remote = candidates[selectedPair.remoteCandidateId];
 
   if (local) {
-    logs.push(`🌐 使用された local candidate: ${local.address}:${local.port} typ ${local.candidateType}`);
+    logs.push(`🌐 Local: ${local.address}:${local.port} typ ${local.candidateType}`);
   }
   if (remote) {
-    logs.push(`🌍 使用された remote candidate: ${remote.address}:${remote.port} typ ${remote.candidateType}`);
+    logs.push(`🌍 Remote: ${remote.address}:${remote.port} typ ${remote.candidateType}`);
   }
 
-  logs.push(`📡 接続は ${local?.candidateType === 'relay' ? 'TURN中継' : local?.candidateType === 'srflx' ? 'P2P (STUN)' : 'ローカル (host)'} によって確立されました`);
+  // ✅ 誤認を防ぐ方針で出力
+  switch (local?.candidateType) {
+    case 'relay':
+      logs.push('📡 接続は TURN中継 によって確立されました（※P2P経路は使われていません）');
+      break;
+    case 'srflx':
+      logs.push('📡 接続は P2P（STUN経由） によって確立されました');
+      break;
+    case 'host':
+      logs.push('📡 接続は ローカルhost候補 によって確立されました（⚠️外部P2Pではない可能性あり）');
+      break;
+    default:
+      logs.push('📡 接続経路の判定ができませんでした');
+      break;
+  }
 
   return logs;
-}
+}  
