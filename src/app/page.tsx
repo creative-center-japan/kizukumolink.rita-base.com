@@ -216,7 +216,7 @@ export default function Home() {
       }
 
     } else if (item.keyword === '外部IP:') {
-      const log = status.find((l) => l.startsWith('外部IP:') || l.startsWith('🌐 外部IP:'));
+      const log = status.find((l) => /^🌐? 外部IP(（補完）)?:/.test(l));
       const ipMatch = log?.match(/(\d+\.\d+\.\d+\.\d+)/);
       if (ipMatch) {
         resultContent = ipMatch[1];
