@@ -349,13 +349,12 @@ export default function Home() {
 }
 
 // ✅ WebRTCで使用されたcandidate情報から"実際に使われた経路"を明確にログ出力
-// P2PできるのにTURNしか使えなかった、という誤認を避ける方針に沿ったもの
 async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
   const logs: string[] = [];
   const stats = await pc.getStats();
 
   let selectedPairId = '';
-  const candidates: Record<string, any> = {};
+  const candidates: Record<string, RTCIceCandidateStats> = {};
 
   stats.forEach(report => {
     if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
@@ -363,7 +362,7 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
       logs.push('✅ 実際に使用された candidate-pair が見つかりました');
     }
     if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
-      candidates[report.id] = report;
+      candidates[report.id] = report as RTCIceCandidateStats;
     }
   });
 
@@ -388,7 +387,6 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
     logs.push(`🌍 Remote: ${remote.address}:${remote.port} typ ${remote.candidateType}`);
   }
 
-  // ✅ 誤認を防ぐ方針で出力
   switch (local?.candidateType) {
     case 'relay':
       logs.push('📡 接続は TURN中継 によって確立されました（※P2P経路は使われていません）');
@@ -405,4 +403,4 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
   }
 
   return logs;
-}  
+}
