@@ -113,7 +113,7 @@ export default function Home() {
 
   return new Promise(resolve => {
     setTimeout(async () => {
-      
+
       const extraLogs = await analyzeWebRTCStats(pc1);
       logs.push(...extraLogs);
 
@@ -348,7 +348,9 @@ export default function Home() {
   );
 }
 
-export async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
+// ✅ OK（export を外せば Next.js でも問題なし）
+async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
+
   const logs: string[] = [];
   const stats = await pc.getStats();
 
