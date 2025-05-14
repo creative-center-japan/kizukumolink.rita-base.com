@@ -355,6 +355,7 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
   const stats = await pc.getStats();
 
   let selectedPairId = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const candidates: Record<string, any> = {};
 
   stats.forEach(report => {
