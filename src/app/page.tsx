@@ -18,6 +18,16 @@ const CHECK_ITEMS = [
 【既存の設備へ設定変更が必要】対称NAT: 外部から内部へのアクセスは許可されませんが、内部から外部へのアクセスは許可されます。`,
     ngReason: 'STUN応答からNATタイプが判定できませんでした'
   },
+
+  {
+    label: 'TURN応答',
+    description: 'TURNサーバを経由した通信ができたか',
+    keyword: 'typ relay',
+    tooltip: 'typ relay を含む候補があれば中継成功と判断します',
+    detail: 'STUN/TURN応答で relay タイプの候補があれば、P2Pが通らなくても通信可能な環境です。',
+    ngReason: 'typ relay の候補が1つも見つかりませんでした'
+  },
+
   {
     label: '外部IP取得',
     description: 'インターネットへ接続する際のIPを確認',
@@ -79,9 +89,8 @@ export default function Home() {
 
   const pc1 = new RTCPeerConnection({
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
+      { urls: 'stun:3.80.218.25:3478' },
+      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
     ]
   });
 
@@ -222,6 +231,19 @@ export default function Home() {
       if (found) {
         resultContent = 'OK';
         color = 'text-emerald-700';
+      } else {
+        resultContent = 'NG';
+        color = 'text-rose-700';
+      }
+
+    } else if (item.keyword === 'typ relay') {
+      const found = status.find((l) => l.includes('typ relay'));
+      if (found) {
+        resultContent = 'OK';
+        color = 'text-emerald-700';
+      } else {
+        resultContent = 'NG';
+        color = 'text-rose-700';
       }
 
     } else {
