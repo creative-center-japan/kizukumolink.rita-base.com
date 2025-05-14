@@ -113,6 +113,10 @@ export default function Home() {
 
   return new Promise(resolve => {
     setTimeout(async () => {
+      
+      const extraLogs = await analyzeWebRTCStats(pc1);
+      logs.push(...extraLogs);
+
       const stats = await pc1.getStats();
       stats.forEach(report => {
         logs.push(`debug: ${JSON.stringify(report)}`);
@@ -342,4 +346,47 @@ export default function Home() {
       )}
     </main>
   );
+}
+
+export async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
+  const logs: string[] = [];
+  const stats = await pc.getStats();
+
+  let selectedPairId = '';
+  const candidates: Record<string, any> = {};
+
+  stats.forEach(report => {
+    if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
+      selectedPairId = report.id;
+      logs.push('✅ 使用された candidate-pair が見つかりました');
+    }
+    if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+      candidates[report.id] = report;
+    }
+  });
+
+  if (!selectedPairId) {
+    logs.push('❌ nominated な candidate-pair が見つかりませんでした');
+    return logs;
+  }
+
+  const selectedPair = Array.from(stats.values()).find(r => r.id === selectedPairId);
+  if (!selectedPair) {
+    logs.push('⚠️ candidate-pair詳細が取得できませんでした');
+    return logs;
+  }
+
+  const local = candidates[selectedPair.localCandidateId];
+  const remote = candidates[selectedPair.remoteCandidateId];
+
+  if (local) {
+    logs.push(`🌐 使用された local candidate: ${local.address}:${local.port} typ ${local.candidateType}`);
+  }
+  if (remote) {
+    logs.push(`🌍 使用された remote candidate: ${remote.address}:${remote.port} typ ${remote.candidateType}`);
+  }
+
+  logs.push(`📡 接続は ${local?.candidateType === 'relay' ? 'TURN中継' : local?.candidateType === 'srflx' ? 'P2P (STUN)' : 'ローカル (host)'} によって確立されました`);
+
+  return logs;
 }
