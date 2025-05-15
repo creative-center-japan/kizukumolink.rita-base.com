@@ -183,13 +183,34 @@ const CHECK_ITEMS: CheckItem[] = [
     try {
       const mergedLogs: string[] = [];
 
-		for (let i = 1; i <= 3; i++) {
-		  mergedLogs.push(`🔄 診断 ${i} 回目 開始`); // ← 診断開始ログを追加
-		  const logs = await runWebRtcRemoteCheck();
-		  mergedLogs.push(...logs);
-		  mergedLogs.push(`📎 診断 ${i} 回目 終了`); // ← 既存（診断終了ログ）
-		  await new Promise((res) => setTimeout(res, 3000)); // 3秒 pause
-		}
+      // 🌐 ブラウザの外部IPを最初に取得してログに追加
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        mergedLogs.push(`🌐 外部IP（ブラウザから取得）: ${data.ip}`);
+      } catch {
+        mergedLogs.push(`🌐 外部IP（ブラウザから取得）: 取得失敗`);
+      }
+
+      for (let i = 1; i <= 3; i++) {
+        mergedLogs.push(`🔄 診断 ${i} 回目 開始`);
+        const logs = await runWebRtcRemoteCheck();
+        mergedLogs.push(...logs);
+        mergedLogs.push(`📎 診断 ${i} 回目 終了`);
+        await new Promise((res) => setTimeout(res, 3000));
+      }
+
+      const res = await fetch('/api/check');
+      const data = await res.json();
+      const apiLogs = Array.isArray(data) ? data : [JSON.stringify(data, null, 2)];
+
+      setTimeout(() => {
+        const combined = [...mergedLogs, ...apiLogs];
+        setStatus(combined);
+        setLoading(false);
+        setDiagnosed(true);
+      }, 1000);
+    }
 
       const res = await fetch('/api/check');
       const data = await res.json();
