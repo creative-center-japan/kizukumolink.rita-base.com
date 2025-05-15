@@ -119,77 +119,61 @@ const CHECK_ITEMS: CheckItem[] = [
   }
 ];
 
-export default function Home() {
-  const [status, setStatus] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [diagnosed, setDiagnosed] = useState(false);
-  const [showDetail, setShowDetail] = useState<string | null>(null);
-
-  const runWebRtcLoopbackCheck = async (): Promise<string[]> => {
-  const logs: string[] = [];
-
-  const pc1 = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-    ]
-  });
-
-  const pc2 = new RTCPeerConnection();
-  pc1.createDataChannel("test");
-
-  const offer = await pc1.createOffer();
-  await pc1.setLocalDescription(offer);
-  await pc2.setRemoteDescription(offer);
-  const answer = await pc2.createAnswer();
-  await pc2.setLocalDescription(answer);
-  await pc1.setRemoteDescription(answer);
-
-  pc1.onicecandidate = (e) => {
-    if (e.candidate) pc2.addIceCandidate(e.candidate);
-  };
-  pc2.onicecandidate = (e) => {
-    if (e.candidate) pc1.addIceCandidate(e.candidate);
-  };
-
-return new Promise(resolve => {
-  setTimeout(async () => {
-    const extraLogs = await analyzeWebRTCStats(pc1);
-    logs.push(...extraLogs);
-
-    const stats = await pc1.getStats();
-    stats.forEach(report => {
-      logs.push(`debug: ${JSON.stringify(report)}`);
-
-      // ✅ 成功判定
-      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-        logs.push('candidate-pair: succeeded');
-      }
-
-      // ✅ STUN candidate 解析（local / remote 両方）
-      if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
-        const rawIp = report.address || report.ip || '';
-        const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
-
-        if (report.candidateType === 'srflx' && ip !== 'N/A') {
-          logs.push(`外部IP: ${ip}`);
-        }
-
-        logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
-      }
-    });
-
-    logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
-
-    pc1.close();  // ✅ 追加: リソースを解放する
-    pc2.close();  // ✅ 追加: リソースを解放する
-
-    resolve(logs);
-  }, 3000);
-});
-
-};
-
+	const runWebRtcRemoteCheck = async (): Promise<string[]> => {
+	  const logs: string[] = [];
+	
+	  const pc = new RTCPeerConnection({
+	    iceServers: [
+	      { urls: 'stun:3.80.218.25:3478' },
+	      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+	    ],
+	    iceTransportPolicy: "all"
+	  });
+	
+	  pc.createDataChannel("test");
+	
+	  const offer = await pc.createOffer();
+	  await pc.setLocalDescription(offer);
+	
+	  const gcpUrl = "http://34.146.130.50:5000/offer";
+	  logs.push("🛰️ GCPにoffer送信中...");
+	
+	  const res = await fetch(gcpUrl, {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify({
+	      sdp: offer.sdp,
+	      type: offer.type
+	    })
+	  });
+	
+	  const answer = await res.json();
+	  await pc.setRemoteDescription(new RTCSessionDescription(answer));
+	  logs.push("🎯 GCPからanswerを受信し、セット完了");
+	
+	  let connected = false;
+	  await new Promise(resolve => {
+	    pc.oniceconnectionstatechange = () => {
+	      if (pc.iceConnectionState === "connected") {
+	        connected = true;
+	        logs.push("✅ WebRTC接続成功（GCP対向）");
+	        pc.close();
+	        resolve(true);
+	      }
+	    };
+	    setTimeout(() => {
+	      if (!connected) {
+	        logs.push("❌ WebRTC接続失敗（GCP対向）");
+	        pc.close();
+	        resolve(true);
+	      }
+	    }, 5000);
+	  });
+	
+	  const extra = await analyzeWebRTCStats(pc);
+	  logs.push(...extra);
+	  return logs;
+	};
 
   const runDiagnosis = async () => {
     setLoading(true);
@@ -201,7 +185,7 @@ return new Promise(resolve => {
 
 		for (let i = 1; i <= 3; i++) {
 		  mergedLogs.push(`🔄 診断 ${i} 回目 開始`); // ← 診断開始ログを追加
-		  const logs = await runWebRtcLoopbackCheck();
+		  const logs = await runWebRtcRemoteCheck();
 		  mergedLogs.push(...logs);
 		  mergedLogs.push(`📎 診断 ${i} 回目 終了`); // ← 既存（診断終了ログ）
 		  await new Promise((res) => setTimeout(res, 3000)); // 3秒 pause
