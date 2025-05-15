@@ -2,9 +2,50 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-const CHECK_ITEMS = [
+
+interface CheckItem {
+  label: string;
+  description: string;
+  keyword: string;
+  tooltip: string;
+  detail: string;
+  ngReason: string;
+}
+
+type RTCIceCandidateStats = {
+  id: string;
+  timestamp: number;
+  type: 'local-candidate' | 'remote-candidate';
+  candidateType: 'host' | 'srflx' | 'prflx' | 'relay';
+  protocol: string;
+  address?: string;
+  ip?: string;
+  port: number;
+  foundation?: string;
+  priority?: number;
+  url?: string;
+  relayProtocol?: string;
+};
+
+type RTCIceCandidatePairStats = {
+  id: string;
+  timestamp: number;
+  type: 'candidate-pair';
+  localCandidateId: string;
+  remoteCandidateId: string;
+  state: 'frozen' | 'waiting' | 'in-progress' | 'failed' | 'succeeded' | 'cancelled';
+  nominated?: boolean;
+  writable?: boolean;
+  priority?: number;
+  totalRoundTripTime?: number;
+  currentRoundTripTime?: number;
+  availableOutgoingBitrate?: number;
+  availableIncomingBitrate?: number;
+};
+
+const CHECK_ITEMS: CheckItem[] = [
   {
     label: 'NATタイプ',
     description: '利用するNWのNATタイプを確認する',
@@ -111,39 +152,44 @@ export default function Home() {
     if (e.candidate) pc1.addIceCandidate(e.candidate);
   };
 
-  return new Promise(resolve => {
-    setTimeout(async () => {
+return new Promise(resolve => {
+  setTimeout(async () => {
+    const extraLogs = await analyzeWebRTCStats(pc1);
+    logs.push(...extraLogs);
 
-      const extraLogs = await analyzeWebRTCStats(pc1);
-      logs.push(...extraLogs);
+    const stats = await pc1.getStats();
+    stats.forEach(report => {
+      logs.push(`debug: ${JSON.stringify(report)}`);
 
-      const stats = await pc1.getStats();
-      stats.forEach(report => {
-        logs.push(`debug: ${JSON.stringify(report)}`);
+      // ✅ 成功判定
+      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+        logs.push('candidate-pair: succeeded');
+      }
 
-        // ✅ 成功判定
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          logs.push('candidate-pair: succeeded');
+      // ✅ STUN candidate 解析（local / remote 両方）
+      if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+        const rawIp = report.address || report.ip || '';
+        const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
+
+        if (report.candidateType === 'srflx' && ip !== 'N/A') {
+          logs.push(`外部IP: ${ip}`);
         }
 
-        // ✅ STUN candidate 解析（local / remote 両方）
-        if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
-          const rawIp = report.address || report.ip || '';
-          const ip = rawIp.trim() !== '' ? rawIp : 'N/A';
+        logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
+      }
+    });
 
-          if (report.candidateType === 'srflx' && ip !== 'N/A') {
-            logs.push(`外部IP: ${ip}`);
-          }
+    logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
 
-          logs.push(`STUN candidate: candidate:${report.foundation} ${report.component ?? 1} ${report.protocol} ${report.priority} ${ip} ${report.port} typ ${report.candidateType}`);
-        }
-      });
+    pc1.close();  // ✅ 追加: リソースを解放する
+    pc2.close();  // ✅ 追加: リソースを解放する
 
-      logs.push(`📅 実行日時: ${new Date().toLocaleString('ja-JP', { hour12: false })}`);
-      resolve(logs);
-    }, 3000);
-  });
-};  
+    resolve(logs);
+  }, 3000);
+});
+
+};
+
 
   const runDiagnosis = async () => {
     setLoading(true);
@@ -153,12 +199,13 @@ export default function Home() {
     try {
       const mergedLogs: string[] = [];
 
-      for (let i = 1; i <= 3; i++) {
-        const logs = await runWebRtcLoopbackCheck();
-        mergedLogs.push(...logs);
-        mergedLogs.push(`📎 診断 ${i} 回目 終了`);
-        await new Promise((res) => setTimeout(res, 3000)); // 3秒 pause
-      }
+		for (let i = 1; i <= 3; i++) {
+		  mergedLogs.push(`🔄 診断 ${i} 回目 開始`); // ← 診断開始ログを追加
+		  const logs = await runWebRtcLoopbackCheck();
+		  mergedLogs.push(...logs);
+		  mergedLogs.push(`📎 診断 ${i} 回目 終了`); // ← 既存（診断終了ログ）
+		  await new Promise((res) => setTimeout(res, 3000)); // 3秒 pause
+		}
 
       const res = await fetch('/api/check');
       const data = await res.json();
@@ -195,66 +242,75 @@ export default function Home() {
     let resultContent: React.ReactNode = 'NG';
     let color = 'text-rose-700';
 
-    if (item.keyword === 'NATタイプ:') {
-      const srflxCandidates = status.filter((l) => l.includes('typ srflx'));
-      const ips = srflxCandidates.map(c => c.match(/(\d+\.\d+\.\d+\.\d+)/)?.[1]).filter(Boolean);
-      const ports = srflxCandidates.map(c => c.match(/(\d+)\s+typ\s+srflx/)?.[1]).filter(Boolean);
-      const uniqueIps = new Set(ips);
-      const uniquePorts = new Set(ports);
+      if (item.keyword === 'NATタイプ:') {
+    const srflxCandidates = status.filter((l) => l.includes('typ srflx'));
+    const ips = srflxCandidates.map(c => c.match(/(\d+\.\d+\.\d+\.\d+)/)?.[1]).filter(Boolean);
+    const ports = srflxCandidates.map(c => c.match(/(\d+)\s+typ\s+srflx/)?.[1]).filter(Boolean);
+    const uniqueIps = new Set(ips);
+    const uniquePorts = new Set(ports);
 
-      if (srflxCandidates.length >= 2 && uniquePorts.size === 1) {
-        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
-        color = 'text-emerald-700';
-      } else if (srflxCandidates.length >= 2 && uniquePorts.size > 1) {
-        resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
-        color = 'text-rose-700';
-      } else if (srflxCandidates.length >= 1 && uniqueIps.size === 1) {
-        resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">（自動判定）</span></>;
-        color = 'text-emerald-700';
-      } else if (srflxCandidates.length >= 1) {
-        resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
-        color = 'text-rose-700';
-      } else {
-        resultContent = <>NAT判定不可<br /><span className="text-xs text-slate-500">（srflx候補なし）</span></>;
-        color = 'text-slate-400';
-      }
-
-    } else if (item.keyword === '外部IP:') {
-      const log = status.find((l) => /^🌐? 外部IP(（補完）)?:/.test(l));
-      const ipMatch = log?.match(/(\d+\.\d+\.\d+\.\d+)/);
-      if (ipMatch) {
-        resultContent = ipMatch[1];
-        color = 'text-slate-800';
-      } else {
-        resultContent = 'N/A';
-        color = 'text-slate-400';
-      }
-
-    } else if (item.keyword === 'srflx') {
-      const found = status.find((l) => l.includes('typ srflx'));
-      if (found) {
-        resultContent = 'OK';
-        color = 'text-emerald-700';
-      } else {
-        resultContent = 'NG';
-        color = 'text-rose-700';
-      }
-
-    } else if (item.keyword === 'typ relay') {
-      const found = status.find((l) => l.includes('typ relay'));
-      if (found) {
-        resultContent = 'OK';
-        color = 'text-emerald-700';
-      } else {
-        resultContent = 'NG';
-        color = 'text-rose-700';
-      }
-
+    if (srflxCandidates.length >= 2 && uniquePorts.size === 1) {
+      resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">(推定)</span></>;
+      color = 'text-emerald-700';
+    } else if (srflxCandidates.length >= 2 && uniquePorts.size > 1) {
+      resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
+      color = 'text-rose-700';
+    } else if (srflxCandidates.length >= 1 && uniqueIps.size === 1) {
+      resultContent = <>Full Cone NAT<br /><span className="text-xs text-slate-500">（自動判定）</span></>;
+      color = 'text-emerald-700';
+    } else if (srflxCandidates.length >= 1) {
+      resultContent = <>Symmetric NAT<br /><span className="text-xs text-rose-600">【既存設備の設定変更が必要】</span></>;
+      color = 'text-rose-700';
     } else {
-      const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
-      resultContent = isOK ? 'OK' : 'NG';
-      color = isOK ? 'text-emerald-700' : 'text-rose-700';
+      resultContent = <>NAT判定不可<br /><span className="text-xs text-slate-500">（srflx候補なし）</span></>;
+      color = 'text-slate-400';
     }
+
+  } else if (item.keyword === '外部IP:') {
+    const stunLog = status.find((l) => /^外部IP: \d+\.\d+\.\d+\.\d+$/.test(l));
+    const browserLog = status.find((l) => /^🌐 外部IP（ブラウザから取得）:/.test(l));
+    const ipMatch = stunLog?.match(/(\d+\.\d+\.\d+\.\d+)/) || browserLog?.match(/(\d+\.\d+\.\d+\.\d+)/);
+
+    if (ipMatch) {
+      resultContent = (
+        <>
+          {ipMatch[1]}
+          {browserLog && !stunLog && (
+            <span className="text-xs text-slate-500 block">(ブラウザから取得)</span>
+          )}
+        </>
+      );
+      color = 'text-slate-800';
+    } else {
+      resultContent = 'N/A';
+      color = 'text-slate-400';
+    }
+
+  } else if (item.keyword === 'srflx') {
+    const found = status.find((l) => l.includes('typ srflx'));
+    if (found) {
+      resultContent = 'OK';
+      color = 'text-emerald-700';
+    } else {
+      resultContent = 'NG';
+      color = 'text-rose-700';
+    }
+
+  } else if (item.keyword === 'typ relay') {
+    const found = status.find((l) => l.includes('typ relay'));
+    if (found) {
+      resultContent = 'OK';
+      color = 'text-emerald-700';
+    } else {
+      resultContent = 'NG';
+      color = 'text-rose-700';
+    }
+
+  } else {
+    const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+    resultContent = isOK ? 'OK' : 'NG';
+    color = isOK ? 'text-emerald-700' : 'text-rose-700';
+  }
 
     return (
       <div key={idx} className="bg-white hover:bg-blue-50 border border-blue-200 rounded-xl p-4 shadow space-y-2 transition" title={item.tooltip}>
@@ -273,6 +329,7 @@ export default function Home() {
       </div>
     );
   };
+  
   return (
     <main className="min-h-screen bg-blue-50 text-slate-800 flex flex-col">
       <div className="max-w-5xl w-full mx-auto px-6 py-10 space-y-8 flex-grow">
@@ -284,14 +341,23 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="flex justify-center gap-4">
-          <button onClick={runDiagnosis} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium">
-            {diagnosed ? '再診断' : '診断開始'}
-          </button>
-          {diagnosed && (
-            <button onClick={downloadResults} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium">
-              結果をダウンロード
-            </button>
+		<div className="flex justify-center gap-4">
+		  <button
+		    onClick={runDiagnosis}
+		    className={`px-6 py-3 ${
+		      loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+		    } text-white rounded-full font-medium`}
+		    disabled={loading}
+		  >
+		    {loading ? '診断中...' : diagnosed ? '再診断' : '診断開始'}
+		  </button>
+		  {diagnosed && (
+		    <button
+		      onClick={downloadResults}
+		      className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium"
+		    >
+		      結果をダウンロード
+		    </button>
           )}
         </div>
 
@@ -318,20 +384,33 @@ export default function Home() {
               {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
             </h2>
 
-            <pre className="whitespace-pre-wrap text-slate-700">
-              {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
-
-              {/* NG理由の追加表示（あれば） */}
-              {(() => {
-                const detail = CHECK_ITEMS.find(i => i.label === showDetail);
-                const logs = status.filter(l => l.includes(detail?.keyword || ''));
-                const isOK = logs.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
-                if (!isOK && detail?.ngReason) {
-                  return `\n\n❗NG理由: ${detail.ngReason}`;
-                }
-                return '';
-              })()}
-            </pre>
+				<pre className="whitespace-pre-wrap text-slate-700">
+				  {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
+				
+				  {/* NG理由の追加表示（あれば） */}
+				  {(() => {
+				    const detail = CHECK_ITEMS.find(i => i.label === showDetail);
+				    const isOK = (() => {
+				      switch (detail?.keyword) {
+				        case '外部IP:':
+				          return status.some(l => /^外部IP: \d+\.\d+\.\d+\.\d+$/.test(l));
+				        case 'candidate-pair: succeeded':
+				          return status.some(l => l.includes('candidate-pair: succeeded'));
+				        case 'typ relay':
+				          return status.some(l => l.includes('typ relay'));
+				        case 'srflx':
+				          return status.some(l => l.includes('typ srflx'));
+				        default:
+				          return status.some(log => log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+				      }
+				    })();
+				
+				    if (!isOK && detail?.ngReason) {
+				      return `\n\n❗NG理由: ${detail.ngReason}`;
+				    }
+				    return '';
+				  })()}
+				</pre>
 
             <div className="text-right">
               <button
@@ -371,7 +450,8 @@ async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
     return logs;
   }
 
-  const selectedPair = Array.from(stats.values()).find(r => r.id === selectedPairId);
+  const selectedPair = Array.from(stats.values()).find(r => r.id === selectedPairId) as RTCIceCandidatePairStats | undefined;
+
   if (!selectedPair) {
     logs.push('⚠️ 使用された candidate-pair の詳細が取得できませんでした');
     return logs;
