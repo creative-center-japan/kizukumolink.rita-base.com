@@ -219,11 +219,11 @@ export default function Home() {
         } else {
           mergedLogs.push(`🧾 サーバーログに relay セッションなし`);
         }
-      } catch (e) {
+
+      } catch {
         mergedLogs.push(`⚠️ サーバーログ照合に失敗しました`);
       }
 
-      // 🚩 この部分を追加する（必須！）
       setStatus(mergedLogs);
       setLoading(false);
       setDiagnosed(true);
@@ -234,7 +234,6 @@ export default function Home() {
       setDiagnosed(true);
     }
   };
-
 
   async function analyzeWebRTCStats(pc: RTCPeerConnection): Promise<string[]> {
     const logs: string[] = [];
