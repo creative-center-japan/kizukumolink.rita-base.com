@@ -127,53 +127,72 @@ export default function Home() {
   const runWebRtcRemoteCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
 
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:3.80.218.25:3478' },
-        { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-      ],
-      iceTransportPolicy: "all"
-    });
 
-    pc.createDataChannel("test");
+const pc = new RTCPeerConnection({
+  iceServers: [
+    { urls: 'stun:3.80.218.25:3478' },
+    { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+  ],
+  iceTransportPolicy: "all"
+});
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+pc.createDataChannel("test");
 
-    const gcpUrl = "https://webrtc-answer.rita-base.com/offer";
-    logs.push("🛰️ GCPにoffer送信中...");
+pc.oniceconnectionstatechange = () => {
+  console.log(`ICE Connection State: ${pc.iceConnectionState}`);
+};
 
-    const res = await fetch(gcpUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sdp: offer.sdp,
-        type: offer.type
-      })
-    });
+pc.onicecandidate = (event) => {
+  if (event.candidate) {
+    console.log('Candidate:', event.candidate.candidate);
+  } else {
+    console.log('Candidate gathering completed.');
+  }
+};
 
-    const answer = await res.json();
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    logs.push("🎯 GCPからanswerを受信し、セット完了");
+const offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
 
-    let connected = false;
-    await new Promise(resolve => {
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "connected") {
-          connected = true;
-          logs.push("✅ WebRTC接続成功（GCP対向）");
-          pc.close();
-          resolve(true);
-        }
-      };
-      setTimeout(() => {
-        if (!connected) {
-          logs.push("❌ WebRTC接続失敗（GCP対向）");
-          pc.close();
-          resolve(true);
-        }
-      }, 5000);
-    });
+const gcpUrl = "https://webrtc-answer.rita-base.com/offer";
+console.log("🛰️ GCPにoffer送信中...");
+
+const res = await fetch(gcpUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sdp: offer.sdp,
+    type: offer.type
+  })
+});
+
+const answer = await res.json();
+console.log("🎯 GCPからanswerを受信:", answer);
+
+await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+await new Promise(resolve => {
+  pc.oniceconnectionstatechange = () => {
+    console.log(`ICE Connection State: ${pc.iceConnectionState}`);
+    if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+      console.log("✅ WebRTC接続成功（GCP対向）");
+      pc.close();
+      resolve(true);
+    }
+    if (pc.iceConnectionState === "failed") {
+      console.log("❌ WebRTC接続失敗（GCP対向）");
+      pc.close();
+      resolve(false);
+    }
+  };
+  setTimeout(() => {
+    if (pc.iceConnectionState !== "connected" && pc.iceConnectionState !== "completed") {
+      console.log("❌ WebRTC接続タイムアウト（GCP対向）");
+      pc.close();
+      resolve(false);
+    }
+  }, 10000); // 少し長めに待機して確実に状態を確認
+});
+
 
     const extra = await analyzeWebRTCStats(pc);
     logs.push(...extra);
