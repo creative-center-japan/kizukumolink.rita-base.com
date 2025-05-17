@@ -125,7 +125,7 @@ export default function Home() {
   ];
 
 
-  const runWebRtcRemoteCheck = async (): Promise<string[]> => {
+ const runWebRtcRemoteCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const pc = new RTCPeerConnection({
@@ -144,9 +144,22 @@ export default function Home() {
     logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
   };
 
-  pc.onicecandidate = (event) => {
+  pc.onicecandidate = async (event) => {
     if (event.candidate) {
       logs.push(`ICE候補発見: ${event.candidate.candidate}`);
+
+      // 🚩 追加：見つけたICE CandidateをGCPサーバへ送信する
+      try {
+        await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidate: event.candidate })
+        });
+        logs.push("📡 ICE CandidateをGCPサーバへ送信しました");
+      } catch (err) {
+        logs.push(`⚠️ ICE Candidate送信エラー: ${err}`);
+      }
+
     } else {
       logs.push('ICE候補の収集完了');
     }
@@ -198,12 +211,13 @@ export default function Home() {
     }, 10000);
   });
 
-  // 🔴 以下のコードを関数の中に戻す
+  
   const extra = await analyzeWebRTCStats(pc);
   logs.push(...extra);
 
   return logs;
 };
+
 
 const runDiagnosis = async () => {
   setLoading(true);
