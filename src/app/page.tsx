@@ -140,7 +140,7 @@ export default function Home() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    const gcpUrl = "http://34.146.130.50:5000/offer";
+    const gcpUrl = "https://webrtc-answer.rita-base.com/offer";
     logs.push("🛰️ GCPにoffer送信中...");
 
     const res = await fetch(gcpUrl, {
@@ -211,7 +211,7 @@ export default function Home() {
         const ipData = await ipRes.json();
         const clientIp = ipData.ip;
 
-        const logRes = await fetch(`http://34.146.130.50:5001/api/sessions?client_ip=${clientIp}`);
+        const logRes = await fetch(`https://turn-session.rita-base.com/api/sessions?client_ip=${clientIp}`);
         const logData = await logRes.json();
 
         if (logData.count > 0) {
