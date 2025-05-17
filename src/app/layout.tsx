@@ -17,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="bg-blue-900 text-white text-center text-xs py-4">
           <p>© 2025 RitaBase. All rights reserved.</p>
           <div className="mt-1 space-x-4">
-            <a href="/terms" className="underline">サービス利用規約</a>
             <a href="/privacy" className="underline">プライバシーポリシー</a>
             <a href="/contact" className="underline">お問い合わせ</a>
           </div>
