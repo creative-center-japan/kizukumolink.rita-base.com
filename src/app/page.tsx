@@ -196,6 +196,11 @@ export default function Home() {
         if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
           connected = true;
           logs.push("✅ WebRTC接続成功（GCP対向）");
+
+          // 🔍 TURN or STUN経由の判定を追加
+          const extra = await analyzeWebRTCStats(pc);
+          logs.push(...extra);
+
           pc.close();
           resolve(true);
         }
