@@ -190,31 +190,31 @@ export default function Home() {
 
     let connected = false;
 
-    await new Promise(resolve => {
-      pc.oniceconnectionstatechange = () => {
+    await new Promise<void>((resolve) => {
+      pc.oniceconnectionstatechange = async () => {
         logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
           connected = true;
           logs.push("✅ WebRTC接続成功（GCP対向）");
 
-          // 🔍 TURN or STUN経由の判定を追加
+          // 🔍 TURN or STUN経由の判定を追加（async OK）
           const extra = await analyzeWebRTCStats(pc);
           logs.push(...extra);
 
           pc.close();
-          resolve(true);
-        }
-        if (pc.iceConnectionState === "failed") {
+          resolve();
+        } else if (pc.iceConnectionState === "failed") {
           logs.push("❌ WebRTC接続失敗（GCP対向）");
           pc.close();
-          resolve(false);
+          resolve();
         }
       };
+
       setTimeout(() => {
         if (!connected) {
           logs.push("❌ WebRTC接続タイムアウト（GCP対向）");
           pc.close();
-          resolve(false);
+          resolve();
         }
       }, 10000);
     });
@@ -225,8 +225,7 @@ export default function Home() {
     return logs;
   };
 
-
-
+  
   const runDiagnosis = async () => {
     setLoading(true);
     setDiagnosed(false);
