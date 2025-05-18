@@ -249,6 +249,8 @@ export default function Home() {
           const ipData = await ipRes.json();
           const clientIp = ipData.ip;
 
+          // 以下を一旦コメントアウトする
+/*
           const logRes = await fetch(`https://turn-session.rita-base.com/api/sessions?client_ip=${clientIp}`);
           const logData = await logRes.json();
 
@@ -257,6 +259,7 @@ export default function Home() {
           } else {
             mergedLogs.push(`🧾 サーバーログに relay セッションなし`);
           }
+            */
 
         } catch {
           mergedLogs.push(`⚠️ サーバーログ照合に失敗しました`);
