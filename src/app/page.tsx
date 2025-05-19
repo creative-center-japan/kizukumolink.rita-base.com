@@ -86,7 +86,7 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-light text-blue-900 text-center mb-6 tracking-wide" style={{ fontFamily: 'serif' }}>
+        <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
           キヅクモ接続診断
         </h1>
         <p className="text-center text-sm text-gray-700 mb-8">
