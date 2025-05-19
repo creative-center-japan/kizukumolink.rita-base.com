@@ -87,7 +87,7 @@ export default function Home() {
 
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
-          キヅクモ接続診断
+          キヅクモサービス接続診断ツール
         </h1>
         <p className="text-center text-sm text-gray-700 mb-8">
           このWeb診断ではネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
