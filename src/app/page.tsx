@@ -89,26 +89,23 @@ export default function Home() {
         <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
           キヅクモサービス接続診断ツール
         </h1>
+
         <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
           このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
           カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
-          <span className="text-xs text-gray-500 font-normal">
+          <span className="text-xs text-gray-500 font-bold">
             ※当Web診断はサービスの品質を保証するものではございません。
           </span>
         </p>
 
         {loading && (
-          <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10">
-
-
+          <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
             <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
-
-            <ul className="space-y-1 text-sm">
-              <li className="text-green-500">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
-              <li className="text-blue-500 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
-              <li className="text-gray-400">フェーズ 3：映像通信確認 - 実行待ち -</li>
+            <ul className="space-y-1">
+              <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
+              <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
+              <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
             </ul>
-
           </div>
         )}
 
@@ -145,9 +142,7 @@ export default function Home() {
             {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
           </div>
         )}
-
-
-
+        
         {showDetail && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
