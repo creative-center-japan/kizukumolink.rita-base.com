@@ -107,28 +107,17 @@ export default function Home() {
     }
   };
 
+
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
-    const logs = status.filter((log) => log.includes(item.keyword));
+    let ipAddress = '取得失敗'; // Default value for IP address
 
     if (item.keyword === '外部IP:') {
+      const logs = status.filter((log) => log.includes(item.keyword));
       const ipLog = logs.find(log => log.startsWith('🌐 外部IP（ブラウザから取得）:'));
-      const ipAddress = ipLog ? ipLog.split('🌐 外部IP（ブラウザから取得）: ')[1] : '取得失敗';
-      return (
-        <div key={idx} className="bg-blue-900 border border-blue-500 rounded-xl p-4 shadow-xl text-white relative">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
-            <button
-              className="text-sm text-blue-400 hover:text-blue-200"
-              title="詳細はこちら"
-              onClick={() => setShowDetail(item.label)}
-            >❔</button>
-          </div>
-          <p className="text-sm text-blue-200 mb-1">{item.description}</p>
-          <p className="text-2xl font-bold text-center text-emerald-400">{ipAddress}</p>
-        </div>
-      );
+      ipAddress = ipLog ? ipLog.split('🌐 外部IP（ブラウザから取得）: ')[1] : '取得失敗';
     }
 
+    const logs = status.filter((log) => log.includes(item.keyword));
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
@@ -142,7 +131,9 @@ export default function Home() {
           >❔</button>
         </div>
         <p className="text-sm text-blue-200 mb-1">{item.description}</p>
-        <p className={`text-2xl font-bold text-center ${isOK ? 'text-emerald-400' : 'text-rose-400'}`}>{isOK ? 'OK' : 'NG'}</p>
+        <p className={`text-2xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
+          {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
+        </p>
       </div>
     );
   };
