@@ -111,13 +111,30 @@ export default function Home() {
         )}
 
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <button
-            onClick={() => { setDiagnosed(false); setStatus([]); setLoading(true); }}
-            className={`px-6 py-3 ${loading ? 'bg-gray-400' : 'bg-blue-800 hover:bg-blue-900'} text-white rounded-full font-semibold shadow`}
-            disabled={loading}
-          >
-            {loading ? '診断中...' : diagnosed ? '再診断' : '診断開始'}
-          </button>
+          {!loading && (
+            <button
+              onClick={() => {
+                setDiagnosed(false);
+                setStatus([]);
+                setLoading(true);
+              }}
+              className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+            >
+              {diagnosed ? '再診断' : '診断開始'}
+            </button>
+          )}
+
+          {loading && (
+            <button
+              onClick={() => {
+                setLoading(false);
+                setStatus([]);
+              }}
+              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
+            >
+              キャンセル
+            </button>
+          )}
 
           {diagnosed && (
             <button
@@ -130,13 +147,13 @@ export default function Home() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold shadow"
+              className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
             >
               結果をダウンロード
             </button>
           )}
-
         </div>
+
 
         {diagnosed && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
