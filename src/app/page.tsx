@@ -78,7 +78,7 @@ export default function Home() {
 
       // TCP接続チェック（Alarm.com）
       try {
-        const res = await fetch("https://www.alarm.com/", { method: "HEAD" });
+        const res = await fetch("https://international.alarm.com/", { method: "HEAD" });
         if (res.ok) {
           logs.push("TCP 443: 成功");
         } else {
@@ -121,7 +121,7 @@ export default function Home() {
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
-      <div key={idx} className="bg-blue-900 border border-blue-500 rounded-xl p-4 shadow-xl text-white relative">
+      <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
           <button
