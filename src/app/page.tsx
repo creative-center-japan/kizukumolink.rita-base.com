@@ -61,19 +61,6 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
-  const downloadResults = () => {
-    const timestamp = new Date().toISOString().slice(0, 10);
-    const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ritabase_check_${timestamp}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     const logs = status.filter((log) => log.includes(item.keyword));
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
@@ -123,7 +110,7 @@ export default function Home() {
           >
             {loading ? '診断中...' : diagnosed ? '再診断' : '診断開始'}
           </button>
-          
+
           {diagnosed && (
             <button
               onClick={() => {
