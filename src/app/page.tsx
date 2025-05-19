@@ -16,7 +16,7 @@ const CHECK_ITEMS = [
   {
     label: 'サービスへの通信確認',
     description: 'キヅクモサービスへの接続（TCP 443）が可能か',
-    keyword: 'TCP 443',
+    keyword: 'TCP 443:',
     tooltip: 'Alarm.com サーバへ TCP接続できたかを確認します',
     detail: 'カメラサービスのクラウド連携やライブ配信に必要なポートです。443はHTTPSに使われる標準ポートです。',
     ngReason: 'Alarm.com への TCP 接続ができませんでした'
@@ -76,34 +76,52 @@ export default function Home() {
         logs.push("外部IP: 取得失敗");
       }
 
-      // TCP接続チェック（Alarm.com）
+      // サービスへの通信確認（Alarm.com）
       try {
         const res = await fetch("https://international.alarm.com/", { method: "HEAD" });
         if (res.ok) {
           logs.push("TCP 443: 成功");
         } else {
-          logs.push("TCP 443: 失敗");
+          logs.push(`TCP 443: 失敗 (${res.status} ${res.statusText})`);
         }
-      } catch {
-        logs.push("TCP 443: 失敗");
+      } catch (err) {
+        logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
       }
 
       // ダミー: 通信ポート確認（仮で成功と記録）
       logs.push("TCP: 成功");
 
       // WebRTCシミュレーション（ダミー）
-      logs.push("candidate-pair: succeeded");
-      logs.push("typ srflx");
-      logs.push("typ relay");
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        const clientIp = ipData.ip;
+        logs.push(`外部IP: ${clientIp}`);
 
+        const serverRes = await fetch(`https://check-api.rita-base.com/api/sessions?client_ip=${clientIp}`);
+        const serverData = await serverRes.json();
+
+        if (serverData.count > 0) {
+          logs.push("candidate-pair: succeeded");
+          logs.push("typ srflx");
+          logs.push("typ relay");
+        } else {
+          logs.push("candidate-pair: failed");
+        }
+
+        setStatus(logs);
+        setDiagnosed(true);
+      } catch {
+        logs.push("❌ 診断中にエラーが発生しました");
+        setStatus(logs);
+        setDiagnosed(true);
+      } finally {
+        setLoading(false);
+      }
+    } catch (error) {
+      logs.push("診断中にエラーが発生しました");
       setStatus(logs);
       setDiagnosed(true);
-    } catch {
-      logs.push("❌ 診断中にエラーが発生しました");
-      setStatus(logs);
-      setDiagnosed(true);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -121,7 +139,7 @@ export default function Home() {
     const logs = status.filter((log) => log.includes(item.keyword));
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
-    return (  
+    return (
       <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
@@ -260,6 +278,8 @@ export default function Home() {
     </main>
   );
 }
+
+
 
 
 
