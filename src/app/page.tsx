@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -59,6 +58,28 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [diagnosed, setDiagnosed] = useState(false);
 
+  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
+    const logs = status.filter((log) => log.includes(item.keyword));
+    const isOK = logs.some((log) =>
+      log.includes('成功') || log.includes('succeeded') || log.includes('OK')
+    );
+    const color = isOK ? 'text-emerald-400' : 'text-rose-400';
+
+    return (
+      <div key={idx} className="bg-gray-900 rounded-lg p-4 shadow border border-blue-800">
+        <div className="flex justify-between items-start mb-2">
+          <h2 className="text-base font-semibold text-blue-300">{item.label}</h2>
+          <span
+            className="text-blue-400 text-xs cursor-help"
+            title={item.tooltip}
+          >❔</span>
+        </div>
+        <p className="text-sm text-gray-300 mb-2">{item.description}</p>
+        <p className={`text-lg font-bold text-center ${color}`}>{isOK ? 'OK' : 'NG'}</p>
+      </div>
+    );
+  };
+
   return (
     <main className="min-h-screen bg-black text-white px-4 py-8">
       <div className="max-w-4xl mx-auto">
@@ -77,19 +98,7 @@ export default function Home() {
 
         {diagnosed && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-8">
-            {CHECK_ITEMS.map((item, idx) => (
-              <div key={idx} className="bg-gray-900 rounded-lg p-4 shadow border border-blue-800">
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-base font-semibold text-blue-300">{item.label}</h2>
-                  <span
-                    className="text-blue-400 text-xs cursor-help"
-                    title={item.tooltip}
-                  >❔</span>
-                </div>
-                <p className="text-sm text-gray-300 mb-2">{item.description}</p>
-                <p className="text-lg font-bold text-center text-white">--</p> {/* 仮の表示 */}
-              </div>
-            ))}
+            {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
           </div>
         )}
       </div>
