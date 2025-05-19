@@ -126,9 +126,12 @@ export default function Home() {
 
       newLogs.push(done ? "candidate-pair: succeeded" : "❌ candidate-pair: 未確立");
 
+
     } catch (e) {
+      console.error("❌ WebRTC診断中にエラーが発生しました:", e);
       newLogs.push("❌ WebRTC診断中にエラーが発生しました");
     }
+
 
     setStatus(newLogs);
     setLoading(false);
