@@ -111,10 +111,11 @@ export default function Home() {
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
 
+    // Extract the IP address from the status logs
     if (item.keyword === '外部IP:') {
       const logs = status.filter((log) => log.includes(item.keyword));
-      const ipLog = logs.find(log => log.startsWith('🌐 外部IP（ブラウザから取得）:'));
-      ipAddress = ipLog ? ipLog.split('🌐 外部IP（ブラウザから取得）: ')[1] : '取得失敗';
+      const ipLog = logs.find(log => log.startsWith('外部IP:'));
+      ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
     }
 
     const logs = status.filter((log) => log.includes(item.keyword));
@@ -137,6 +138,7 @@ export default function Home() {
       </div>
     );
   };
+
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
