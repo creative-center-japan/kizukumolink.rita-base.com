@@ -122,6 +122,7 @@ export default function Home() {
             disabled={loading}
           >
             {loading ? '診断中...' : diagnosed ? '再診断' : '診断開始'}
+
           </button>
           {diagnosed && (
             <button
@@ -140,6 +141,7 @@ export default function Home() {
             </button>
           )}
         </div>
+
 
         {diagnosed && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
