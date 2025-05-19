@@ -114,7 +114,7 @@ export default function Home() {
     return (
       <div key={idx} className="bg-blue-900 border border-blue-500 rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
+          <h3 className="text-lg font-semibold text-white">{item.label}</h3>
           <button
             className="text-sm text-blue-400 hover:text-blue-200"
             title="詳細はこちら"
@@ -126,7 +126,7 @@ export default function Home() {
       </div>
     );
   };
-  
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
@@ -160,10 +160,11 @@ export default function Home() {
           {!loading && (
             <button
               onClick={runDiagnosis}
-              className="px-6 py-3bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+              className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
             >
               {diagnosed ? '再診断' : '診断開始'}
             </button>
+
           )}
 
           {loading && (
