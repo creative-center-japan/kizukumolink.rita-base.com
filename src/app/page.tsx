@@ -59,6 +59,7 @@ export default function Home() {
   const [status, setStatus] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [diagnosed, setDiagnosed] = useState(false);
+  const [showDetail, setShowDetail] = useState<string | null>(null);
 
   const downloadResults = () => {
     const timestamp = new Date().toISOString().slice(0, 10);
