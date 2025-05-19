@@ -121,12 +121,12 @@ export default function Home() {
     const logs = status.filter((log) => log.includes(item.keyword));
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
-    return (
+    return (  
       <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
+          <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
           <button
-            className="text-sm text-blue-400 hover:text-blue-200"
+            className="text-sm text-white-400 hover:text-white-200"
             title="詳細はこちら"
             onClick={() => setShowDetail(item.label)}
           >❔</button>
