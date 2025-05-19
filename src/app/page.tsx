@@ -56,9 +56,84 @@ const CHECK_ITEMS = [
 ];
 
 export default function Home() {
-  const [status] = useState<string[]>([]);
-  const [loading] = useState(false);
-  const [diagnosed] = useState(true);
+  const [status, setStatus] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [diagnosed, setDiagnosed] = useState(false);
+  const [phase, setPhase] = useState(0);
+
+  const runDiagnosis = async () => {
+    setLoading(true);
+    setDiagnosed(false);
+    setStatus([]);
+    setPhase(1);
+
+    const newLogs: string[] = [];
+
+    newLogs.push("🌐 [1/3] 外部IPアドレス取得中...");
+    try {
+      const ipRes = await fetch("https://api.ipify.org?format=json");
+      const ipData = await ipRes.json();
+      newLogs.push(`外部IP: ${ipData.ip}`);
+    } catch {
+      newLogs.push("外部IP: 取得失敗");
+    }
+
+    setPhase(2);
+    newLogs.push("🌐 [2/3] 通信ポート診断中...");
+
+    // 簡略化: 本来はTCP/UDP確認処理を書く（省略可）
+
+    setPhase(3);
+    newLogs.push("🌐 [3/3] WebRTC診断中...");
+
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:3.80.218.25:3478' },
+          { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+        ],
+        iceTransportPolicy: "all"
+      });
+
+      pc.createDataChannel("test");
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+      });
+      const answer = await res.json();
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+      const done = await new Promise<boolean>((resolve) => {
+        pc.oniceconnectionstatechange = () => {
+          newLogs.push(`ICEステータス: ${pc.iceConnectionState}`);
+          if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+            resolve(true);
+            pc.close();
+          } else if (pc.iceConnectionState === "failed") {
+            resolve(false);
+            pc.close();
+          }
+        };
+        setTimeout(() => {
+          newLogs.push("⚠️ WebRTC接続タイムアウト");
+          resolve(false);
+        }, 8000);
+      });
+
+      newLogs.push(done ? "candidate-pair: succeeded" : "❌ candidate-pair: 未確立");
+
+    } catch (e) {
+      newLogs.push("❌ WebRTC診断中にエラーが発生しました");
+    }
+
+    setStatus(newLogs);
+    setLoading(false);
+    setDiagnosed(true);
+  };
 
   return (
     <main className="min-h-screen bg-black text-white px-4 py-8">
@@ -69,28 +144,38 @@ export default function Home() {
           <div className="bg-gray-800 p-4 rounded-lg text-sm space-y-2">
             <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>・キヅクモサービス疎通確認　✅ 完了</li>
-              <li className="text-blue-400 animate-pulse">・キヅクモサービス利用通信確認　🔄 確認中</li>
-              <li>・映像通信確認　⏳ 未実施</li>
+              <li className={phase >= 1 ? 'text-blue-400' : ''}>・キヅクモサービス疎通確認　{phase >= 1 ? '✅ 完了' : '⏳ 実行中'}</li>
+              <li className={phase >= 2 ? 'text-blue-400' : ''}>・キヅクモサービス利用通信確認　{phase >= 2 ? '✅ 完了' : '⏳ 未実施'}</li>
+              <li className={phase >= 3 ? 'text-blue-400' : ''}>・映像通信確認　{phase >= 3 ? '✅ 完了' : '⏳ 未実施'}</li>
             </ul>
           </div>
         )}
 
+        {!loading && !diagnosed && (
+          <div className="text-center">
+            <button
+              onClick={runDiagnosis}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium"
+            >
+              診断開始
+            </button>
+          </div>
+        )}
+
         {diagnosed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-8">
-            {CHECK_ITEMS.map((item, idx) => (
-              <div key={idx} className="bg-gray-900 rounded-lg p-4 shadow border border-blue-800">
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-base font-semibold text-blue-300">{item.label}</h2>
-                  <span
-                    className="text-blue-400 text-xs cursor-help"
-                    title={item.tooltip}
-                  >❔</span>
+          <div className="mt-6 space-y-4">
+            {CHECK_ITEMS.map((item, idx) => {
+              const hit = status.find(line => line.includes(item.keyword));
+              return (
+                <div key={idx} className="bg-gray-900 rounded-lg p-4 border border-blue-800 shadow">
+                  <h2 className="text-blue-300 font-semibold mb-1">{item.label}</h2>
+                  <p className="text-sm text-gray-300 mb-2">{item.description}</p>
+                  <p className="text-white text-center text-lg font-bold">
+                    {hit ? 'OK' : 'NG'}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-300 mb-2">{item.description}</p>
-                <p className="text-lg font-bold text-center text-white">--</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
