@@ -89,9 +89,12 @@ export default function Home() {
         <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
           キヅクモサービス接続診断ツール
         </h1>
-        <p className="text-center text-sm text-gray-700 mb-8">
-          このWeb診断ではネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
-          カメラを設置する場所と映像を見る場所の両方で実施してください。
+        <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
+          このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
+          カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
+          <span className="text-xs text-gray-500 font-normal">
+            ※当Web診断はサービスの品質を保証するものではございません。
+          </span>
         </p>
 
         {loading && (

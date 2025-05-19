@@ -10,7 +10,9 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="icon" href="/favicon.png" type="image/png" />
+      </head>
       <body className="flex flex-col min-h-screen bg-blue-50 text-slate-800 dark:bg-blue-50 dark:text-slate-800">
         <main className="flex-grow bg-blue-50">{children}</main>
 
