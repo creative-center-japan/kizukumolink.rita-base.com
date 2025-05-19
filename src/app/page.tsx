@@ -126,8 +126,7 @@ export default function Home() {
       </div>
     );
   };
-
-
+  
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
@@ -161,7 +160,7 @@ export default function Home() {
           {!loading && (
             <button
               onClick={runDiagnosis}
-              className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+              className="px-6 py-3bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
             >
               {diagnosed ? '再診断' : '診断開始'}
             </button>
@@ -247,3 +246,6 @@ export default function Home() {
     </main>
   );
 }
+
+
+
