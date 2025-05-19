@@ -157,13 +157,10 @@ export default function Home() {
         )}
 
         <div className="flex flex-wrap justify-center gap-4 mb-8">
+
           {!loading && (
             <button
-              onClick={() => {
-                setDiagnosed(false);
-                setStatus([]);
-                setLoading(true);
-              }}
+              onClick={runDiagnosis}
               className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
             >
               {diagnosed ? '再診断' : '診断開始'}
