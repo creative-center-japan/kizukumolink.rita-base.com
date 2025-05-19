@@ -94,7 +94,7 @@ export default function Home() {
     );
   };
 
-  
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-100 text-gray-900 px-4 py-10">
       <div className="max-w-5xl mx-auto">
@@ -146,6 +146,47 @@ export default function Home() {
             {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
           </div>
         )}
+
+
+
+        {showDetail && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 shadow-lg max-w-md w-full space-y-4">
+              <h2 className="text-lg font-bold text-blue-700">
+                {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
+              </h2>
+
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
+              </p>
+
+              {/* ❗NG理由がある場合だけ表示 */}
+              {(() => {
+                const item = CHECK_ITEMS.find(i => i.label === showDetail);
+                const isOK = status.some(log =>
+                  log.includes(item?.keyword || '') &&
+                  (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
+                );
+                return !isOK && item?.ngReason ? (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    ❗NG理由: {item.ngReason}
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="text-right">
+                <button
+                  onClick={() => setShowDetail(null)}
+                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
       </div>
     </main>
   );
