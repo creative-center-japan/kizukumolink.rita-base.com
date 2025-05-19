@@ -109,12 +109,32 @@ export default function Home() {
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     const logs = status.filter((log) => log.includes(item.keyword));
+
+    if (item.keyword === '外部IP:') {
+      const ipLog = logs.find(log => log.startsWith('🌐 外部IP（ブラウザから取得）:'));
+      const ipAddress = ipLog ? ipLog.split('🌐 外部IP（ブラウザから取得）: ')[1] : '取得失敗';
+      return (
+        <div key={idx} className="bg-blue-900 border border-blue-500 rounded-xl p-4 shadow-xl text-white relative">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
+            <button
+              className="text-sm text-blue-400 hover:text-blue-200"
+              title="詳細はこちら"
+              onClick={() => setShowDetail(item.label)}
+            >❔</button>
+          </div>
+          <p className="text-sm text-blue-200 mb-1">{item.description}</p>
+          <p className="text-2xl font-bold text-center text-emerald-400">{ipAddress}</p>
+        </div>
+      );
+    }
+
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
       <div key={idx} className="bg-blue-900 border border-blue-500 rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold text-white">{item.label}</h3>
+          <h3 className="text-lg font-semibold text-blue-300">{item.label}</h3>
           <button
             className="text-sm text-blue-400 hover:text-blue-200"
             title="詳細はこちら"
