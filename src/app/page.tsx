@@ -86,7 +86,9 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-bold text-blue-700 text-center mb-4">キヅクモ接続診断</h1>
+        <h1 className="text-4xl font-light text-blue-900 text-center mb-6 tracking-wide" style={{ fontFamily: 'serif' }}>
+          キヅクモ接続診断
+        </h1>
         <p className="text-center text-sm text-gray-700 mb-8">
           このWeb診断ではネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
           カメラを設置する場所と映像を見る場所の両方で実施してください。
@@ -94,14 +96,16 @@ export default function Home() {
 
         {loading && (
           <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10">
-          
+
 
             <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+
             <ul className="space-y-1 text-sm">
-              <li className="text-blue-200">フェーズ 1：キヅクモサービス疎通確認　完了</li>
-              <li className="text-blue-200">フェーズ 2：キヅクモサービス利用通信確認　実行中</li>
-              <li className="text-blue-200">フェーズ 3：映像通信確認　準備中</li>
+              <li className="text-green-500">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
+              <li className="text-blue-500 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
+              <li className="text-gray-400">フェーズ 3：映像通信確認 - 実行待ち -</li>
             </ul>
+
           </div>
         )}
 
