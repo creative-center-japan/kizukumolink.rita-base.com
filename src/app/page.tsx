@@ -118,11 +118,13 @@ export default function Home() {
       } finally {
         setLoading(false);
       }
-    } catch (error) {
+
+    } catch {
       logs.push("診断中にエラーが発生しました");
       setStatus(logs);
       setDiagnosed(true);
     }
+
   };
 
 
