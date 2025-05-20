@@ -93,7 +93,7 @@ export default function Home() {
         } else {
           logs.push(`TCP 443: 失敗 (${res.status} ${res.statusText})`);
         }
-      } catch (err) {
+      } catch (_err) {
         logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
       }
 
@@ -115,7 +115,7 @@ export default function Home() {
       }
 
 
-      // WebRTCシミュレーション（ダミー）
+      // WebRTCシミュレーション
       // --- WebRTCログ取得 (check-api) ---
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
@@ -143,7 +143,6 @@ export default function Home() {
     }
 
   };
-
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
@@ -297,8 +296,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-
-
-
