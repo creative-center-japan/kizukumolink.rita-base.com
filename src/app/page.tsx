@@ -93,9 +93,10 @@ export default function Home() {
         } else {
           logs.push(`TCP 443: 失敗 (${res.status} ${res.statusText})`);
         }
-      } catch (_err) {
-        logs.push(`TCP 443: 失敗 (${(_err as Error).message})`);
+      } catch (err) {
+        logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
       }
+
 
 
       // AWSで実行した通信ポート確認
@@ -132,7 +133,7 @@ export default function Home() {
         } else {
           logs.push("candidate-pair: failed");
         }
-      } catch (_) {
+      } catch {
         logs.push("candidate-pair: failed (ログ取得失敗)");
       }
 
