@@ -132,7 +132,7 @@ export default function Home() {
         } else {
           logs.push("candidate-pair: failed");
         }
-      } catch (e) {
+      } catch (_) {
         logs.push("candidate-pair: failed (ログ取得失敗)");
       }
 
