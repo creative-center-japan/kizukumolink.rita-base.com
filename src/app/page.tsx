@@ -94,7 +94,7 @@ export default function Home() {
           logs.push(`TCP 443: 失敗 (${res.status} ${res.statusText})`);
         }
       } catch (_err) {
-        logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
+        logs.push(`TCP 443: 失敗 (${(_err as Error).message})`);
       }
 
 
