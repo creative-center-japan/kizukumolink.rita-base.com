@@ -16,7 +16,7 @@ const CHECK_ITEMS = [
   {
     label: 'サービスへの通信確認',
     description: 'キヅクモサービスへの接続（TCP 443）が可能か',
-    keyword: 'TCP 443:',
+    keyword: 'TCP',
     tooltip: 'Alarm.com サーバへ TCP接続できたかを確認します',
     detail: 'カメラサービスのクラウド連携やライブ配信に必要なポートです。443はHTTPSに使われる標準ポートです。',
     ngReason: 'Alarm.com への TCP 接続ができませんでした'
@@ -24,7 +24,7 @@ const CHECK_ITEMS = [
   {
     label: '通信ポート確認',
     description: 'キヅクモサービス（管理用途やP2P用途）で使用するポートが接続可能か確認',
-    keyword: 'TCP',
+    keyword: 'ポート確認:',
     tooltip: 'サーバ側ポートに対する接続の成功/失敗を確認します',
     detail: 'ライブビュー・管理通信・動画配信にて利用するポートが接続可能かを検査します。企業ネットワークでは一部ポートが制限されている場合があります。',
     ngReason: 'セキュリティ制御をしているファイヤーウォールやルータでのポートを制御されている可能性があります。'
@@ -78,7 +78,16 @@ export default function Home() {
 
       // サービスへの通信確認（Alarm.com）
       try {
-        const res = await fetch("https://international.alarm.com/", { method: "HEAD" });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒タイムアウト
+
+        const res = await fetch("https://international.alarm.com/", {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           logs.push("TCP 443: 成功");
         } else {
@@ -88,8 +97,23 @@ export default function Home() {
         logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
       }
 
-      // ダミー: 通信ポート確認（仮で成功と記録）
-      logs.push("TCP: 成功");
+
+      // AWSで実行した通信ポート確認
+      try {
+        const res = await fetch("https://check-api.rita-base.com/check");
+        const data = await res.json(); // ← すでにログ文字列の配列形式
+
+        logs.push(...data); // status に反映
+        setStatus(logs);
+        setDiagnosed(true);
+      } catch {
+        logs.push("❌ サーバとの接続に失敗しました");
+        setStatus(logs);
+        setDiagnosed(true);
+      } finally {
+        setLoading(false);
+      }
+
 
       // WebRTCシミュレーション（ダミー）
       try {
