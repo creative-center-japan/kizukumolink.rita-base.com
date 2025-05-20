@@ -116,6 +116,7 @@ export default function Home() {
 
 
       // WebRTCシミュレーション（ダミー）
+      // --- WebRTCログ取得 (check-api) ---
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
@@ -127,20 +128,12 @@ export default function Home() {
 
         if (serverData.count > 0) {
           logs.push("candidate-pair: succeeded");
-          logs.push("typ srflx");
-          logs.push("typ relay");
+          serverData.details?.forEach((d: string) => logs.push(d));
         } else {
           logs.push("candidate-pair: failed");
         }
-
-        setStatus(logs);
-        setDiagnosed(true);
-      } catch {
-        logs.push("❌ 診断中にエラーが発生しました");
-        setStatus(logs);
-        setDiagnosed(true);
-      } finally {
-        setLoading(false);
+      } catch (e) {
+        logs.push("candidate-pair: failed (ログ取得失敗)");
       }
 
     } catch {
