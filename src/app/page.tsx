@@ -120,9 +120,11 @@ export default function Home() {
 
         setStatus(logs);
         setDiagnosed(true);
+      } catch (err) {
+        logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
       }
 
-      } catch {
+    } catch {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
