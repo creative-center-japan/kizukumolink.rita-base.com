@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 const CHECK_ITEMS = [
   {
@@ -219,6 +220,7 @@ const runDiagnosis = async () => {
   };
 
   return (
+    <div>
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
       <div className="max-w-5xl mx-auto">
@@ -334,6 +336,10 @@ const runDiagnosis = async () => {
         )}
       </div>
     </main>
+    <p className="text-center text-sm mt-4">
+      <Link href="/contact" className="text-blue-800 underline">次のページへ</Link>
+    </p>
+    </div>
   );
 
 
