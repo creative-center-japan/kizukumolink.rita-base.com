@@ -97,53 +97,37 @@ export default function Home() {
         logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
       }
 
-
-
-      // AWSで実行した通信ポート確認
+      // AWSで実行した通信ポート確認（JSON対応版）
       try {
-        const res = await fetch("https://check-api.rita-base.com/check");
-        const data = await res.json(); // ← すでにログ文字列の配列形式
+        const res = await fetch("https://check-api.rita-base.com/check-json");
+        const data = await res.json();
 
-        logs.push(...data); // status に反映
+        logs.push(`📅 実行日時: ${data.timestamp}`);
+        logs.push(`診断結果: ${data.status === "OK" ? "🟢 OK" : "🔴 NG"}`);
+        logs.push("🔸 TCPポート確認:");
+        for (const [port, result] of Object.entries(data.tcp)) {
+          logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "成功" : "失敗"}`);
+        }
+        logs.push("🔸 UDPポート確認:");
+        for (const [port, result] of Object.entries(data.udp)) {
+          logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
+        }
+        if (data.failed_ports.length > 0) {
+          logs.push("❌ NGとなったポート一覧:");
+          logs.push(...data.failed_ports.map(p => ` - ${p}`));
+        }
+
         setStatus(logs);
         setDiagnosed(true);
       } catch {
         logs.push("❌ サーバとの接続に失敗しました");
         setStatus(logs);
         setDiagnosed(true);
-      } finally {
-        setLoading(false);
       }
-
-
-      // WebRTCシミュレーション
-      // --- WebRTCログ取得 (check-api) ---
-      try {
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipRes.json();
-        const clientIp = ipData.ip;
-        logs.push(`外部IP: ${clientIp}`);
-
-        const serverRes = await fetch(`https://check-api.rita-base.com/api/sessions?client_ip=${clientIp}`);
-        const serverData = await serverRes.json();
-
-        if (serverData.count > 0) {
-          logs.push("candidate-pair: succeeded");
-          serverData.details?.forEach((d: string) => logs.push(d));
-        } else {
-          logs.push("candidate-pair: failed");
-        }
-      } catch {
-        logs.push("candidate-pair: failed (ログ取得失敗)");
-      }
-
-    } catch {
-      logs.push("診断中にエラーが発生しました");
-      setStatus(logs);
-      setDiagnosed(true);
+    } finally {
+      setLoading(false);
     }
-
-  };
+  }; // ← ❗これが絶対必要！
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
