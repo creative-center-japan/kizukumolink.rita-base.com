@@ -61,6 +61,78 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
+//WebRTC2の接続チェック
+const runWebRTCCheck = async () => {
+  const logs: string[] = [];
+
+  const pc = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:3.80.218.25:3478' },
+      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+    ]
+  });
+
+  const allCandidates: RTCIceCandidate[] = [];
+
+  const channel = pc.createDataChannel('test');
+
+  channel.onopen = () => {
+    logs.push('✅ WebRTC: DataChannel open!');
+    channel.send('hello from client');
+    logs.push('candidate-pair: succeeded');
+    setStatus(prev => [...prev, ...logs]);
+  };
+
+  channel.onmessage = (event) => {
+    logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+    setStatus(prev => [...prev, ...logs]);
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+  });
+
+  const answer = await res.json();
+  await pc.setRemoteDescription(answer);
+
+  pc.onicecandidate = async (event) => {
+    if (event.candidate) {
+      allCandidates.push(event.candidate);
+      const cand = event.candidate.candidate;
+
+      if (cand.includes("typ srflx")) {
+        logs.push("srflx: 応答あり");
+      }
+      if (cand.includes("typ relay")) {
+        logs.push("typ relay: 中継成功");
+      }
+
+      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate: event.candidate,
+          pc_id: answer.pc_id
+        })
+      });
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed") {
+      logs.push("❌ WebRTC接続に失敗しました");
+      setStatus(prev => [...prev, ...logs]);
+    }
+  };
+};
+
+
+
 const runDiagnosis = async () => {
   setLoading(true);
   setDiagnosed(false);
@@ -283,52 +355,6 @@ const runDiagnosis = async () => {
       </div>
     </main>
   );
-
-
-  const runWebRTCCheck = async () => {
-  const pc = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-    ]
-  });
-
-  const channel = pc.createDataChannel('test');
-
-  channel.onopen = () => {
-    console.log('✅ WebRTC: DataChannel open!');
-    channel.send('hello from client');
-  };
-
-  channel.onmessage = (event) => {
-    console.log('📨 WebRTC: Message received:', event.data);
-  };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-  });
-
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
-
-  pc.onicecandidate = async (event) => {
-    if (event.candidate) {
-      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate: event.candidate,
-          pc_id: answer.pc_id
-        })
-      });
-    }
-  };
-};
 
 
 } 
