@@ -181,6 +181,8 @@ export default function Home() {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
+      setDiagnosed(true); // ← これがないとUIが止まる
+      return; // ここで止めることでWebRTCフェーズに進まないようにする
     }
 
     // AWSでブラウザ実行のWebRTCを実行
