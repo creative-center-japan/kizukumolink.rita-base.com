@@ -126,9 +126,8 @@ export default function Home() {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
-      }
     }
-  }
+  };
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
@@ -275,9 +274,7 @@ export default function Home() {
             </div>
           </div>
         )}
-
-
       </div>
     </main>
   );
-}
+} 
