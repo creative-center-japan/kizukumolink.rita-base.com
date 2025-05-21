@@ -61,10 +61,10 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
-  const runDiagnosis = async () => {
-    setLoading(true);
-    setDiagnosed(false);
-    const logs: string[] = [];
+const runDiagnosis = async () => {
+  setLoading(true);
+  setDiagnosed(false);
+  const logs: string[] = [];
 
     try {
       // 外部IP取得
@@ -118,18 +118,22 @@ export default function Home() {
           logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
         }
 
-        setStatus(logs);
-        setDiagnosed(true);
-      } catch (err) {
-        logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-      }
-
-    } catch {
-      logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
+    } catch (err) {
+      logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
     }
-  };
+
+  } catch {
+    logs.push("❌ サーバとの接続に失敗しました");
+    setStatus(logs);
+    setDiagnosed(true);
+  }
+
+  // AWSでブラウザ実行のWebRTCを実行
+  await runWebRTCCheck();
+
+};
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
@@ -279,4 +283,52 @@ export default function Home() {
       </div>
     </main>
   );
+
+
+  const runWebRTCCheck = async () => {
+  const pc = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:3.80.218.25:3478' },
+      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+    ]
+  });
+
+  const channel = pc.createDataChannel('test');
+
+  channel.onopen = () => {
+    console.log('✅ WebRTC: DataChannel open!');
+    channel.send('hello from client');
+  };
+
+  channel.onmessage = (event) => {
+    console.log('📨 WebRTC: Message received:', event.data);
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+  });
+
+  const answer = await res.json();
+  await pc.setRemoteDescription(answer);
+
+  pc.onicecandidate = async (event) => {
+    if (event.candidate) {
+      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate: event.candidate,
+          pc_id: answer.pc_id
+        })
+      });
+    }
+  };
+};
+
+
 } 
