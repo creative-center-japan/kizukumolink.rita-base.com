@@ -1,6 +1,7 @@
 // rita-base\src\app\layout.tsx
 
 import './globals.css';
+import Link from 'next/link';
 
 export const metadata = {
   title: 'カメラ接続診断 - キヅクモ接続テスト',

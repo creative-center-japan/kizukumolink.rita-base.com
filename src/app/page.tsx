@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 const CHECK_ITEMS = [
   {
@@ -148,7 +149,7 @@ const runDiagnosis = async () => {
         logs.push("外部IP: 取得失敗");
       }
 
-      
+
       // AWSで実行した通信ポート確認（JSON対応版）
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
@@ -219,6 +220,7 @@ const runDiagnosis = async () => {
   };
 
   return (
+    <div>
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
       <div className="max-w-5xl mx-auto">
@@ -334,6 +336,10 @@ const runDiagnosis = async () => {
         )}
       </div>
     </main>
+    <p className="text-center text-smmt-4">
+      <Link href="/contact"className="text-blue-800 underline">次のページ</Link>
+    </p>
+    </div>
   );
 
 
