@@ -148,27 +148,7 @@ const runDiagnosis = async () => {
         logs.push("外部IP: 取得失敗");
       }
 
-      // サービスへの通信確認（Alarm.com）
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒タイムアウト
-
-        const res = await fetch("https://international.alarm.com/", {
-          method: "GET",
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          logs.push("TCP 443: 成功");
-        } else {
-          logs.push(`TCP 443: 失敗 (${res.status} ${res.statusText})`);
-        }
-      } catch (err) {
-        logs.push(`TCP 443: 失敗 (${(err as Error).message})`);
-      }
-
+      
       // AWSで実行した通信ポート確認（JSON対応版）
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
