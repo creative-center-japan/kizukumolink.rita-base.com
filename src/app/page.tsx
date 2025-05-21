@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+// import Link from 'next/link'; //
 
 const CHECK_ITEMS = [
   {
@@ -62,82 +62,82 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
 
-//WebRTC2の接続チェック
-const runWebRTCCheck = async () => {
-  const logs: string[] = [];
+  //WebRTC2の接続チェック
+  const runWebRTCCheck = async () => {
+    const logs: string[] = [];
 
-  const pc = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-    ]
-  });
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:3.80.218.25:3478' },
+        { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+      ]
+    });
 
-  const allCandidates: RTCIceCandidate[] = [];
+    const allCandidates: RTCIceCandidate[] = [];
 
-  const channel = pc.createDataChannel('test');
+    const channel = pc.createDataChannel('test');
 
-  channel.onopen = () => {
-    logs.push('✅ WebRTC: DataChannel open!');
-    channel.send('hello from client');
-    logs.push('candidate-pair: succeeded');
-    setStatus(prev => [...prev, ...logs]);
-  };
-
-  channel.onmessage = (event) => {
-    logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-    setStatus(prev => [...prev, ...logs]);
-  };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-  });
-
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
-
-  pc.onicecandidate = async (event) => {
-    if (event.candidate) {
-      allCandidates.push(event.candidate);
-      const cand = event.candidate.candidate;
-
-      if (cand.includes("typ srflx")) {
-        logs.push("srflx: 応答あり");
-      }
-      if (cand.includes("typ relay")) {
-        logs.push("typ relay: 中継成功");
-      }
-
-      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate: event.candidate,
-          pc_id: answer.pc_id
-        })
-      });
-    }
-  };
-
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed") {
-      logs.push("❌ WebRTC接続に失敗しました");
+    channel.onopen = () => {
+      logs.push('✅ WebRTC: DataChannel open!');
+      channel.send('hello from client');
+      logs.push('candidate-pair: succeeded');
       setStatus(prev => [...prev, ...logs]);
-    }
+    };
+
+    channel.onmessage = (event) => {
+      logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+      setStatus(prev => [...prev, ...logs]);
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+    });
+
+    const answer = await res.json();
+    await pc.setRemoteDescription(answer);
+
+    pc.onicecandidate = async (event) => {
+      if (event.candidate) {
+        allCandidates.push(event.candidate);
+        const cand = event.candidate.candidate;
+
+        if (cand.includes("typ srflx")) {
+          logs.push("srflx: 応答あり");
+        }
+        if (cand.includes("typ relay")) {
+          logs.push("typ relay: 中継成功");
+        }
+
+        await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidate: event.candidate,
+            pc_id: answer.pc_id
+          })
+        });
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed") {
+        logs.push("❌ WebRTC接続に失敗しました");
+        setStatus(prev => [...prev, ...logs]);
+      }
+    };
   };
-};
 
 
 
-const runDiagnosis = async () => {
-  setLoading(true);
-  setDiagnosed(false);
-  const logs: string[] = [];
+  const runDiagnosis = async () => {
+    setLoading(true);
+    setDiagnosed(false);
+    const logs: string[] = [];
 
     try {
       // 外部IP取得
@@ -171,22 +171,22 @@ const runDiagnosis = async () => {
           logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
         }
 
+        setStatus(logs);
+        setDiagnosed(true);
+      } catch (err) {
+        logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
+      }
+
+    } catch {
+      logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
-    } catch (err) {
-      logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
     }
 
-  } catch {
-    logs.push("❌ サーバとの接続に失敗しました");
-    setStatus(logs);
-    setDiagnosed(true);
-  }
+    // AWSでブラウザ実行のWebRTCを実行
+    await runWebRTCCheck();
 
-  // AWSでブラウザ実行のWebRTCを実行
-  await runWebRTCCheck();
-
-};
+  };
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
@@ -221,124 +221,122 @@ const runDiagnosis = async () => {
 
   return (
     <div>
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
-          キヅクモサービス接続診断ツール
-        </h1>
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
+            キヅクモサービス接続診断ツール
+          </h1>
 
-        <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
-          このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
-          カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
-          <br />
-          <span className="text-xs text-gray-500 font-bold">
-            ※当Web診断はサービスの品質を保証するものではございません。
-          </span>
-        </p>
-
-        {loading && (
-          <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
-            <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
-            <ul className="space-y-1">
-              <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
-              <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
-              <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
-            </ul>
-          </div>
-        )}
-
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
-
-          {!loading && (
-            <button
-              onClick={runDiagnosis}
-              className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
-            >
-              {diagnosed ? '再診断' : '診断開始'}
-            </button>
-
-          )}
+          <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
+            このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
+            カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
+            <br />
+            <span className="text-xs text-gray-500 font-bold">
+              ※当Web診断はサービスの品質を保証するものではございません。
+            </span>
+          </p>
 
           {loading && (
-            <button
-              onClick={() => {
-                setLoading(false);
-                setStatus([]);
-              }}
-              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
-            >
-              キャンセル
-            </button>
+            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
+              <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+              <ul className="space-y-1">
+                <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
+                <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
+                <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
+              </ul>
+            </div>
           )}
+
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+
+            {!loading && (
+              <button
+                onClick={runDiagnosis}
+                className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
+              >
+                {diagnosed ? '再診断' : '診断開始'}
+              </button>
+
+            )}
+
+            {loading && (
+              <button
+                onClick={() => {
+                  setLoading(false);
+                  setStatus([]);
+                }}
+                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
+              >
+                キャンセル
+              </button>
+            )}
+
+            {diagnosed && (
+              <button
+                onClick={() => {
+                  const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+              >
+                結果をダウンロード
+              </button>
+            )}
+          </div>
+
 
           {diagnosed && (
-            <button
-              onClick={() => {
-                const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
-            >
-              結果をダウンロード
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
+            </div>
           )}
-        </div>
 
+          {showDetail && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
 
-        {diagnosed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
-          </div>
-        )}
+                <h2 className="text-lg font-bold text-blue-700">
+                  {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
+                </h2>
 
-        {showDetail && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
+                </p>
 
-              <h2 className="text-lg font-bold text-blue-700">
-                {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
-              </h2>
+                {/* ❗NG理由がある場合だけ表示 */}
+                {(() => {
+                  const item = CHECK_ITEMS.find(i => i.label === showDetail);
+                  const isOK = status.some(log =>
+                    log.includes(item?.keyword || '') &&
+                    (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
+                  );
+                  return !isOK && item?.ngReason ? (
+                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                      ❗NG理由: {item.ngReason}
+                    </div>
+                  ) : null;
+                })()}
 
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
-              </p>
-
-              {/* ❗NG理由がある場合だけ表示 */}
-              {(() => {
-                const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                const isOK = status.some(log =>
-                  log.includes(item?.keyword || '') &&
-                  (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
-                );
-                return !isOK && item?.ngReason ? (
-                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                    ❗NG理由: {item.ngReason}
-                  </div>
-                ) : null;
-              })()}
-
-              <div className="text-right">
-                <button
-                  onClick={() => setShowDetail(null)}
-                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                >
-                  閉じる
-                </button>
+                <div className="text-right">
+                  <button
+                    onClick={() => setShowDetail(null)}
+                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  >
+                    閉じる
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-    </main>
-    <p className="text-center text-smmt-4">
-      <Link href="/contact"className="text-blue-800 underline">次のページ</Link>
-    </p>
+          )}
+        </div>
+      </main>
+
     </div>
   );
 
