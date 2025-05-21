@@ -111,173 +111,173 @@ export default function Home() {
         logs.push("🔸 UDPポート確認:");
         for (const [port, result] of Object.entries(data.udp)) {
           logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
-
-          if (data.failed_ports.length > 0) {
-            logs.push("❌ NGとなったポート一覧:");
-            logs.push(...data.failed_ports.map((p: string) => ` - ${p}`));
-          }
-
-          setStatus(logs);
-          setDiagnosed(true);
-        } catch {
-          logs.push("❌ サーバとの接続に失敗しました");
-          setStatus(logs);
-          setDiagnosed(true);
         }
-      } finally {
-        setLoading(false);
-      }
-    }; // ← ❗これが絶対必要！
 
-    const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
-      let ipAddress = '取得失敗'; // Default value for IP address
+        if (data.failed_ports.length > 0) {
+          logs.push("❌ NGとなったポート一覧:");
+          logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
+        }
 
-      // Extract the IP address from the status logs
-      if (item.keyword === '外部IP:') {
-        const logs = status.filter((log) => log.includes(item.keyword));
-        const ipLog = logs.find(log => log.startsWith('外部IP:'));
-        ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
+        setStatus(logs);
+        setDiagnosed(true);
       }
 
+      } catch {
+      logs.push("❌ サーバとの接続に失敗しました");
+      setStatus(logs);
+      setDiagnosed(true);
+      }
+    }
+  }
+
+  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
+    let ipAddress = '取得失敗'; // Default value for IP address
+
+    // Extract the IP address from the status logs
+    if (item.keyword === '外部IP:') {
       const logs = status.filter((log) => log.includes(item.keyword));
-      const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+      const ipLog = logs.find(log => log.startsWith('外部IP:'));
+      ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
+    }
 
-      return (
-        <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
-            <button
-              className="text-sm text-white-400 hover:text-white-200"
-              title="詳細はこちら"
-              onClick={() => setShowDetail(item.label)}
-            >❔</button>
-          </div>
-          <p className="text-sm text-blue-200 mb-1">{item.description}</p>
-          <p className={`text-2xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
-            {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
-          </p>
-        </div>
-      );
-    };
-
+    const logs = status.filter((log) => log.includes(item.keyword));
+    const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
+      <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
+          <button
+            className="text-sm text-white-400 hover:text-white-200"
+            title="詳細はこちら"
+            onClick={() => setShowDetail(item.label)}
+          >❔</button>
+        </div>
+        <p className="text-sm text-blue-200 mb-1">{item.description}</p>
+        <p className={`text-2xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
+          {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
+        </p>
+      </div>
+    );
+  };
 
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
-            キヅクモサービス接続診断ツール
-          </h1>
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 py-10">
 
-          <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
-            このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
-            カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
-            <br />
-            <span className="text-xs text-gray-500 font-bold">
-              ※当Web診断はサービスの品質を保証するものではございません。
-            </span>
-          </p>
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
+          キヅクモサービス接続診断ツール
+        </h1>
+
+        <p className="text-center text-sm text-gray-700 mb-8 font-semibold">
+          このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
+          カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
+          <br />
+          <span className="text-xs text-gray-500 font-bold">
+            ※当Web診断はサービスの品質を保証するものではございません。
+          </span>
+        </p>
+
+        {loading && (
+          <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
+            <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+            <ul className="space-y-1">
+              <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
+              <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
+              <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
+            </ul>
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+
+          {!loading && (
+            <button
+              onClick={runDiagnosis}
+              className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
+            >
+              {diagnosed ? '再診断' : '診断開始'}
+            </button>
+
+          )}
 
           {loading && (
-            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
-              <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
-              <ul className="space-y-1">
-                <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
-                <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
-                <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
-              </ul>
-            </div>
+            <button
+              onClick={() => {
+                setLoading(false);
+                setStatus([]);
+              }}
+              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
+            >
+              キャンセル
+            </button>
           )}
-
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-
-            {!loading && (
-              <button
-                onClick={runDiagnosis}
-                className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
-              >
-                {diagnosed ? '再診断' : '診断開始'}
-              </button>
-
-            )}
-
-            {loading && (
-              <button
-                onClick={() => {
-                  setLoading(false);
-                  setStatus([]);
-                }}
-                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
-              >
-                キャンセル
-              </button>
-            )}
-
-            {diagnosed && (
-              <button
-                onClick={() => {
-                  const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
-              >
-                結果をダウンロード
-              </button>
-            )}
-          </div>
-
 
           {diagnosed && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
-            </div>
+            <button
+              onClick={() => {
+                const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+            >
+              結果をダウンロード
+            </button>
           )}
+        </div>
 
-          {showDetail && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
 
-                <h2 className="text-lg font-bold text-blue-700">
-                  {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
-                </h2>
+        {diagnosed && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
+          </div>
+        )}
 
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
-                </p>
+        {showDetail && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
 
-                {/* ❗NG理由がある場合だけ表示 */}
-                {(() => {
-                  const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                  const isOK = status.some(log =>
-                    log.includes(item?.keyword || '') &&
-                    (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
-                  );
-                  return !isOK && item?.ngReason ? (
-                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                      ❗NG理由: {item.ngReason}
-                    </div>
-                  ) : null;
-                })()}
+              <h2 className="text-lg font-bold text-blue-700">
+                {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
+              </h2>
 
-                <div className="text-right">
-                  <button
-                    onClick={() => setShowDetail(null)}
-                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                  >
-                    閉じる
-                  </button>
-                </div>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
+              </p>
+
+              {/* ❗NG理由がある場合だけ表示 */}
+              {(() => {
+                const item = CHECK_ITEMS.find(i => i.label === showDetail);
+                const isOK = status.some(log =>
+                  log.includes(item?.keyword || '') &&
+                  (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
+                );
+                return !isOK && item?.ngReason ? (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    ❗NG理由: {item.ngReason}
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="text-right">
+                <button
+                  onClick={() => setShowDetail(null)}
+                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  閉じる
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
 
-        </div>
-      </main>
-    );
-  }
+      </div>
+    </main>
+  );
+}
