@@ -17,7 +17,7 @@ const CHECK_ITEMS = [
   {
     label: 'サービスへの通信確認',
     description: 'キヅクモサービスへの接続（TCP 443）が可能か',
-    keyword: 'TCP',
+    keyword: 'サービスへの通信確認',
     tooltip: 'Alarm.com サーバへ TCP接続できたかを確認します',
     detail: 'カメラサービスのクラウド連携やライブ配信に必要なポートです。443はHTTPSに使われる標準ポートです。',
     ngReason: 'Alarm.com への TCP 接続ができませんでした'
