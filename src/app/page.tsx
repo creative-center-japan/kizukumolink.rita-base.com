@@ -282,7 +282,7 @@ export default function Home() {
 
           <div className="flex flex-wrap justify-center gap-4 mb-10">
             {(!loading && !diagnosed) && (
-              <button onClick={runDiagnosis} className="w-[200px] h-[48px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              <button onClick={runDiagnosis}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 診断開始
               </button>
             )}
@@ -290,7 +290,7 @@ export default function Home() {
             {diagnosed && (
               <button
                 onClick={runDiagnosis}
-                className="w-[200px] h-[48px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap"
+               className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap"
               >
                 再診断
               </button>
@@ -300,7 +300,7 @@ export default function Home() {
               <button onClick={() => {
                 setLoading(false);
                 setStatus([]);
-              }} className="w-[200px] h-[48px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              }}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 キャンセル
               </button>
             )}
@@ -314,7 +314,7 @@ export default function Home() {
                 a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
-              }} className="w-[200px] h-[48px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              }}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 結果をダウンロード
               </button>
             )}
