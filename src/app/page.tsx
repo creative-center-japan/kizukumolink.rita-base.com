@@ -153,16 +153,14 @@ export default function Home() {
       // Alarm.com 接続チェック
       try {
         const res = await fetch("/api/alarmcheck");
-        const result = await res.text();
         if (res.ok) {
           logs.push("サービスへの通信確認: OK (Alarm.com 接続成功)");
         } else {
-          logs.push(`サービスへの通信確認: NG (${result})`);
+          logs.push(`サービスへの通信確認: NG (status: ${res.status})`);
         }
       } catch (err) {
-        logs.push(`サービスへの通信確認: NG (例外: ${(err as Error).message})`);
+        logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
-
 
       // AWSで実行した通信ポート確認（JSON対応版）
       try {
