@@ -13,12 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
       </head>
-      <body className="bg-blue-50 text-slate-800 overflow-x-hidden">
+
+      <body className="bg-blue-50 text-slate-800">
         <div className="flex flex-col min-h-screen">
-          <main className="h-screen flex flex-col justify-between px-6 py-6 text-xl">
+          <main className="flex-grow px-6 py-10">
             {children}
           </main>
-
           <footer className="bg-blue-900 text-white text-center text-sm py-4">
             <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
             <div className="space-x-6">
@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </footer>
         </div>
       </body>
+
     </html>
   );
 }

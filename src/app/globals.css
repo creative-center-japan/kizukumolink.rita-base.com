@@ -24,13 +24,13 @@
   }
 }
 
-/* 👇 reset & fullscreen対応 */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background-color: var(--background);
+  background-color: #f0f9ff;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden; /* スクロールを防止 */
+  overflow-y: auto;       /* ✅ スクロールOKにしてフッター復活 */
+  overflow-x: hidden;     /* ✅ 横だけ防止 */
 }
