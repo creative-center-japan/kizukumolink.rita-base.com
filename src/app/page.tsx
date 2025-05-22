@@ -149,7 +149,6 @@ export default function Home() {
         logs.push("外部IP: 取得失敗");
       }
 
-
       // Alarm.com 接続チェック
       try {
         const res = await fetch("/api/fqdncheck");
@@ -164,8 +163,7 @@ export default function Home() {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
 
-
-      // AWSで実行した通信ポート確認（JSON対応版）
+      // 通信ポート確認
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
@@ -187,22 +185,25 @@ export default function Home() {
         }
 
         setStatus(logs);
-        setDiagnosed(true);
       } catch (err) {
         logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
+        setStatus(logs);
+        setDiagnosed(true);
+        return;
       }
 
+      // ✅ WebRTC診断完了まで待ってから診断完了扱いにする
+      await runWebRTCCheck();
+
+      setDiagnosed(true);
     } catch {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
-      setDiagnosed(true); // ← これがないとUIが止まる
-      return; // ここで止めることでWebRTCフェーズに進まないようにする
+
+
+      
     }
-
-    // AWSでブラウザ実行のWebRTCを実行
-    await runWebRTCCheck();
-
   };
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
