@@ -8,7 +8,7 @@ export async function GET() {
     } else {
       return new Response(`NG (status: ${res.status})`, { status: res.status });
     }
-  } catch (err: any) {
-    return new Response(`NG (エラー: ${err.message})`, { status: 500 });
+  } catch (err) {
+    return new Response(`NG (エラー: ${(err as Error).message})`, { status: 500 });
   }
 }
