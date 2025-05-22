@@ -153,10 +153,12 @@ export default function Home() {
       // Alarm.com 接続チェック
       try {
         const res = await fetch("/api/alarmcheck");
-        if (res.ok) {
-          logs.push("サービスへの通信確認: OK (Alarm.com 接続成功)");
+        const result = await res.text();
+
+        if (result.startsWith("OK")) {
+          logs.push(`サービスへの通信確認: ${result}`);
         } else {
-          logs.push(`サービスへの通信確認: NG (status: ${res.status})`);
+          logs.push(`サービスへの通信確認: NG (${result})`);
         }
       } catch (err) {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
@@ -219,13 +221,14 @@ export default function Home() {
     let isOK = false;
     if (item.label === 'サービスへの通信確認') {
       isOK = logsForItem.some(log =>
-        log.trim() === "サービスへの通信確認: OK (Alarm.com 接続成功)"
+        log.startsWith("サービスへの通信確認: OK")
       );
     } else {
       isOK = logsForItem.some(log =>
         log.includes("OK") || log.includes("成功") || log.includes("応答あり") || log.includes("succeeded")
       );
     }
+
 
     return (
 
