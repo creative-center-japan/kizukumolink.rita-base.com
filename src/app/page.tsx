@@ -207,7 +207,7 @@ export default function Home() {
 
       <div
         key={idx}
-        className="w-[90vw] sm:w-[280px] md:w-[300px] h-[120px] sm:h-[140px] md:h-[150px] bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white"
+        className="w-[320px] h-[180px] sm:w-[340px] sm:h-[200px] md:w-[360px] md:h-[220px] bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white"
       >
 
         <div className="flex justify-between items-center mb-2">
@@ -294,7 +294,7 @@ export default function Home() {
           </div>
 
           {diagnosed && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 justify-center">
+            <div className="mx-auto max-w-5xl px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
             </div>
           )}
