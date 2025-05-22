@@ -248,48 +248,43 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {/* 診断前 or 再診断 */}
-            {!loading && (
-              <button
-                onClick={runDiagnosis}
-                className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg"
-              >
-                {diagnosed ? '再診断' : '診断開始'}
+          <div className="flex flex-wrap justify-center gap-4 mb-10">
+            {(!loading && !diagnosed) && (
+              <button onClick={runDiagnosis} className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg">
+                診断開始
               </button>
             )}
 
-            {/* 診断中のみキャンセル表示 */}
+            {(!loading && diagnosed) && (
+              <button onClick={runDiagnosis} className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg">
+                再診断
+              </button>
+            )}
+
             {loading && !diagnosed && (
-              <button
-                onClick={() => {
-                  setLoading(false);
-                  setStatus([]);
-                }}
-                className="px-8 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow text-lg"
-              >
+              <button onClick={() => {
+                setLoading(false);
+                setStatus([]);
+              }} className="px-8 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow text-lg">
                 キャンセル
               </button>
             )}
 
-            {/* 診断後のみダウンロードボタン表示 */}
             {diagnosed && (
-              <button
-                onClick={() => {
-                  const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="px-8 py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg"
-              >
+              <button onClick={() => {
+                const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }} className="px-8 py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg">
                 結果をダウンロード
               </button>
             )}
           </div>
+
 
           {diagnosed && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
