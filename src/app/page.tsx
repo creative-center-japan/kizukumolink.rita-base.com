@@ -218,7 +218,9 @@ export default function Home() {
 
     let isOK = false;
     if (item.label === 'サービスへの通信確認') {
-      isOK = logsForItem.some(log => log?.trim() === "サービスへの通信確認: OK (Alarm.com 接続成功)");
+      isOK = logsForItem.some(log =>
+        log.includes("サービスへの通信確認: OK") || log.includes("通信成功")
+      );
     } else {
       isOK = logsForItem.some(log =>
         log.includes("OK") || log.includes("成功") || log.includes("応答あり") || log.includes("succeeded")
