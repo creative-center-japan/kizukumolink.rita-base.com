@@ -255,8 +255,11 @@ export default function Home() {
               </button>
             )}
 
-            {(!loading && diagnosed) && (
-              <button onClick={runDiagnosis} className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg">
+            {diagnosed && (
+              <button
+                onClick={runDiagnosis}
+                className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg"
+              >
                 再診断
               </button>
             )}

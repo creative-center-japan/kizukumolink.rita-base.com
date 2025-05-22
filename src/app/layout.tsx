@@ -13,9 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
       </head>
-      <body className="flex flex-col min-h-screen bg-blue-50 text-slate-800 dark:bg-blue-50 dark:text-slate-800 overflow-x-hidden">
-        {/* 👇 フレックスで上・下の固定構造に */}
-        <main className="flex-grow w-full max-w-7xl mx-auto px-4 py-8">
+      <body className="min-h-screen flex flex-col bg-blue-50 text-slate-800 overflow-x-hidden">
+        <main className="flex-grow flex flex-col justify-between w-full max-w-screen-lg mx-auto px-6 py-10 text-xl">
           {children}
         </main>
 
