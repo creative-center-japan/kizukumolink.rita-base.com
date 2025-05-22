@@ -149,7 +149,8 @@ export default function Home() {
         logs.push("外部IP: 取得失敗");
       }
 
-      //Alarm.comへの疎通チェック追加
+
+      // Alarm.com 接続チェック
       try {
         const res = await fetch("https://international.alarm.com/landing/jp/", { method: "GET" });
         if (res.ok) {
@@ -161,7 +162,7 @@ export default function Home() {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
 
-      
+
       // AWSで実行した通信ポート確認（JSON対応版）
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
@@ -212,8 +213,18 @@ export default function Home() {
       ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
     }
 
-    const logs = status.filter((log) => log.includes(item.keyword));
-    const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
+    // Alarm.Comへの接続結果    
+    const logsForItem = status.filter(log => log.includes(item.keyword));
+    const ngLog = logsForItem.find(log => log.includes("NG"));
+
+    let isOK = false;
+    if (item.label === 'サービスへの通信確認') {
+      isOK = logsForItem.some(log => log?.trim() === "サービスへの通信確認: OK (Alarm.com 接続成功)");
+    } else {
+      isOK = logsForItem.some(log =>
+        log.includes("OK") || log.includes("成功") || log.includes("応答あり") || log.includes("succeeded")
+      );
+    }
 
     return (
 
