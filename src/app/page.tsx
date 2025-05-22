@@ -149,7 +149,19 @@ export default function Home() {
         logs.push("外部IP: 取得失敗");
       }
 
+      //Alarm.comへの疎通チェック追加
+      try {
+        const res = await fetch("https://international.alarm.com/landing/jp/", { method: "GET" });
+        if (res.ok) {
+          logs.push("サービスへの通信確認: OK (Alarm.com 接続成功)");
+        } else {
+          logs.push(`サービスへの通信確認: NG (status: ${res.status})`);
+        }
+      } catch (err) {
+        logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
+      }
 
+      
       // AWSで実行した通信ポート確認（JSON対応版）
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
