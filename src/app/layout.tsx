@@ -15,13 +15,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="bg-blue-50 text-slate-800">
-        <div className="flex flex-col min-h-screen">
-          <main className="flex-grow px-6 py-10">
+        <div className="flex flex-col h-screen">
+          <main className="flex-grow flex flex-col justify-start items-center px-4 pt-6 pb-2">
             {children}
           </main>
-          <footer className="bg-blue-900 text-white text-center text-sm py-4">
+
+          <footer className="bg-blue-900 text-white text-center text-sm py-2">
             <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
-            <div className="space-x-6">
+            <div className="space-x-4">
               <a href="/privacy" className="underline hover:text-gray-300">プライバシーポリシー</a>
               <a href="/contact" className="underline hover:text-gray-300">お問い合わせ</a>
             </div>
