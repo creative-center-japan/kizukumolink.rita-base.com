@@ -223,8 +223,7 @@ export default function Home() {
 
   return (
     <div>
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-8 py-20">
-
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-8 py-20 text-xl scale-[1.1]">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-5xl font-bold text-blue-800 text-center mb-10 tracking-wide">
             キヅクモサービス接続診断ツール
@@ -249,25 +248,23 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-
+          <div className="flex flex-wrap justify-center gap-4 mb-12">
             {!loading && (
               <button
                 onClick={runDiagnosis}
-                className="px-6 py-3 bg-blue-800 text-white rounded-full font-semibold shadow"
+                className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg"
               >
                 {diagnosed ? '再診断' : '診断開始'}
               </button>
-
             )}
 
-            {loading && (
+            {loading && !diagnosed && (
               <button
                 onClick={() => {
                   setLoading(false);
                   setStatus([]);
                 }}
-                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow"
+                className="px-8 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow text-lg"
               >
                 キャンセル
               </button>
@@ -284,13 +281,12 @@ export default function Home() {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="px-6 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow"
+                className="px-8 py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg"
               >
                 結果をダウンロード
               </button>
             )}
           </div>
-
 
           {diagnosed && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
