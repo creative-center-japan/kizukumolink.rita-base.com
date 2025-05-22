@@ -13,19 +13,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
       </head>
-      <body className="min-h-screen flex flex-col bg-blue-50 text-slate-800 overflow-x-hidden">
-        <main className="flex-grow flex flex-col justify-between w-full max-w-screen-lg mx-auto px-6 py-10 text-xl">
-          {children}
-        </main>
+      <body className="bg-blue-50 text-slate-800 overflow-x-hidden">
+        <div className="flex flex-col min-h-screen">
+          <main className="flex-grow px-4 py-10 w-full">
+            {children}
+          </main>
 
-        <footer className="bg-blue-900 text-white text-center text-sm py-4">
-          <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
-          <div className="space-x-6">
-            <a href="/privacy" className="underline hover:text-gray-300">プライバシーポリシー</a>
-            <a href="/contact" className="underline hover:text-gray-300">お問い合わせ</a>
-          </div>
-        </footer>
+          <footer className="bg-blue-900 text-white text-center text-sm py-4">
+            <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
+            <div className="space-x-6">
+              <a href="/privacy" className="underline hover:text-gray-300">プライバシーポリシー</a>
+              <a href="/contact" className="underline hover:text-gray-300">お問い合わせ</a>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   );
 }
+
+

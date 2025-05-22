@@ -223,8 +223,8 @@ export default function Home() {
 
   return (
     <div>
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-6 pt-16 pb-20 overflow-hidden text-xl">
-        <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-6 pt-16 pb-20 text-xl">
+        <div className="w-full">
           <h1 className="text-5xl font-bold text-blue-800 text-center mb-10 tracking-wide">
             キヅクモサービス接続診断ツール
           </h1>
