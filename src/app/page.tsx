@@ -152,7 +152,7 @@ export default function Home() {
 
       // Alarm.com 接続チェック
       try {
-        const res = await fetch("/api/alarmcheck");
+        const res = await fetch("/api/fqdncheck");
         const result = await res.text();
 
         if (result.startsWith("OK")) {
@@ -229,7 +229,7 @@ export default function Home() {
       );
     }
 
-    
+
     return (
 
       <div
