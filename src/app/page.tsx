@@ -215,7 +215,6 @@ export default function Home() {
 
     // Alarm.Comへの接続結果    
     const logsForItem = status.filter(log => log.includes(item.keyword));
-    const ngLog = logsForItem.find(log => log.includes("NG"));
 
     let isOK = false;
     if (item.label === 'サービスへの通信確認') {
