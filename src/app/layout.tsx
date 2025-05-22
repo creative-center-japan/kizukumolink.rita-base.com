@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-blue-50 text-slate-800 overflow-x-hidden">
         <div className="flex flex-col min-h-screen">
-          <main className="flex-grow px-4 py-10 w-full">
+          <main className="h-screen flex flex-col justify-between px-6 py-6 text-xl">
             {children}
           </main>
 

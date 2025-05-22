@@ -204,7 +204,7 @@ export default function Home() {
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
-      <div key={idx} className="bg-blue-900 border border-white rounded-2xl p-6 shadow-2xl text-white relative text-lg">
+      <div key={idx} className="w-[280px] bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
           <button
@@ -290,7 +290,7 @@ export default function Home() {
 
 
           {diagnosed && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-center items-start">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
             </div>
           )}
