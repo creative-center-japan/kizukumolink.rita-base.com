@@ -294,7 +294,7 @@ export default function Home() {
           </div>
 
           {diagnosed && (
-            <div className="mx-auto max-w-5xl px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-[repeat(auto-fit,_minmax(320px,_1fr))] gap-4 px-4 mx-auto max-w-screen-xl">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
             </div>
           )}
