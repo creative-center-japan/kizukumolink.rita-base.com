@@ -204,7 +204,7 @@ export default function Home() {
     const isOK = logs.some((log) => log.includes('OK') || log.includes('成功') || log.includes('応答あり') || log.includes('succeeded'));
 
     return (
-      <div key={idx} className="bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white relative">
+      <div key={idx} className="bg-blue-900 border border-white rounded-2xl p-6 shadow-2xl text-white relative text-lg">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
           <button
@@ -214,7 +214,7 @@ export default function Home() {
           >❔</button>
         </div>
         <p className="text-sm text-blue-200 mb-1">{item.description}</p>
-        <p className={`text-2xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
+        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
           {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
         </p>
       </div>
@@ -239,8 +239,8 @@ export default function Home() {
             </span>
           </p>
 
-          {loading && (
-            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 text-sm space-y-2 mb-10 font-semibold">
+            {loading && !diagnosed && (
+            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-8 text-lg space-y-4 mb-12 font-semibold">
               <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
               <ul className="space-y-1">
                 <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
