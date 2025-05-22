@@ -207,7 +207,7 @@ export default function Home() {
 
       <div
         key={idx}
-        className="w-[320px] h-[180px] sm:w-[340px] sm:h-[200px] md:w-[360px] md:h-[220px] bg-blue-900 border border-white rounded-xl p-4 shadow-xl text-white"
+        className="w-[320px] h-[180px] sm:w-[340px] sm:h-[200px] md:w-[360px] md:h-[220px] bg-blue-800 border border-white rounded-xl p-4 shadow-xl text-white"
       >
 
         <div className="flex justify-between items-center mb-2">
@@ -255,7 +255,7 @@ export default function Home() {
 
           <div className="flex flex-wrap justify-center gap-4 mb-10">
             {(!loading && !diagnosed) && (
-              <button onClick={runDiagnosis} className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg">
+              <button onClick={runDiagnosis} className="w-[200px] px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg">
                 診断開始
               </button>
             )}
@@ -263,7 +263,7 @@ export default function Home() {
             {diagnosed && (
               <button
                 onClick={runDiagnosis}
-                className="px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg"
+                className="w-[200px] px-8 py-4 bg-blue-800 text-white rounded-full font-semibold shadow text-lg"
               >
                 再診断
               </button>
@@ -273,7 +273,7 @@ export default function Home() {
               <button onClick={() => {
                 setLoading(false);
                 setStatus([]);
-              }} className="px-8 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow text-lg">
+              }} className="w-[200px] px-8 py-4 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold shadow text-lg">
                 キャンセル
               </button>
             )}
@@ -287,7 +287,7 @@ export default function Home() {
                 a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
-              }} className="px-8 py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg">
+              }} className="w-[200px] px-8 py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg">
                 結果をダウンロード
               </button>
             )}
