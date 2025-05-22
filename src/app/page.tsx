@@ -223,8 +223,8 @@ export default function Home() {
 
   return (
     <div>
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-8 py-20 text-xl scale-[1.1]">
-        <div className="max-w-5xl mx-auto">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-6 pt-16 pb-20 overflow-hidden text-xl">
+        <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-blue-800 text-center mb-10 tracking-wide">
             キヅクモサービス接続診断ツール
           </h1>
@@ -249,6 +249,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
+            {/* 診断前 or 再診断 */}
             {!loading && (
               <button
                 onClick={runDiagnosis}
@@ -258,6 +259,7 @@ export default function Home() {
               </button>
             )}
 
+            {/* 診断中のみキャンセル表示 */}
             {loading && !diagnosed && (
               <button
                 onClick={() => {
@@ -270,6 +272,7 @@ export default function Home() {
               </button>
             )}
 
+            {/* 診断後のみダウンロードボタン表示 */}
             {diagnosed && (
               <button
                 onClick={() => {
