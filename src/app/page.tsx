@@ -290,8 +290,7 @@ export default function Home() {
               </button>
             )}
           </div>
-
-
+          
           {diagnosed && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 justify-center">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
