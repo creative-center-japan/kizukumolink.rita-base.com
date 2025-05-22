@@ -245,6 +245,11 @@ export default function Home() {
         <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
           {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
         </p>
+        {!isOK && logsForItem.find(log => log.includes("NG")) && (
+          <p className="text-xs text-red-300 mt-1 whitespace-pre-wrap">
+            {logsForItem.find(log => log.includes("NG"))}
+          </p>
+        )}
       </div>
     );
   };
