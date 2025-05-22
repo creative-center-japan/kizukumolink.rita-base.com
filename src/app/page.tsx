@@ -152,14 +152,15 @@ export default function Home() {
 
       // Alarm.com 接続チェック
       try {
-        const res = await fetch("https://international.alarm.com/landing/jp/", { method: "GET" });
+        const res = await fetch("/api/alarmcheck");
+        const result = await res.text();
         if (res.ok) {
           logs.push("サービスへの通信確認: OK (Alarm.com 接続成功)");
         } else {
-          logs.push(`サービスへの通信確認: NG (status: ${res.status})`);
+          logs.push(`サービスへの通信確認: NG (${result})`);
         }
       } catch (err) {
-        logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
+        logs.push(`サービスへの通信確認: NG (例外: ${(err as Error).message})`);
       }
 
 
@@ -282,7 +283,7 @@ export default function Home() {
 
           <div className="flex flex-wrap justify-center gap-4 mb-10">
             {(!loading && !diagnosed) && (
-              <button onClick={runDiagnosis}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              <button onClick={runDiagnosis} className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 診断開始
               </button>
             )}
@@ -290,7 +291,7 @@ export default function Home() {
             {diagnosed && (
               <button
                 onClick={runDiagnosis}
-               className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap"
+                className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap"
               >
                 再診断
               </button>
@@ -300,7 +301,7 @@ export default function Home() {
               <button onClick={() => {
                 setLoading(false);
                 setStatus([]);
-              }}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              }} className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 キャンセル
               </button>
             )}
@@ -314,7 +315,7 @@ export default function Home() {
                 a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
-              }}className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
+              }} className="w-[220px] h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-lg text-center whitespace-nowrap">
                 結果をダウンロード
               </button>
             )}
