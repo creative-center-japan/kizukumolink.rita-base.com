@@ -221,7 +221,7 @@ export default function Home() {
     let isOK = false;
     if (item.label === 'サービスへの通信確認') {
       isOK = logsForItem.some(log =>
-        log.startsWith("サービスへの通信確認: OK")
+        log.trim().startsWith("サービスへの通信確認: OK")
       );
     } else {
       isOK = logsForItem.some(log =>
@@ -229,7 +229,7 @@ export default function Home() {
       );
     }
 
-
+    
     return (
 
       <div

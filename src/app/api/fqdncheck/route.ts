@@ -11,7 +11,7 @@ export async function GET() {
 
     // ✅ 200〜499 を OK とみなす
     if (res.status >= 200 && res.status < 500) {
-      return new Response(`OK (status: ${res.status})`, { status: 200 });
+      return new Response(`OK (Alarm.com 接続成功 - status: ${res.status})`, { status: 200 });
     } else {
       return new Response(`NG (HTTP ${res.status})`, { status: res.status });
     }
