@@ -236,7 +236,7 @@ export default function Home() {
 
       <div
         key={idx}
-        className="w-[320px] h-[180px] sm:w-[340px] sm:h-[200px] md:w-[360px] md:h-[220px] bg-blue-800 border border-white rounded-xl p-4 shadow-xl text-white"
+        className="w-full max-w-[360px] h-auto bg-blue-800 border border-white rounded-xl p-4 shadow-xl text-white"
       >
 
         <div className="flex justify-between items-center mb-2">
@@ -262,9 +262,9 @@ export default function Home() {
 
   return (
     <div>
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-12 pb-20 text-base sm:text-lg">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-6 sm:pt-10 pb-16 sm:pb-20 text-base sm:text-lg">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-800 text-center mb-10 tracking-wide">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 text-center mb-10 tracking-wide">
             キヅクモサービス接続診断ツール
           </h1>
 
@@ -325,7 +325,7 @@ export default function Home() {
           </div>
 
           {diagnosed && (
-            <div className="grid grid-cols-[repeat(auto-fit,_minmax(320px,_1fr))] gap-4 px-4 mx-auto max-w-screen-xl">
+            <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-screen-xl">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
             </div>
           )}
