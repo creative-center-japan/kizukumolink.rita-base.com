@@ -233,26 +233,26 @@ export default function Home() {
 
 
     return (
-
       <div
         key={idx}
-        className="w-full max-w-[360px] h-auto bg-blue-800 border border-white rounded-xl p-4 shadow-xl text-white"
+        className="bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl"
       >
-
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold text-white-300">{item.label}</h3>
+          <h3 className="text-lg font-semibold">{item.label}</h3>
           <button
-            className="text-sm text-white-400 hover:text-white-200"
+            className="text-sm text-gray-500 hover:text-gray-800"
             title="詳細はこちら"
             onClick={() => setShowDetail(item.label)}
-          >❔</button>
+          >
+            ❔
+          </button>
         </div>
-        <p className="text-sm text-blue-200 mb-1">{item.description}</p>
-        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-400' : (isOK ? 'text-emerald-400' : 'text-rose-400')}`}>
+        <p className="text-sm text-gray-600 mb-1">{item.description}</p>
+        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`}>
           {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
         </p>
         {!isOK && logsForItem.find(log => log.includes("NG")) && (
-          <p className="text-xs text-red-300 mt-1 whitespace-pre-wrap">
+          <p className="text-xs text-red-500 mt-1 whitespace-pre-wrap">
             {logsForItem.find(log => log.includes("NG"))}
           </p>
         )}
@@ -262,22 +262,22 @@ export default function Home() {
 
   return (
     <div>
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-6 sm:pt-10 pb-16 sm:pb-20 text-base sm:text-lg">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 text-center mb-10 tracking-wide">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-6 sm:px-8 pt-10 sm:pt-14 pb-20 sm:pb-24 text-base sm:text-lg">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-800 text-center mb-12 tracking-wide">
             キヅクモサービス接続診断ツール
           </h1>
 
-          <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-12 font-semibold leading-relaxed">
+          <p className="text-center text-base sm:text-lg md:text-xl text-gray-700 mb-14 font-semibold leading-relaxed">
             このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
             カメラを設置する場所と映像を見る場所の両方で実施してください。<br /><br />
-            <span className="text-xs sm:text-sm text-gray-500 font-bold">
+            <span className="text-sm sm:text-base text-gray-500 font-bold">
               ※当Web診断はサービスの品質を保証するものではございません。
             </span>
           </p>
 
           {loading && !diagnosed && (
-            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 sm:p-8 text-sm sm:text-base space-y-4 mb-12 font-semibold">
+            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-6 sm:p-8 text-base sm:text-lg space-y-4 mb-14 font-semibold">
               <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
               <ul className="space-y-1">
                 <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
@@ -287,15 +287,15 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-center gap-4 mb-10">
+          <div className="flex flex-wrap justify-center gap-6 mb-12">
             {(!loading && !diagnosed) && (
-              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[220px] h-[48px] sm:h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-sm sm:text-base text-center whitespace-nowrap">
+              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[240px] h-[56px] sm:h-[60px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 診断開始
               </button>
             )}
 
             {diagnosed && (
-              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[220px] h-[48px] sm:h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-sm sm:text-base text-center whitespace-nowrap">
+              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[240px] h-[56px] sm:h-[60px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 再診断
               </button>
             )}
@@ -304,7 +304,7 @@ export default function Home() {
               <button onClick={() => {
                 setLoading(false);
                 setStatus([]);
-              }} className="w-full sm:w-auto max-w-[220px] h-[48px] sm:h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-sm sm:text-base text-center whitespace-nowrap">
+              }} className="w-full sm:w-auto max-w-[240px] h-[56px] sm:h-[60px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 キャンセル
               </button>
             )}
@@ -318,31 +318,29 @@ export default function Home() {
                 a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
-              }} className="w-full sm:w-auto max-w-[220px] h-[48px] sm:h-[52px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-sm sm:text-base text-center whitespace-nowrap">
+              }} className="w-full sm:w-auto max-w-[240px] h-[56px] sm:h-[60px] bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 結果をダウンロード
               </button>
             )}
           </div>
 
           {diagnosed && (
-            <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-screen-xl">
+            <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-6 px-2 sm:px-4 mx-auto max-w-screen-xl">
               {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
             </div>
           )}
 
           {showDetail && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-[#0f1d35] border border-blue-600 rounded-xl p-4 shadow-xl text-white">
-
-                <h2 className="text-lg font-bold text-blue-700">
+              <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 shadow-xl text-gray-900 max-w-lg w-full">
+                <h2 className="text-xl font-bold text-blue-700 mb-4">
                   {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
                 </h2>
 
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                <p className="text-base text-gray-700 whitespace-pre-wrap mb-4">
                   {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
                 </p>
 
-                {/* ❗NG理由がある場合だけ表示 */}
                 {(() => {
                   const item = CHECK_ITEMS.find(i => i.label === showDetail);
                   const isOK = status.some(log =>
@@ -350,7 +348,7 @@ export default function Home() {
                     (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
                   );
                   return !isOK && item?.ngReason ? (
-                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
                       ❗NG理由: {item.ngReason}
                     </div>
                   ) : null;
@@ -359,7 +357,7 @@ export default function Home() {
                 <div className="text-right">
                   <button
                     onClick={() => setShowDetail(null)}
-                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-base"
                   >
                     閉じる
                   </button>
@@ -373,5 +371,5 @@ export default function Home() {
     </div>
   );
 
-
+  
 } 
