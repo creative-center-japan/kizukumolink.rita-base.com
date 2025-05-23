@@ -101,6 +101,7 @@ export default function Home() {
     const channel = pc.createDataChannel('test');
 
     channel.onopen = () => {
+      console.log("📢 channel.onopen fired");
       logs.push('✅ WebRTC: DataChannel open!');
       channel.send('hello from client');
       logs.push('candidate-pair: succeeded');
@@ -125,7 +126,7 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
 
     pc.onicecandidate = async (event) => {
-        console.log("🔥 ICE candidate:", event.candidate); // ログとり用
+      console.log("🔥 ICE candidate:", event.candidate); // ログとり用
       if (event.candidate) {
         allCandidates.push(event.candidate);
         const cand = event.candidate.candidate;
@@ -241,7 +242,7 @@ export default function Home() {
       setPhase(3);
       await runWebRTCCheck();
 
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 10000));
 
       setDiagnosed(true);
 
