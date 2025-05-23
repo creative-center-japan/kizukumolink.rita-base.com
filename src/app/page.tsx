@@ -81,6 +81,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
+  const [phase, setPhase] = useState<1 | 2 | 3 | null>(null); // フェーズ状態追加
 
 
   //WebRTC2の接続チェック
@@ -144,7 +145,6 @@ export default function Home() {
         });
       }
     };
-
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed") {
         logs.push("❌ WebRTC接続に失敗しました");
@@ -154,11 +154,13 @@ export default function Home() {
   };
 
 
-
+  // runDiagnosis フェーズ連動
   const runDiagnosis = async () => {
     setLoading(true);
     setDiagnosed(false);
+    setPhase(1);
     const logs: string[] = [];
+
 
     try {
       // 外部IP取得
@@ -184,7 +186,11 @@ export default function Home() {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
 
+      setStatus([...logs]);
+      setPhase(2);
+
       // 通信ポート確認
+      setPhase(2);
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
@@ -214,6 +220,10 @@ export default function Home() {
       }
 
       // ✅ WebRTC診断完了まで待ってから診断完了扱いにする
+      setPhase(3);
+      await runWebRTCCheck();
+
+      setPhase(3);
       await runWebRTCCheck();
 
       setDiagnosed(true);
@@ -251,8 +261,6 @@ export default function Home() {
       );
     }
 
-
-
     return (
       <div
         key={idx}
@@ -285,7 +293,7 @@ export default function Home() {
     <div>
 
       <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
-       
+
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-300">
           <div className="max-w-[96%] mx-auto">
             <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
@@ -305,11 +313,38 @@ export default function Home() {
             {loading && !diagnosed && (
               <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
                 <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+
+
                 <ul className="space-y-1">
-                  <li className="text-green-300">フェーズ 1：キヅクモサービス疎通確認 - 完了 -</li>
-                  <li className="text-blue-300 animate-pulse">フェーズ 2：キヅクモサービス利用通信確認 - 実行中 -</li>
-                  <li className="text-gray-300">フェーズ 3：映像通信確認 - 実行待ち -</li>
+                  <li className={`${phase === 1
+                      ? "text-blue-300 animate-pulse"
+                      : (phase ?? 0) > 1
+                        ? "text-green-300"
+                        : "text-gray-300"
+                    }`}>
+                    フェーズ 1：キヅクモサービス疎通確認 - {(phase ?? 0) > 1 ? "完了" : phase === 1 ? "実行中" : "未実行"} -
+                  </li>
+
+                  <li className={`${phase === 2
+                      ? "text-blue-300 animate-pulse"
+                      : (phase ?? 0) > 2
+                        ? "text-green-300"
+                        : "text-gray-300"
+                    }`}>
+                    フェーズ 2：キヅクモサービス利用通信確認 - {(phase ?? 0) > 2 ? "完了" : phase === 2 ? "実行中" : "未実行"} -
+                  </li>
+
+                  <li className={`${phase === 3 && !diagnosed
+                      ? "text-blue-300 animate-pulse"
+                      : diagnosed
+                        ? "text-green-300"
+                        : "text-gray-300"
+                    }`}>
+                    フェーズ 3：映像通信確認 - {diagnosed ? "完了" : phase === 3 ? "実行中" : "未実行"} -
+                  </li>
                 </ul>
+
+
               </div>
             )}
 
