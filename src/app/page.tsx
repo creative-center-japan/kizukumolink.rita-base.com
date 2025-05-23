@@ -85,9 +85,9 @@ export default function Home() {
 
 
   //WebRTC2の接続チェック
-  const runWebRTCCheck = async () => {
+  const runWebRTCCheck = async (): Promise<boolean> => {
     const logs: string[] = [];
-    console.log("✅ WebRTCログ:", logs);
+    let connectionSuccess = false;
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -96,8 +96,6 @@ export default function Home() {
       ]
     });
 
-    const allCandidates: RTCIceCandidate[] = [];
-
     const channel = pc.createDataChannel('test');
 
     channel.onopen = () => {
@@ -105,12 +103,11 @@ export default function Home() {
       logs.push('✅ WebRTC: DataChannel open!');
       channel.send('hello from client');
       logs.push('candidate-pair: succeeded');
-      setStatus(prev => [...prev, ...logs]);
+      connectionSuccess = true;
     };
 
     channel.onmessage = (event) => {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-      setStatus(prev => [...prev, ...logs]);
     };
 
     const offer = await pc.createOffer();
@@ -131,9 +128,7 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
 
     pc.onicecandidate = async (event) => {
-      console.log("🔥 ICE candidate:", event.candidate); // ログとり用
       if (event.candidate) {
-        allCandidates.push(event.candidate);
         const cand = event.candidate.candidate;
 
         if (cand.includes("typ srflx")) {
@@ -156,18 +151,16 @@ export default function Home() {
           candidate: event.candidate,
           pc_id: answer.pc_id
         });
-
       }
     };
 
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed") {
         logs.push("❌ WebRTC接続に失敗しました");
-        setStatus(prev => [...prev, ...logs]);
       }
     };
 
-    // ✅ ここで ICE Gathering 完了まで待つ
+    // ✅ ICE gathering 完了まで待つ
     await new Promise<void>((resolve) => {
       if (pc.iceGatheringState === "complete") {
         resolve();
@@ -180,8 +173,9 @@ export default function Home() {
       }
     });
 
-    // 全体のステータス更新
+
     setStatus(prev => [...prev, ...logs]);
+    return connectionSuccess;
   };
 
   // runDiagnosis フェーズ連動
