@@ -251,6 +251,7 @@ export default function Home() {
       setDiagnosed(true);
 
     } catch (e) {
+      console.error(e);
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
