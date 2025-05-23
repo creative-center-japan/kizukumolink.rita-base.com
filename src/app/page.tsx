@@ -122,6 +122,11 @@ export default function Home() {
       body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
     });
 
+    console.log("📤 offer送信:", {
+      sdp: offer.sdp,
+      type: offer.type
+    });
+
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
 
@@ -146,6 +151,12 @@ export default function Home() {
             pc_id: answer.pc_id
           })
         });
+
+        console.log("📤 ICE candidate送信:", {
+          candidate: event.candidate,
+          pc_id: answer.pc_id
+        });
+
       }
     };
 
