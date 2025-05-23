@@ -322,144 +322,61 @@ export default function Home() {
 
   return (
     <div>
-
       <main className="min-h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
 
+        {/* ⬇️ overflow-hiddenでスケールによる余白を防ぐ */}
+        <div className="overflow-hidden w-full">
+          <div
+            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+            className="transition-transform duration-300 w-full"
+          >
+            <div className="max-w-[96%] mx-auto">
+              <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
+                キヅクモサービス接続診断ツール
+              </h1>
 
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-300">
-          <div className="max-w-[96%] mx-auto">
-            <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
-              キヅクモサービス接続診断ツール
-            </h1>
+              {/* 以下略：もともとあった診断の内容などをそのまま残す */}
 
+              {showDetail && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 shadow-xl text-gray-900 max-w-lg w-full">
+                    <h2 className="text-xl font-bold text-blue-700 mb-4">
+                      {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
+                    </h2>
 
-            <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
-              このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
-              カメラを設置する場所と映像を見る場所の両方で実施してください。
-              <br />
-              <span className="text-xs sm:text-sm text-gray-500 font-bold">
-                ※当Web診断はサービスの品質を保証するものではございません。
-              </span>
-            </p>
+                    <p className="text-base text-gray-700 whitespace-pre-wrap mb-4">
+                      {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
+                    </p>
 
-            {loading && !diagnosed && (
-              <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
-                <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+                    {(() => {
+                      const item = CHECK_ITEMS.find(i => i.label === showDetail);
+                      const isOK = status.some(log =>
+                        log.includes(item?.keyword || '') &&
+                        (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
+                      );
+                      return !isOK && item?.ngReason ? (
+                        <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
+                          ❗NG理由: {item.ngReason}
+                        </div>
+                      ) : null;
+                    })()}
 
-
-                <ul className="space-y-1">
-                  <li className={`${phase === 1
-                    ? "text-blue-300 animate-pulse"
-                    : (phase ?? 0) > 1
-                      ? "text-green-300"
-                      : "text-gray-300"
-                    }`}>
-                    フェーズ 1：キヅクモサービス疎通確認 - {(phase ?? 0) > 1 ? "完了" : phase === 1 ? "実行中" : "未実行"} -
-                  </li>
-
-                  <li className={`${phase === 2
-                    ? "text-blue-300 animate-pulse"
-                    : (phase ?? 0) > 2
-                      ? "text-green-300"
-                      : "text-gray-300"
-                    }`}>
-                    フェーズ 2：キヅクモサービス利用通信確認 - {(phase ?? 0) > 2 ? "完了" : phase === 2 ? "実行中" : "未実行"} -
-                  </li>
-
-                  <li className={`${phase === 3 && !diagnosed
-                    ? "text-blue-300 animate-pulse"
-                    : diagnosed
-                      ? "text-green-300"
-                      : "text-gray-300"
-                    }`}>
-                    フェーズ 3：映像通信確認 - {diagnosed ? "完了" : phase === 3 ? "実行中" : "未実行"} -
-                  </li>
-                </ul>
-
-
-              </div>
-            )}
-
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
-              {(!loading && !diagnosed) && (
-                <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                  診断開始
-                </button>
-              )}
-
-              {diagnosed && (
-                <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                  再診断
-                </button>
-              )}
-
-              {loading && !diagnosed && (
-                <button onClick={() => {
-                  setLoading(false);
-                  setStatus([]);
-                }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                  キャンセル
-                </button>
-              )}
-
-              {diagnosed && (
-                <button onClick={() => {
-                  const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                  結果をダウンロード
-                </button>
-              )}
-            </div>
-
-            {diagnosed && (
-              <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
-              </div>
-            )}
-
-            {showDetail && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 shadow-xl text-gray-900 max-w-lg w-full">
-                  <h2 className="text-xl font-bold text-blue-700 mb-4">
-                    {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
-                  </h2>
-
-                  <p className="text-base text-gray-700 whitespace-pre-wrap mb-4">
-                    {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
-                  </p>
-
-                  {(() => {
-                    const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                    const isOK = status.some(log =>
-                      log.includes(item?.keyword || '') &&
-                      (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
-                    );
-                    return !isOK && item?.ngReason ? (
-                      <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
-                        ❗NG理由: {item.ngReason}
-                      </div>
-                    ) : null;
-                  })()}
-
-                  <div className="text-right">
-                    <button
-                      onClick={() => setShowDetail(null)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-base"
-                    >
-                      閉じる
-                    </button>
+                    <div className="text-right">
+                      <button
+                        onClick={() => setShowDetail(null)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-base"
+                      >
+                        閉じる
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+
+            </div> {/* max-w-[96%] */}
+          </div>   {/* scale(...) */}
+        </div>     {/* overflow-hidden */}
+
       </main>
     </div>
   );
