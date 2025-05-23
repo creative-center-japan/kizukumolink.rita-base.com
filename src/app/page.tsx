@@ -268,9 +268,10 @@ export default function Home() {
             キヅクモサービス接続診断ツール
           </h1>
 
-          <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-8 font-semibold leading-relaxed">
+          <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
             このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
-            カメラを設置する場所と映像を見る場所の両方で実施してください。<br /><br />
+            カメラを設置する場所と映像を見る場所の両方で実施してください。
+            <br />
             <span className="text-xs sm:text-sm text-gray-500 font-bold">
               ※当Web診断はサービスの品質を保証するものではございません。
             </span>
@@ -287,15 +288,15 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
             {(!loading && !diagnosed) && (
-              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[240px] h-[48px] px-6 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
+              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 診断開始
               </button>
             )}
 
             {diagnosed && (
-              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[240px] h-[48px] px-6 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
+              <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 再診断
               </button>
             )}
@@ -304,7 +305,7 @@ export default function Home() {
               <button onClick={() => {
                 setLoading(false);
                 setStatus([]);
-              }} className="w-full sm:w-auto max-w-[240px] h-[48px] px-6 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
+              }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 キャンセル
               </button>
             )}
@@ -318,7 +319,7 @@ export default function Home() {
                 a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
-              }} className="w-full sm:w-auto max-w-[240px] h-[48px] px-6 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
+              }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                 結果をダウンロード
               </button>
             )}
