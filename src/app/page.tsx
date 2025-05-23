@@ -186,7 +186,7 @@ export default function Home() {
     const logs: string[] = [];
 
     try {
-      // フェーズ1: 外部IP & サービス接続確認
+      // フェーズ1：外部IP & 接続確認
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
@@ -210,7 +210,7 @@ export default function Home() {
       setStatus([...logs]);
       setPhase(2);
 
-      // フェーズ2: ポート確認
+      // フェーズ2：ポート確認
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
@@ -230,34 +230,30 @@ export default function Home() {
         }
       } catch (err) {
         logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-        setStatus(logs);
-        setDiagnosed(true);
-        return;
+        setStatus([...logs]);
+        return; // ❌ 結果画面に遷移しないよう return で終了
       }
 
       setStatus([...logs]);
       setPhase(3);
 
-      // フェーズ3: WebRTC診断
+      // フェーズ3：WebRTC診断
       const webrtcOK = await runWebRTCCheck();
-
       if (!webrtcOK) {
         logs.push("❌ WebRTC接続に失敗しました（DataChannel確立せず）");
       }
 
       setStatus(prev => [...prev, ...logs]);
-
-      // ✅ すべて完了してから遷移
-      setDiagnosed(true);
+      setDiagnosed(true); // ✅ 全フェーズ完了後にのみ遷移
 
     } catch (e) {
       console.error(e);
       logs.push("❌ サーバとの接続に失敗しました");
-      setStatus(logs);
-      setDiagnosed(true);
-
+      setStatus(prev => [...prev, ...logs]);
+      // ❌ setDiagnosed(true) はしない：フェーズ途中で止まるため
     }
   };
+
 
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
     let ipAddress = '取得失敗'; // Default value for IP address
