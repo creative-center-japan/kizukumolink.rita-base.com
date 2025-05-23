@@ -15,11 +15,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="bg-blue-50 text-slate-800">
-        <div className="flex flex-col h-screen">
-          <main className="flex-grow px-4 py-4 flex flex-col justify-between overflow-y-auto">
+        <div className="min-h-screen flex flex-col">
+          <main className="flex-grow overflow-y-auto">
             {children}
           </main>
-
           <footer className="bg-blue-900 text-white text-center text-sm py-2">
             <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
             <div className="space-x-4">
@@ -29,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </footer>
         </div>
       </body>
+
 
     </html>
   );
