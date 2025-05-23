@@ -85,90 +85,91 @@ export default function Home() {
 
 
   //WebRTC2の接続チェック
-const runWebRTCCheck = async () => {
-  const logs: string[] = [];
+  const runWebRTCCheck = async () => {
+    const logs: string[] = [];
+    console.log("✅ WebRTCログ:", logs);
 
-  const pc = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-    ]
-  });
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:3.80.218.25:3478' },
+        { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+      ]
+    });
 
-  const allCandidates: RTCIceCandidate[] = [];
+    const allCandidates: RTCIceCandidate[] = [];
 
-  const channel = pc.createDataChannel('test');
+    const channel = pc.createDataChannel('test');
 
-  channel.onopen = () => {
-    logs.push('✅ WebRTC: DataChannel open!');
-    channel.send('hello from client');
-    logs.push('candidate-pair: succeeded');
-    setStatus(prev => [...prev, ...logs]);
-  };
-
-  channel.onmessage = (event) => {
-    logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-    setStatus(prev => [...prev, ...logs]);
-  };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-  });
-
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
-
-  pc.onicecandidate = async (event) => {
-    if (event.candidate) {
-      allCandidates.push(event.candidate);
-      const cand = event.candidate.candidate;
-
-      if (cand.includes("typ srflx")) {
-        logs.push("srflx: 応答あり");
-      }
-      if (cand.includes("typ relay")) {
-        logs.push("typ relay: 中継成功");
-      }
-
-      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate: event.candidate,
-          pc_id: answer.pc_id
-        })
-      });
-    }
-  };
-
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed") {
-      logs.push("❌ WebRTC接続に失敗しました");
+    channel.onopen = () => {
+      logs.push('✅ WebRTC: DataChannel open!');
+      channel.send('hello from client');
+      logs.push('candidate-pair: succeeded');
       setStatus(prev => [...prev, ...logs]);
-    }
-  };
+    };
 
-  // ✅ ここで ICE Gathering 完了まで待つ
-  await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") {
-      resolve();
-    } else {
-      pc.onicegatheringstatechange = () => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
+    channel.onmessage = (event) => {
+      logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+      setStatus(prev => [...prev, ...logs]);
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+    });
+
+    const answer = await res.json();
+    await pc.setRemoteDescription(answer);
+
+    pc.onicecandidate = async (event) => {
+      if (event.candidate) {
+        allCandidates.push(event.candidate);
+        const cand = event.candidate.candidate;
+
+        if (cand.includes("typ srflx")) {
+          logs.push("srflx: 応答あり");
         }
-      };
-    }
-  });
+        if (cand.includes("typ relay")) {
+          logs.push("typ relay: 中継成功");
+        }
 
-  // 全体のステータス更新
-  setStatus(prev => [...prev, ...logs]);
-};
+        await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidate: event.candidate,
+            pc_id: answer.pc_id
+          })
+        });
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed") {
+        logs.push("❌ WebRTC接続に失敗しました");
+        setStatus(prev => [...prev, ...logs]);
+      }
+    };
+
+    // ✅ ここで ICE Gathering 完了まで待つ
+    await new Promise<void>((resolve) => {
+      if (pc.iceGatheringState === "complete") {
+        resolve();
+      } else {
+        pc.onicegatheringstatechange = () => {
+          if (pc.iceGatheringState === "complete") {
+            resolve();
+          }
+        };
+      }
+    });
+
+    // 全体のステータス更新
+    setStatus(prev => [...prev, ...logs]);
+  };
 
   // runDiagnosis フェーズ連動
   const runDiagnosis = async () => {
@@ -261,17 +262,22 @@ const runWebRTCCheck = async () => {
       ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
     }
 
-    // Alarm.Comへの接続結果    
+    // 各チェック項目の判定ロジック
     const logsForItem = status.filter(log => log.includes(item.keyword));
 
     let isOK = false;
+
     if (item.label === 'サービスへの通信確認') {
       isOK = logsForItem.some(log =>
         log.trim().startsWith("サービスへの通信確認: OK")
       );
+    } else if (item.label === 'WebRTC接続成功') {
+      isOK = logsForItem.some(log =>
+        log.includes("candidate-pair: succeeded")
+      );
     } else {
       isOK = logsForItem.some(log =>
-        log.includes("OK") || log.includes("成功") || log.includes("応答あり") || log.includes("succeeded")
+        log.includes("OK") || log.includes("成功") || log.includes("応答あり")
       );
     }
 
@@ -331,28 +337,28 @@ const runWebRTCCheck = async () => {
 
                 <ul className="space-y-1">
                   <li className={`${phase === 1
-                      ? "text-blue-300 animate-pulse"
-                      : (phase ?? 0) > 1
-                        ? "text-green-300"
-                        : "text-gray-300"
+                    ? "text-blue-300 animate-pulse"
+                    : (phase ?? 0) > 1
+                      ? "text-green-300"
+                      : "text-gray-300"
                     }`}>
                     フェーズ 1：キヅクモサービス疎通確認 - {(phase ?? 0) > 1 ? "完了" : phase === 1 ? "実行中" : "未実行"} -
                   </li>
 
                   <li className={`${phase === 2
-                      ? "text-blue-300 animate-pulse"
-                      : (phase ?? 0) > 2
-                        ? "text-green-300"
-                        : "text-gray-300"
+                    ? "text-blue-300 animate-pulse"
+                    : (phase ?? 0) > 2
+                      ? "text-green-300"
+                      : "text-gray-300"
                     }`}>
                     フェーズ 2：キヅクモサービス利用通信確認 - {(phase ?? 0) > 2 ? "完了" : phase === 2 ? "実行中" : "未実行"} -
                   </li>
 
                   <li className={`${phase === 3 && !diagnosed
-                      ? "text-blue-300 animate-pulse"
-                      : diagnosed
-                        ? "text-green-300"
-                        : "text-gray-300"
+                    ? "text-blue-300 animate-pulse"
+                    : diagnosed
+                      ? "text-green-300"
+                      : "text-gray-300"
                     }`}>
                     フェーズ 3：映像通信確認 - {diagnosed ? "完了" : phase === 3 ? "実行中" : "未実行"} -
                   </li>
