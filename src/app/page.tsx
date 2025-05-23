@@ -9,10 +9,17 @@ function useScaleFactor() {
 
   useEffect(() => {
     const updateScale = () => {
+      const width = window.innerWidth;
       const height = window.innerHeight;
-      const neededHeight = 720; // 想定レイアウトの高さ
-      const factor = Math.min(1, height / neededHeight);
-      setScale(Number(factor.toFixed(2)));
+
+      // スマホ（横幅が768px未満）の場合のみスケーリングを適用
+      if (width < 768) {
+        const neededHeight = 720;
+        const factor = Math.min(1, height / neededHeight);
+        setScale(Number(factor.toFixed(2)));
+      } else {
+        setScale(1); // PCはスケーリングなし
+      }
     };
 
     updateScale();
@@ -22,6 +29,7 @@ function useScaleFactor() {
 
   return scale;
 }
+
 
 
 const CHECK_ITEMS = [
