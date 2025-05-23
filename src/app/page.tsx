@@ -125,6 +125,7 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
 
     pc.onicecandidate = async (event) => {
+        console.log("🔥 ICE candidate:", event.candidate); // ログとり用
       if (event.candidate) {
         allCandidates.push(event.candidate);
         const cand = event.candidate.candidate;
