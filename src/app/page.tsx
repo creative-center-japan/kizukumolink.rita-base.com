@@ -85,74 +85,90 @@ export default function Home() {
 
 
   //WebRTC2の接続チェック
-  const runWebRTCCheck = async () => {
-    const logs: string[] = [];
+const runWebRTCCheck = async () => {
+  const logs: string[] = [];
 
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:3.80.218.25:3478' },
-        { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-      ]
-    });
+  const pc = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:3.80.218.25:3478' },
+      { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+    ]
+  });
 
-    const allCandidates: RTCIceCandidate[] = [];
+  const allCandidates: RTCIceCandidate[] = [];
 
-    const channel = pc.createDataChannel('test');
+  const channel = pc.createDataChannel('test');
 
-    channel.onopen = () => {
-      logs.push('✅ WebRTC: DataChannel open!');
-      channel.send('hello from client');
-      logs.push('candidate-pair: succeeded');
-      setStatus(prev => [...prev, ...logs]);
-    };
-
-    channel.onmessage = (event) => {
-      logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-      setStatus(prev => [...prev, ...logs]);
-    };
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-    });
-
-    const answer = await res.json();
-    await pc.setRemoteDescription(answer);
-
-    pc.onicecandidate = async (event) => {
-      if (event.candidate) {
-        allCandidates.push(event.candidate);
-        const cand = event.candidate.candidate;
-
-        if (cand.includes("typ srflx")) {
-          logs.push("srflx: 応答あり");
-        }
-        if (cand.includes("typ relay")) {
-          logs.push("typ relay: 中継成功");
-        }
-
-        await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidate: event.candidate,
-            pc_id: answer.pc_id
-          })
-        });
-      }
-    };
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "failed") {
-        logs.push("❌ WebRTC接続に失敗しました");
-        setStatus(prev => [...prev, ...logs]);
-      }
-    };
+  channel.onopen = () => {
+    logs.push('✅ WebRTC: DataChannel open!');
+    channel.send('hello from client');
+    logs.push('candidate-pair: succeeded');
+    setStatus(prev => [...prev, ...logs]);
   };
 
+  channel.onmessage = (event) => {
+    logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+    setStatus(prev => [...prev, ...logs]);
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+  });
+
+  const answer = await res.json();
+  await pc.setRemoteDescription(answer);
+
+  pc.onicecandidate = async (event) => {
+    if (event.candidate) {
+      allCandidates.push(event.candidate);
+      const cand = event.candidate.candidate;
+
+      if (cand.includes("typ srflx")) {
+        logs.push("srflx: 応答あり");
+      }
+      if (cand.includes("typ relay")) {
+        logs.push("typ relay: 中継成功");
+      }
+
+      await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate: event.candidate,
+          pc_id: answer.pc_id
+        })
+      });
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed") {
+      logs.push("❌ WebRTC接続に失敗しました");
+      setStatus(prev => [...prev, ...logs]);
+    }
+  };
+
+  // ✅ ここで ICE Gathering 完了まで待つ
+  await new Promise<void>((resolve) => {
+    if (pc.iceGatheringState === "complete") {
+      resolve();
+    } else {
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") {
+          resolve();
+        }
+      };
+    }
+  });
+
+  // 全体のステータス更新
+  setStatus(prev => [...prev, ...logs]);
+};
 
   // runDiagnosis フェーズ連動
   const runDiagnosis = async () => {
