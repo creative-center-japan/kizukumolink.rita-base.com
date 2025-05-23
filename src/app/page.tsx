@@ -325,7 +325,8 @@ export default function Home() {
   return (
     <div>
 
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
+      <main className="min-h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
+
 
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-300">
           <div className="max-w-[96%] mx-auto">
