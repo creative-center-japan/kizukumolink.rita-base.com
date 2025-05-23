@@ -253,7 +253,7 @@ export default function Home() {
       setPhase(3);
       await runWebRTCCheck();
 
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise(resolve => setTimeout(resolve, 20000));
 
       setDiagnosed(true);
 
