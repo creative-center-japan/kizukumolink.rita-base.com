@@ -239,7 +239,7 @@ const runWebRTCCheck = async () => {
       setPhase(3);
       await runWebRTCCheck();
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       setDiagnosed(true);
 
@@ -247,7 +247,7 @@ const runWebRTCCheck = async () => {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
-      
+
     }
   };
 
