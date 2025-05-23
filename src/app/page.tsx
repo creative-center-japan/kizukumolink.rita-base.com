@@ -185,9 +185,8 @@ export default function Home() {
     setPhase(1);
     const logs: string[] = [];
 
-
     try {
-      // 外部IP取得
+      // フェーズ1: 外部IP & サービス接続確認
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
@@ -196,11 +195,9 @@ export default function Home() {
         logs.push("外部IP: 取得失敗");
       }
 
-      // Alarm.com 接続チェック
       try {
         const res = await fetch("/api/fqdncheck");
         const result = await res.text();
-
         if (result.startsWith("OK")) {
           logs.push(`サービスへの通信確認: ${result}`);
         } else {
@@ -213,12 +210,10 @@ export default function Home() {
       setStatus([...logs]);
       setPhase(2);
 
-      // 通信ポート確認
-      setPhase(2);
+      // フェーズ2: ポート確認
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
-
         logs.push(`📅 実行日時: ${data.timestamp}`);
         logs.push(`診断結果: ${data.status === "OK" ? "🟢 OK" : "🔴 NG"}`);
         logs.push("🔸 TCPポート確認:");
@@ -229,13 +224,10 @@ export default function Home() {
         for (const [port, result] of Object.entries(data.udp)) {
           logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
         }
-
         if (data.failed_ports.length > 0) {
           logs.push("❌ NGとなったポート一覧:");
           logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
         }
-
-        setStatus(logs);
       } catch (err) {
         logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
         setStatus(logs);
@@ -243,15 +235,22 @@ export default function Home() {
         return;
       }
 
-      // ✅ WebRTC診断完了まで待ってから診断完了扱いにする
+      setStatus([...logs]);
       setPhase(3);
-      await runWebRTCCheck();
 
-      await new Promise(resolve => setTimeout(resolve, 20000));
+      // フェーズ3: WebRTC診断
+      const webrtcOK = await runWebRTCCheck();
 
+      if (!webrtcOK) {
+        logs.push("❌ WebRTC接続に失敗しました（DataChannel確立せず）");
+      }
+
+      setStatus(prev => [...prev, ...logs]);
+
+      // ✅ すべて完了してから遷移
       setDiagnosed(true);
 
-    } catch {
+    } catch (e) {
       logs.push("❌ サーバとの接続に失敗しました");
       setStatus(logs);
       setDiagnosed(true);
