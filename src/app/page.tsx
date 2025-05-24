@@ -323,20 +323,16 @@ export default function Home() {
   return (
     <div>
       <main className="min-h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
-
-        {/* ⬇️ overflow-hiddenでスケールによる余白を防ぐ */}
+        
         <div className="overflow-hidden w-full">
           <div
             style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
             className="transition-transform duration-300 w-full"
           >
-
-
             <div className="max-w-[96%] mx-auto">
               <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
                 キヅクモサービス接続診断ツール
-              </h1>
-
+              </h1> 
               {loading && !diagnosed && (
                 <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
                   <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
