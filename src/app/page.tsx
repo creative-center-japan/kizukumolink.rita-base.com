@@ -434,13 +434,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-
-              {diagnosed && (
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
-                </div>
-              )}
-
             </div>
           </div>
         </div>
