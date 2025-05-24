@@ -323,7 +323,7 @@ export default function Home() {
   return (
     <div>
       <main className="min-h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
-        
+
         <div className="overflow-hidden w-full">
           <div
             style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
@@ -332,7 +332,16 @@ export default function Home() {
             <div className="max-w-[96%] mx-auto">
               <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
                 キヅクモサービス接続診断ツール
-              </h1> 
+              </h1>
+
+              <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
+                このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
+                カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
+                <span className="text-xs sm:text-sm text-gray-500 font-bold">
+                  ※当Web診断はサービスの品質を保証するものではございません。
+                </span>
+              </p>
+
               {loading && !diagnosed && (
                 <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
                   <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
