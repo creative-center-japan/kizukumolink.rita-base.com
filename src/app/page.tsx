@@ -99,6 +99,7 @@ export default function Home() {
 
     channel.onopen = () => {
       logs.push("✅ WebRTC: DataChannel open!");
+      console.log("🟢 channel.onopen fired");
       channel.send("hello from client");
       logs.push("candidate-pair: succeeded");
       success = true;
@@ -121,6 +122,7 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
 
     pc.onicecandidate = async (event) => {
+      console.log("🔥 ICE candidate:", event.candidate); 
       if (event.candidate) {
         const cand = event.candidate.candidate;
         if (cand.includes("typ srflx")) logs.push("srflx: 応答あり");
