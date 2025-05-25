@@ -66,14 +66,6 @@ const CHECK_ITEMS = [
     ngReason: 'candidate-pair: succeeded が取得できませんでした'
   },
   {
-    label: '接続先情報の収集の可否',
-    description: 'STUN/TURNサーバから接続するカメラやPCの情報を取得できたか',
-    keyword: 'srflx',
-    tooltip: 'typ srflx を含む候補があれば応答ありと判断します',
-    detail: 'STUN応答により、外部に見える自分のIPやポート情報を取得します。これが取得できない場合、NATタイプの判定も難しくなります。',
-    ngReason: 'typ srflx の候補が1つも見つかりませんでした'
-  },
-  {
     label: 'リレーサーバの利用',
     description: 'TURNサーバを経由した通信ができたか',
     keyword: 'typ relay',
