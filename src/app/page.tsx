@@ -226,8 +226,9 @@ export default function Home() {
       setStatus([...logs]);
       setDiagnosed(true);
     } catch (e) {
-
+      console.error(e); // 開発者向け（画面に出ない）
       logs.push("❌ サーバとの接続に失敗しました");
+      if (e instanceof Error) logs.push(`詳細: ${e.message}`);
       setStatus([...logs]);
     }
   };
