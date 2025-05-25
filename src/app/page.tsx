@@ -85,7 +85,6 @@ export default function Home() {
 
   // WebRTCの接続チェック
   const runWebRTCCheck = async (): Promise<string[]> => {
-
     const logs: string[] = [];
     let success = false;
 
@@ -98,15 +97,15 @@ export default function Home() {
 
     const channel = pc.createDataChannel("test");
 
-    // ✅ Promise で onopen を待つ
+    // ✅ Promise: DataChannel が開くのを最大10秒待機
     const waitForOpen = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
       }, 10000);
 
       channel.onopen = () => {
-        logs.push("✅ WebRTC: DataChannel open!");
         console.log("🟢 channel.onopen fired");
+        logs.push("✅ WebRTC: DataChannel open!");
         channel.send("hello from client");
         logs.push("candidate-pair: succeeded");
         success = true;
@@ -119,8 +118,7 @@ export default function Home() {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
     };
 
-    // 👉 オファー処理・onicecandidate・ICE完了待機はこの後に続ける
-
+    // オファー作成 → 送信
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
@@ -132,8 +130,8 @@ export default function Home() {
 
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
-    await waitForOpen; 
 
+    // ICE candidate の送信
     pc.onicecandidate = async (event) => {
       console.log("🔥 ICE candidate:", event.candidate);
       if (event.candidate) {
@@ -160,11 +158,19 @@ export default function Home() {
       };
     });
 
-    // 接続確認 or タイムアウト
-    await new Promise<void>((resolve) => setTimeout(resolve, 15000));
+    // ✅ DataChannel 接続完了を待つ（失敗したらログに記録）
+    try {
+      await waitForOpen;
+    } catch (err) {
+      if (err instanceof Error) {
+        logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
+        logs.push(`詳細: ${err.message}`);
+      } else {
+        logs.push("❌ WebRTC接続に失敗しました（原因不明）");
+      }
+    }
 
     pc.close();
-    if (!success) logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     return logs;
   };
 
