@@ -119,7 +119,7 @@ export default function Home() {
       channel.onmessage = (event) => {
         logs.push(`📨 サーバからのメッセージ: ${event.data}`);
         logs.push("candidate-pair: succeeded");
-        success = true;
+        return success ? logs : [...logs, "❌ WebRTC接続に失敗しました"];
         clearTimeout(timeout);
         resolve();
       };
@@ -164,10 +164,12 @@ export default function Home() {
     try {
       await promise;
     } catch (e) {
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel確立せず）");
-    } finally {
-      pc.close();
+      console.error(e);
+      logs.push("❌ サーバとの接続に失敗しました");
+      if (e instanceof Error) logs.push(`詳細: ${e.message}`);
+      setStatus([...logs]);
     }
+
 
     return logs;
   };
