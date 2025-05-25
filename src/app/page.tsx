@@ -94,6 +94,7 @@ export default function Home() {
   // WebRTCの接続チェック
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
+    let success = false;
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -104,35 +105,26 @@ export default function Home() {
 
     const channel = pc.createDataChannel("test");
 
-    const success = false;
+    channel.onopen = () => {
+      logs.push("✅ WebRTC: DataChannel open!");
+      channel.send("hello from client");
+      logs.push("candidate-pair: succeeded");
+      success = true;
+    };
 
-    const promise = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("タイムアウト（DataChannel未確立）"));
-      }, 10000);
-
-      channel.onopen = () => {
-        logs.push("✅ WebRTC: DataChannel open!");
-        channel.send("hello from client");
-      };
-
-      channel.onmessage = (event) => {
-        logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-        logs.push("candidate-pair: succeeded");
-        return success ? logs : [...logs, "❌ WebRTC接続に失敗しました"];
-        clearTimeout(timeout);
-        resolve();
-      };
-    });
+    channel.onmessage = (event) => {
+      logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+    };
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
     const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
     });
+
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
 
@@ -144,7 +136,7 @@ export default function Home() {
 
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             candidate: event.candidate,
             pc_id: answer.pc_id
@@ -153,7 +145,7 @@ export default function Home() {
       }
     };
 
-    // ICE gathering 完了待ち
+    // ICE gathering 完了まで待機
     await new Promise<void>((resolve) => {
       if (pc.iceGatheringState === "complete") resolve();
       else pc.onicegatheringstatechange = () => {
@@ -161,16 +153,11 @@ export default function Home() {
       };
     });
 
-    try {
-      await promise;
-    } catch (e) {
-      console.error(e);
-      logs.push("❌ サーバとの接続に失敗しました");
-      if (e instanceof Error) logs.push(`詳細: ${e.message}`);
-      setStatus([...logs]);
-    }
+    // 接続確認 or タイムアウトまで最大10秒待機
+    await new Promise<void>((resolve) => setTimeout(resolve, 10000));
 
-
+    pc.close();
+    if (!success) logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     return logs;
   };
 
@@ -264,7 +251,9 @@ export default function Home() {
       );
     } else if (item.label === 'WebRTC接続成功') {
       isOK = logsForItem.some(log =>
-        log.includes("candidate-pair: succeeded")
+        log.includes("candidate-pair: succeeded") ||
+        log.includes("✅ WebRTC: DataChannel open!") ||
+        log.includes("📨 サーバからのメッセージ")
       );
     } else {
       isOK = logsForItem.some(log =>
