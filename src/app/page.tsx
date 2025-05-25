@@ -104,7 +104,7 @@ export default function Home() {
 
     const channel = pc.createDataChannel("test");
 
-    let success = false;
+    const success = false;
 
     const promise = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
