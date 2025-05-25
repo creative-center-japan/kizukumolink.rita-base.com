@@ -91,11 +91,10 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null); // フェーズ状態追加
 
-
-  //WebRTC2の接続チェック
-  const runWebRTCCheck = async (): Promise<boolean> => {
+  // WebRTCの接続チェック
+  const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
-    let connectionSuccess = false;
+
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -104,14 +103,14 @@ export default function Home() {
       ]
     });
 
+    let dataChannelOpen = false;
     const channel = pc.createDataChannel('test');
 
     channel.onopen = () => {
-      console.log("📢 channel.onopen fired");
-      logs.push('✅ WebRTC: DataChannel open!');
-      channel.send('hello from client');
-      logs.push('candidate-pair: succeeded');
-      connectionSuccess = true;
+      logs.push("✅ WebRTC: DataChannel open!");
+      dataChannelOpen = true;
+      channel.send("hello from client");
+      logs.push("candidate-pair: succeeded");
     };
 
     channel.onmessage = (event) => {
@@ -121,16 +120,12 @@ export default function Home() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
-      method: 'POST',
+    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+      method: "POST",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
     });
 
-    console.log("📤 offer送信:", {
-      sdp: offer.sdp,
-      type: offer.type
-    });
 
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
@@ -138,16 +133,11 @@ export default function Home() {
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const cand = event.candidate.candidate;
+        if (cand.includes("typ srflx")) logs.push("srflx: 応答あり");
+        if (cand.includes("typ relay")) logs.push("typ relay: 中継成功");
 
-        if (cand.includes("typ srflx")) {
-          logs.push("srflx: 応答あり");
-        }
-        if (cand.includes("typ relay")) {
-          logs.push("typ relay: 中継成功");
-        }
-
-        await fetch('https://webrtc-answer.rita-base.com/ice-candidate', {
-          method: 'POST',
+        await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
+          method: "POST",
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             candidate: event.candidate,
@@ -155,35 +145,24 @@ export default function Home() {
           })
         });
 
-        console.log("📤 ICE candidate送信:", {
-          candidate: event.candidate,
-          pc_id: answer.pc_id
-        });
+
       }
     };
 
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "failed") {
-        logs.push("❌ WebRTC接続に失敗しました");
-      }
-    };
-
-    // ✅ ICE gathering 完了まで待つ
+    // ICE gathering 完了まで待機
     await new Promise<void>((resolve) => {
-      if (pc.iceGatheringState === "complete") {
-        resolve();
-      } else {
-        pc.onicegatheringstatechange = () => {
-          if (pc.iceGatheringState === "complete") {
-            resolve();
-          }
-        };
-      }
+      if (pc.iceGatheringState === "complete") resolve();
+      else pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") resolve();
+      };
     });
 
+    // 接続確立まで最大5秒待つ
+    await new Promise(resolve => setTimeout(resolve, 10000));
 
-    setStatus(prev => [...prev, ...logs]);
-    return connectionSuccess;
+    // 明示的に切断
+    pc.close();
+    return dataChannelOpen ? logs : [...logs, "❌ WebRTC接続に失敗しました（DataChannel確立せず）"];
   };
 
   // runDiagnosis フェーズ連動
@@ -194,7 +173,7 @@ export default function Home() {
     const logs: string[] = [];
 
     try {
-      // フェーズ1：外部IP & 接続確認
+      // フェーズ1
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
@@ -206,11 +185,7 @@ export default function Home() {
       try {
         const res = await fetch("/api/fqdncheck");
         const result = await res.text();
-        if (result.startsWith("OK")) {
-          logs.push(`サービスへの通信確認: ${result}`);
-        } else {
-          logs.push(`サービスへの通信確認: NG (${result})`);
-        }
+        logs.push(result.startsWith("OK") ? `サービスへの通信確認: ${result}` : `サービスへの通信確認: NG (${result})`);
       } catch (err) {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
@@ -218,7 +193,7 @@ export default function Home() {
       setStatus([...logs]);
       setPhase(2);
 
-      // フェーズ2：ポート確認
+      // フェーズ2
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
@@ -239,26 +214,21 @@ export default function Home() {
       } catch (err) {
         logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
         setStatus([...logs]);
-        return; // ❌ 結果画面に遷移しないよう return で終了
+        return;
       }
 
       setStatus([...logs]);
       setPhase(3);
 
-      // フェーズ3：WebRTC診断
-      const webrtcOK = await runWebRTCCheck();
-      if (!webrtcOK) {
-        logs.push("❌ WebRTC接続に失敗しました（DataChannel確立せず）");
-      }
-
-      setStatus(prev => [...prev, ...logs]);
-      setDiagnosed(true); // ✅ 全フェーズ完了後にのみ遷移
-
+      // フェーズ3
+      const webrtcLogs = await runWebRTCCheck();
+      logs.push(...webrtcLogs);
+      setStatus([...logs]);
+      setDiagnosed(true);
     } catch (e) {
-      console.error(e);
+
       logs.push("❌ サーバとの接続に失敗しました");
-      setStatus(prev => [...prev, ...logs]);
-      // ❌ setDiagnosed(true) はしない：フェーズ途中で止まるため
+      setStatus([...logs]);
     }
   };
 
