@@ -86,7 +86,7 @@ export default function Home() {
   // WebRTCの接続チェック
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
-    let success = false;
+    
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -108,7 +108,6 @@ export default function Home() {
         logs.push("✅ WebRTC: DataChannel open!");
         channel.send("hello from client");
         logs.push("candidate-pair: succeeded");
-        success = true;
         clearTimeout(timeout);
         resolve();
       };
