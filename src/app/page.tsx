@@ -1,5 +1,3 @@
-// src/app/page.tsx
-
 'use client';
 import React, { useState, useEffect } from 'react';
 
@@ -29,8 +27,6 @@ function useScaleFactor() {
 
   return scale;
 }
-
-
 
 const CHECK_ITEMS = [
   {
@@ -83,41 +79,29 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
 
-  // WebRTCの接続チェック
+
+// -------------------------
+// WebRTC診断（DataChannelの接続確認）
+// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
+// - 成功時は DataChannel open と candidate-pair をログ出力
+// -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
-    
 
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:3.80.218.25:3478' },
         { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
-      ]
+      ],
+      iceCandidatePoolSize: 2
     });
 
     const channel = pc.createDataChannel("test");
-
-    // ✅ Promise: DataChannel が開くのを最大10秒待機
-    const waitForOpen = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
-      }, 10000);
-
-      channel.onopen = () => {
-        console.log("🟢 channel.onopen fired");
-        logs.push("✅ WebRTC: DataChannel open!");
-        channel.send("hello from client");
-        logs.push("candidate-pair: succeeded");
-        clearTimeout(timeout);
-        resolve();
-      };
-    });
 
     channel.onmessage = (event) => {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
     };
 
-    // オファー作成 → 送信
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
@@ -130,13 +114,12 @@ export default function Home() {
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
 
-    // ICE candidate の送信
+    let connectionType = '';
     pc.onicecandidate = async (event) => {
-      console.log("🔥 ICE candidate:", event.candidate);
       if (event.candidate) {
         const cand = event.candidate.candidate;
-        if (cand.includes("typ srflx")) logs.push("srflx: 応答あり");
-        if (cand.includes("typ relay")) logs.push("typ relay: 中継成功");
+        if (cand.includes("typ srflx")) connectionType = 'P2P';
+        if (cand.includes("typ relay")) connectionType = 'TURN';
 
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
@@ -149,31 +132,41 @@ export default function Home() {
       }
     };
 
-    // ICE gathering 完了まで待機
-    await new Promise<void>((resolve) => {
-      if (pc.iceGatheringState === "complete") resolve();
-      else pc.onicegatheringstatechange = () => {
-        if (pc.iceGatheringState === "complete") resolve();
+    const waitForOpen = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
+      }, 10000);
+
+      channel.onopen = () => {
+        logs.push("✅ WebRTC: DataChannel open!");
+        channel.send("hello from client");
+        logs.push("candidate-pair: succeeded");
+        clearTimeout(timeout);
+        resolve();
       };
     });
 
-    // ✅ DataChannel 接続完了を待つ（失敗したらログに記録）
     try {
       await waitForOpen;
-    } catch (err) {
-      if (err instanceof Error) {
-        logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-        logs.push(`詳細: ${err.message}`);
-      } else {
-        logs.push("❌ WebRTC接続に失敗しました（原因不明）");
-      }
+    } catch (e) {
+      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     }
 
+    if (connectionType) {
+      logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1500));
     pc.close();
     return logs;
   };
 
-  // runDiagnosis フェーズ連動
+// -------------------------
+// 全体診断フロー（フェーズ1〜3を順に実行）
+// - IP取得 / TCP接続確認（フェーズ1）
+// - ポート確認API実行（フェーズ2）
+// - WebRTC接続確認（フェーズ3）
+// -------------------------
   const runDiagnosis = async () => {
     setLoading(true);
     setDiagnosed(false);
@@ -181,7 +174,7 @@ export default function Home() {
     const logs: string[] = [];
 
     try {
-      // フェーズ1
+      // フェーズ1：IP取得とサービス接続確認
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
@@ -193,7 +186,9 @@ export default function Home() {
       try {
         const res = await fetch("/api/fqdncheck");
         const result = await res.text();
-        logs.push(result.startsWith("OK") ? `サービスへの通信確認: ${result}` : `サービスへの通信確認: NG (${result})`);
+        logs.push(result.startsWith("OK")
+          ? `サービスへの通信確認: ${result}`
+          : `サービスへの通信確認: NG (${result})`);
       } catch (err) {
         logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
       }
@@ -201,7 +196,7 @@ export default function Home() {
       setStatus([...logs]);
       setPhase(2);
 
-      // フェーズ2
+      // フェーズ2：ポート確認
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
@@ -228,74 +223,55 @@ export default function Home() {
       setStatus([...logs]);
       setPhase(3);
 
-      // フェーズ3
+      // フェーズ3：WebRTC診断
       const webrtcLogs = await runWebRTCCheck();
       logs.push(...webrtcLogs);
       setStatus([...logs]);
       setDiagnosed(true);
+
     } catch (e) {
-      console.error(e); // 開発者向け（画面に出ない）
+      console.error(e);
       logs.push("❌ サーバとの接続に失敗しました");
       if (e instanceof Error) logs.push(`詳細: ${e.message}`);
       setStatus([...logs]);
     }
   };
 
-
-  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number) => {
-    let ipAddress = '取得失敗'; // Default value for IP address
-
-    // Extract the IP address from the status logs
-    if (item.keyword === '外部IP:') {
-      const logs = status.filter((log) => log.includes(item.keyword));
-      const ipLog = logs.find(log => log.startsWith('外部IP:'));
-      ipAddress = ipLog ? ipLog.split('外部IP: ')[1] : '取得失敗';
-    }
-
-    // 各チェック項目の判定ロジック
+// -------------------------
+// チェック結果パネル表示用関数
+// - 各項目のログを元に「OK / NG」としてカードを出力
+// - NG時はNG理由と補足情報を表示
+// -------------------------
+  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number, status: string[]) => {
     const logsForItem = status.filter(log => log.includes(item.keyword));
-
     let isOK = false;
-
     if (item.label === 'サービスへの通信確認') {
-      isOK = logsForItem.some(log =>
-        log.trim().startsWith("サービスへの通信確認: OK")
-      );
+      isOK = logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
     } else if (item.label === 'WebRTC接続成功') {
-      isOK = logsForItem.some(log =>
-        log.includes("candidate-pair: succeeded") ||
-        log.includes("✅ WebRTC: DataChannel open!") ||
-        log.includes("📨 サーバからのメッセージ")
-      );
+      isOK = logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
     } else {
-      isOK = logsForItem.some(log =>
-        log.includes("OK") || log.includes("成功") || log.includes("応答あり")
-      );
+      isOK = logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
     }
 
     return (
-      <div
-        key={idx}
-        className="bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl"
-      >
+      <div key={idx} className="bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold">{item.label}</h3>
-          <button
-            className="text-sm text-gray-500 hover:text-gray-800"
-            title="詳細はこちら"
-            onClick={() => setShowDetail(item.label)}
-          >
-            ❔
-          </button>
+          <button className="text-sm text-gray-500 hover:text-gray-800" title="詳細はこちら" onClick={() => setShowDetail(item.label)}>❔</button>
         </div>
         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
-        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`}>
-          {item.keyword === '外部IP:' ? ipAddress : (isOK ? 'OK' : 'NG')}
+        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`} >
+          {item.keyword === '外部IP:' ? status.find(log => log.startsWith('外部IP:'))?.split(': ')[1] ?? '取得失敗' : (isOK ? 'OK' : 'NG')}
         </p>
-        {!isOK && logsForItem.find(log => log.includes("NG")) && (
-          <p className="text-xs text-red-500 mt-1 whitespace-pre-wrap">
-            {logsForItem.find(log => log.includes("NG"))}
+        {item.label === 'WebRTC接続成功' && isOK && (
+          <p className="text-sm text-green-700 text-center mt-1">
+            {status.find(log => log.includes("【接続方式】"))}
           </p>
+        )}
+        {!isOK && item.ngReason && (
+          <div className="text-sm text-black border border-blue-300 bg-blue-50 p-2 rounded mt-2">
+            <span className="text-red-500 font-semibold">NG理由:</span> {item.ngReason}
+          </div>
         )}
       </div>
     );
@@ -376,7 +352,7 @@ export default function Home() {
 
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx))}
+                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
                 </div>
               )}
 
@@ -399,7 +375,7 @@ export default function Home() {
                       );
                       return !isOK && item?.ngReason ? (
                         <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
-                          ❗NG理由: {item.ngReason}
+                          NG理由: {item.ngReason}
                         </div>
                       ) : null;
                     })()}
@@ -423,4 +399,4 @@ export default function Home() {
     </div>
   );
 
-} 
+}
