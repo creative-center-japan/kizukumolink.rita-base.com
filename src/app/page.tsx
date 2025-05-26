@@ -451,10 +451,20 @@ export default function Home() {
 
                     {(() => {
                       const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                      const isOK = status.some(log =>
-                        log.includes(item?.keyword || '') &&
-                        (log.includes('OK') || log.includes('成功') || log.includes('succeeded') || log.includes('応答あり'))
-                      );
+                      const logsForItem = status.filter(log => log.includes(item?.keyword || ''));
+                      const isOK = (() => {
+                        if (!item) return false;
+                        if (item.label === 'ご利用IPアドレス') {
+                          return logsForItem.every(log => !log.includes("取得失敗"));
+                        } else if (item.label === 'サービスへの通信確認') {
+                          return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
+                        } else if (item.label === 'WebRTC接続成功') {
+                          return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
+                        } else {
+                          return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
+                        }
+                      })();
+
                       return !isOK && item?.ngReason ? (
                         <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
                           NG理由: {item.ngReason}
