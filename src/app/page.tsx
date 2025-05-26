@@ -29,8 +29,11 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
   if (item.label === 'ご利用IPアドレス') {
-    return logsForItem.length > 0 && !logsForItem.some(log => log.includes("取得失敗"));
+    const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
+    const ip = ipLog?.split(": ")[1] ?? "";
+    return !!ip && ip !== "取得失敗";
   }
+
   if (item.label === 'サービスへの通信確認') {
     return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
   } else if (item.label === 'WebRTC接続成功') {
@@ -166,13 +169,30 @@ export default function Home() {
       };
 
       // ICE接続が明示的に失敗した場合の処理
+      // ICE接続状態の変化ログ
       pc.oniceconnectionstatechange = () => {
-        logs.push(`ICE状態: ${pc.iceConnectionState}`);
+        logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
           clearTimeout(timeout);
           reject(new Error("ICE接続に失敗しました"));
         }
       };
+
+      // ICE candidate gathering の状態ログ
+      pc.onicegatheringstatechange = () => {
+        logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
+      };
+
+      // 全体接続状態（新しいブラウザAPI）
+      pc.onconnectionstatechange = () => {
+        logs.push(`全体接続状態: ${pc.connectionState}`);
+      };
+
+      // ICE candidate エラー（発生した場合）
+      pc.onicecandidateerror = (event) => {
+        logs.push(`ICE候補エラー: ${event.errorText}`);
+      };
+
 
     });
 
@@ -468,7 +488,9 @@ export default function Home() {
                     const isOK = checkIsOK(item, logsForItem);
 
 
-                    if (!isOK && item.ngReason) {
+                    if (isOK) return null;
+
+                    if (item.ngReason) {
                       return (
                         <div key={idx} className="bg-white border border-blue-300 p-4 rounded shadow">
                           <p className="font-bold text-gray-800 mb-2">【NG項目】{item.label}</p>
