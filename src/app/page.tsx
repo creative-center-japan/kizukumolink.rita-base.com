@@ -32,8 +32,8 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
     // 外部IPが取得できていればOK
     const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
     const ip = ipLog?.split(": ")[1] ?? "";
-    console.log("IPログ:", ipLog, "IPアドレス:", ip); // ←追加
-    return !!ip && ip !== "取得失敗";
+    console.log("IPログ:", ipLog, "IPアドレス:", ip); //
+    return !!ip && ip !== "取得失敗" && /^[0-9.]+$/.test(ip); // ← 数値IPの形式チェック付き
   }
 
   if (item.label === 'サービスへの通信確認') {
@@ -174,16 +174,18 @@ export default function Home() {
 
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
-        const cand = event.candidate.candidate;
-        logs.push(`ICE候補: ${cand}`);
-        if (cand.includes("typ srflx")) connectionType = 'P2P';
-        if (cand.includes("typ relay")) connectionType = 'TURN';
+        const c = event.candidate;
+        logs.push(`ICE候補: ${c.candidate}`);
+        logs.push(`↳ 詳細: type=${c.type}, protocol=${c.protocol}, address=${c.address}, port=${c.port}, priority=${c.priority}`);
+
+        if (c.candidate.includes("typ srflx")) connectionType = 'P2P';
+        if (c.candidate.includes("typ relay")) connectionType = 'TURN';
 
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            candidate: event.candidate,
+            candidate: c,
             pc_id: answer.pc_id
           })
         });
@@ -191,6 +193,7 @@ export default function Home() {
         logs.push("ICE候補: 収集完了");
       }
     };
+
 
     const waitForOpen = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
