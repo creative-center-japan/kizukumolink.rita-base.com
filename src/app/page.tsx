@@ -379,8 +379,10 @@ export default function Home() {
         <p className="text-3xl font-bold text-center">
           {(() => {
             if (item.label === 'ご利用IPアドレス') {
-              const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
-              const ipAddress = ipLog?.split(": ")[1] ?? '';
+              const ipLog = status.find(log =>
+                log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:")
+              );
+              const ipAddress = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? '';
               return (
                 <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
                   {ipAddress || '取得失敗'}
