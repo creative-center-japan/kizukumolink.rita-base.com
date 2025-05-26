@@ -29,18 +29,37 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
   if (item.label === 'ご利用IPアドレス') {
+    // 外部IPが取得できていればOK
     const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
     const ip = ipLog?.split(": ")[1] ?? "";
     return !!ip && ip !== "取得失敗";
   }
 
   if (item.label === 'サービスへの通信確認') {
+    // 先頭が "サービスへの通信確認: OK" ならOK
     return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
-  } else if (item.label === 'WebRTC接続成功') {
-    return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
-  } else {
-    return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
   }
+
+  if (item.label === 'WebRTC接続成功') {
+    // DataChannelが開いたログ or candidate-pair 成功ログがあればOK
+    return logsForItem.some(log =>
+      log.includes("candidate-pair: succeeded") ||
+      log.includes("✅ WebRTC: DataChannel open!") ||
+      log.includes("DataChannel open")
+    );
+  }
+
+  if (item.label === 'リレーサーバの利用') {
+    // relay 候補があれば中継成功
+    return logsForItem.some(log =>
+      log.includes("typ relay")
+    );
+  }
+
+  // その他（ポート確認など）：成功／応答あり を含むログがあればOK
+  return logsForItem.some(log =>
+    log.includes("OK") || log.includes("成功") || log.includes("応答あり")
+  );
 };
 
 const CHECK_ITEMS = [
@@ -125,6 +144,14 @@ export default function Home() {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
     };
 
+    channel.onerror = (event) => {
+      logs.push(`❌ DataChannel エラー発生`);
+    };
+
+    channel.onclose = () => {
+      logs.push(`⚠️ DataChannel がクローズされました`);
+    };
+
     pc.ondatachannel = (event) => {
       logs.push("📥 DataChannel を受信（受信モードのブラウザで動作）");
       event.channel.onmessage = (msg) => {
@@ -201,6 +228,8 @@ export default function Home() {
     try {
       await waitForOpen;
     } catch (e) {
+      logs.push(`最終 ICE状態: ${pc.iceConnectionState}`);
+      logs.push(`最終 connection状態: ${pc.connectionState}`);
       logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
       logs.push(`詳細: ${(e as Error).message}`);
     }
@@ -319,23 +348,7 @@ export default function Home() {
     status: string[]
   ) => {
     const logsForItem = status.filter(log => log.includes(item.keyword));
-    let isOK = false;
-
-    if (item.label === 'サービスへの通信確認') {
-      isOK = logsForItem.some(log =>
-        log.includes("サービスへの通信確認: OK")
-      );
-    } else if (item.label === 'WebRTC接続成功') {
-      isOK = logsForItem.some(log =>
-        log.includes("candidate-pair: succeeded") ||
-        log.includes("✅ WebRTC: DataChannel open!") ||
-        log.includes("DataChannel open")
-      );
-    } else {
-      isOK = logsForItem.some(log =>
-        log.includes("OK") || log.includes("成功") || log.includes("応答あり")
-      );
-    }
+    const isOK = checkIsOK(item, logsForItem);
 
     return (
       <div
@@ -357,13 +370,11 @@ export default function Home() {
         <p className="text-3xl font-bold text-center">
           {(() => {
             if (item.label === 'ご利用IPアドレス') {
-              const logsForItem = status.filter(log => log.includes(item.keyword));
               const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
-              const ipAddress = ipLog?.split(': ')[1] ?? '取得失敗';
-              const isOK = checkIsOK(item, logsForItem);
+              const ipAddress = ipLog?.split(": ")[1] ?? '';
               return (
                 <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
-                  {ipAddress}
+                  {ipAddress || '取得失敗'}
                 </span>
               );
             } else {
@@ -384,7 +395,6 @@ export default function Home() {
       </div>
     );
   };
-
 
   return (
     <div>
