@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 
+
 // スケール計算関数
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
