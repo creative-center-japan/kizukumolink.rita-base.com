@@ -125,6 +125,13 @@ export default function Home() {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
     };
 
+    pc.ondatachannel = (event) => {
+      logs.push("📥 DataChannel を受信（受信モードのブラウザで動作）");
+      event.channel.onmessage = (msg) => {
+        logs.push(`📨 受信メッセージ: ${msg.data}`);
+      };
+    };
+
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
@@ -140,6 +147,7 @@ export default function Home() {
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const cand = event.candidate.candidate;
+        logs.push(`ICE候補: ${cand}`);
         if (cand.includes("typ srflx")) connectionType = 'P2P';
         if (cand.includes("typ relay")) connectionType = 'TURN';
 
@@ -151,6 +159,8 @@ export default function Home() {
             pc_id: answer.pc_id
           })
         });
+      } else {
+        logs.push("ICE候補: 収集完了");
       }
     };
 
@@ -159,7 +169,6 @@ export default function Home() {
         reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
       }, 10000);
 
-      // DataChannel 成功時の処理
       channel.onopen = () => {
         logs.push("✅ WebRTC: DataChannel open!");
         channel.send("hello from client");
@@ -168,8 +177,6 @@ export default function Home() {
         resolve();
       };
 
-      // ICE接続が明示的に失敗した場合の処理
-      // ICE接続状態の変化ログ
       pc.oniceconnectionstatechange = () => {
         logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
@@ -178,22 +185,17 @@ export default function Home() {
         }
       };
 
-      // ICE candidate gathering の状態ログ
       pc.onicegatheringstatechange = () => {
         logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
       };
 
-      // 全体接続状態（新しいブラウザAPI）
       pc.onconnectionstatechange = () => {
         logs.push(`全体接続状態: ${pc.connectionState}`);
       };
 
-      // ICE candidate エラー（発生した場合）
       pc.onicecandidateerror = (event) => {
         logs.push(`ICE候補エラー: ${event.errorText}`);
       };
-
-
     });
 
     try {
@@ -210,7 +212,6 @@ export default function Home() {
       };
     });
     await waitForIceGathering;
-
 
     if (connectionType) {
       logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
@@ -356,11 +357,12 @@ export default function Home() {
         <p className="text-3xl font-bold text-center">
           {(() => {
             if (item.label === 'ご利用IPアドレス') {
-              const ipLog = status.find(log => log.startsWith('外部IP:'));
+              const logsForItem = status.filter(log => log.includes(item.keyword));
+              const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
               const ipAddress = ipLog?.split(': ')[1] ?? '取得失敗';
-              const isIpOK = ipAddress !== '取得失敗';
+              const isOK = checkIsOK(item, logsForItem);
               return (
-                <span className={isIpOK ? 'text-emerald-500' : 'text-rose-500'}>
+                <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
                   {ipAddress}
                 </span>
               );
