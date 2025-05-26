@@ -167,11 +167,13 @@ export default function Home() {
 
       // ICE接続が明示的に失敗した場合の処理
       pc.oniceconnectionstatechange = () => {
+        logs.push(`ICE状態: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
           clearTimeout(timeout);
           reject(new Error("ICE接続に失敗しました"));
         }
       };
+
     });
 
     try {
@@ -300,7 +302,7 @@ export default function Home() {
 
     if (item.label === 'サービスへの通信確認') {
       isOK = logsForItem.some(log =>
-        log.trim().startsWith("サービスへの通信確認: OK")
+        log.includes("サービスへの通信確認: OK")
       );
     } else if (item.label === 'WebRTC接続成功') {
       isOK = logsForItem.some(log =>
@@ -330,9 +332,19 @@ export default function Home() {
           </button>
         </div>
         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
-        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`}>
-          {item.keyword === '外部IP:' ? status.find(log => log.startsWith('外部IP:'))?.split(': ')[1] ?? '取得失敗' : (isOK ? 'OK' : 'NG')}
-        </p>
+
+        {(() => {
+          const ipLog = status.find(log => log.startsWith('外部IP:'));
+          const ipAddress = ipLog?.split(': ')[1] ?? '取得失敗';
+          const isIpOK = ipAddress !== '取得失敗';
+
+          return (
+            <p className={`text-3xl font-bold text-center ${isIpOK ? 'text-emerald-500' : 'text-rose-500'}`}>
+              {ipAddress}
+            </p>
+          );
+        })()}
+
         {item.label === 'WebRTC接続成功' && isOK && (
           <p className="text-sm text-green-700 text-center mt-1">
             {status.find(log => log.includes("【接続方式】"))}
