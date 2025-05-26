@@ -33,7 +33,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
     const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
     const ip = ipLog?.split(": ")[1] ?? "";
     console.log("IPログ:", ipLog, "IPアドレス:", ip); //
-    return !!ip && ip !== "取得失敗" && /^[0-9.]+$/.test(ip); // ← 数値IPの形式チェック付き
+    return !!ip && ip !== "取得失敗" && /^[0-9.]+$/.test(ip);
   }
 
   if (item.label === 'サービスへの通信確認') {
