@@ -29,8 +29,10 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
   if (item.label === 'ご利用IPアドレス') {
-    const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
-    const ip = ipLog?.split(/外部IP:\s*/)[1]?.trim() ?? "";
+    const ipLog = logsForItem.find(log =>
+      log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:")
+    );
+    const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
     return !!ip && /^[0-9.]+$/.test(ip);
   }
 
