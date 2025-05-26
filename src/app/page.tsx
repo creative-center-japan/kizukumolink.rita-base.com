@@ -363,31 +363,6 @@ export default function Home() {
                     キャンセル
                   </button>
                 )}
-
-                {diagnosed && (
-                  <>
-                    <button
-                      onClick={runDiagnosis}
-                      className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                    >
-                      再診断
-                    </button>
-                    <button
-                      onClick={() => {
-                        const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                    >
-                      結果をダウンロード
-                    </button>
-                  </>
-                )}
               </div>
 
 
