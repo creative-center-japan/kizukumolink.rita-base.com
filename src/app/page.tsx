@@ -262,10 +262,17 @@ export default function Home() {
     }
 
     return (
-      <div key={idx} className="bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl">
+      <div key={idx} className="relative bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold">{item.label}</h3>
-          <button className="text-sm text-gray-500 hover:text-gray-800" title="詳細はこちら" onClick={() => setShowDetail(item.label)}>❔</button>
+          <button
+            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200"
+            title={item.tooltip}
+            onClick={() => setShowDetail(item.label)}
+          >
+            ？
+          </button>
+
         </div>
         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
         <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`} >
@@ -276,7 +283,7 @@ export default function Home() {
             {status.find(log => log.includes("【接続方式】"))}
           </p>
         )}
-      
+
       </div>
     );
   };
