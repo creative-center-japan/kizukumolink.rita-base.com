@@ -32,7 +32,7 @@ const CHECK_ITEMS = [
     description: 'インターネットへ接続する際のIPを確認',
     keyword: '外部IP:',
     tooltip: 'ブラウザまたは当テスト通信から抽出されたIPアドレスです',
-    detail: '外部との通信に使用されるグローバルIPを表示します。',
+    detail: 'インターネットへ接続する際に使用されるグローバルIPを表示します。',
     ngReason: 'ブラウザまたは当テスト通信からIPアドレスが取得できませんでした。Proxyを利用されている可能性があります。',
     action: 'IPアドレスが取得できなくてもカメラサービスを利用できる可能が場合があります。ただし、ご利用の環境はProxy経由やセキュリティ設定が厳しい環境の可能性があります。その場合、当サービスの利用が行えない場合がございます。事前にネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCプロトコルを利用したカメラサービスを利用」をご相談させてください。'
   },
@@ -41,7 +41,7 @@ const CHECK_ITEMS = [
     description: 'キヅクモサービスへの接続（TCP 443）が可能か',
     keyword: 'サービスへの通信確認',
     tooltip: 'キヅクモサービス サーバへ TCP接続できたかを確認します',
-    detail: 'キヅクモカメラサービスのクラウド連携やライブ配信に必要なポートです。443はHTTPSに使われる標準ポートです。',
+    detail: 'キヅクモカメラサービスへ接続しカメラ設定・映像配信確認時に利用するドメインとポートが利用できるか確認します。TCP/443はHTTPSに使われる標準ポートです。',
     ngReason: 'サービス提供元（Alarm.com）へTCP接続できませんでした。ファイアウォールやセキュリティ機器でブロックされている可能性があります。',
     action: 'この通信ができないとサービスを利用できません。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「キヅクモサービスのドメインに対するTCP 443番ポートの許可」をご相談ください。キヅクモサービスのドメインに関しては弊社コンタクトよりお問い合わせください。'
   },
@@ -59,7 +59,7 @@ const CHECK_ITEMS = [
     description: 'サーバとの通信（P2P or TURN）が確立できたか',
     keyword: 'candidate-pair: succeeded',
     tooltip: 'candidate-pair: succeeded が出たらOKです',
-    detail: 'P2P通信が確立されたことを示します。通信相手との双方向通信に成功した場合のみ出力されます。',
+    detail: 'カメラとブラウザなどを利用したカメラ閲覧が直接通信（P2P接続）が確立されたことを示します。通信相手との双方向通信に成功した場合のみ出力されます。',
     ngReason: '通信の確立に必要な応答が得られず、カメラ通信を開始するができませんでした。ネットワーク構成やブラウザの制限が原因の可能性があります。',
     action: 'WebRTC未接続の場合、一部機能が制限される可能性があります。ブラウザが最新か、ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCを利用したP2P接続の利用」をご相談ください。ご利用のVPN/Proxy/Firewallの影響がないかご確認ください。'
   },
@@ -407,8 +407,8 @@ export default function Home() {
 
               {/* NG項目の総括 */}
               {diagnosed && (
-                <div className="border border-blue-300 bg-blue-50 rounded-xl px-4 py-6 mt-10 space-y-6">
-                  <h2 className="text-xl font-bold text-blue-700 mb-4">NG項目の要約</h2>
+                <div className="border border-blue-300 bg-blue-100 rounded-xl px-4 py-6 mt-10 space-y-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">NG項目の要約</h2>
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = (() => {
