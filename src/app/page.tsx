@@ -9,14 +9,12 @@ function useScaleFactor() {
     const updateScale = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-
-      // スマホ（横幅が768px未満）の場合のみスケーリングを適用
       if (width < 768) {
         const neededHeight = 720;
         const factor = Math.min(1, height / neededHeight);
         setScale(Number(factor.toFixed(2)));
       } else {
-        setScale(1); // PCはスケーリングなし
+        setScale(1);
       }
     };
 
@@ -382,47 +380,6 @@ export default function Home() {
                   </ul>
                 </div>
               )}
-
-              <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {diagnosed && (
-                  <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                    {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
-                  </div>
-                )}
-
-                {!loading && !diagnosed && (
-                  <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                    診断開始
-                  </button>
-                )}
-                {loading && !diagnosed && (
-                  <button onClick={() => {
-                    setLoading(false);
-                    setStatus([]);
-                  }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                    キャンセル
-                  </button>
-                )}
-                {diagnosed && (
-                  <>
-                    <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                      再診断
-                    </button>
-                    <button onClick={() => {
-                      const blob = new Blob([status.join('\n')], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
-                      結果をダウンロード
-                    </button>
-                  </>
-                )}
-              </div>
-
 
               {/* NG項目の総括 */}
               {diagnosed && (
