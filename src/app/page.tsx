@@ -144,7 +144,7 @@ export default function Home() {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
     };
 
-    channel.onerror = (_event) => {
+    channel.onerror = () => {
       logs.push(`❌ DataChannel エラー発生`);
     };
 
