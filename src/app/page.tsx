@@ -93,6 +93,7 @@ export default function Home() {
   // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
+    let connectionType: "P2P" | "TURN" | "" = ""; 
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -159,6 +160,15 @@ export default function Home() {
       console.error("WebRTCエラー:", e);
       logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     }
+
+    const waitForIceGathering = new Promise<void>((resolve) => {
+      if (pc.iceGatheringState === "complete") return resolve();
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") resolve();
+      };
+    });
+    await waitForIceGathering;
+
 
     if (connectionType) {
       logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
