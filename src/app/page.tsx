@@ -363,6 +363,30 @@ export default function Home() {
                 )}
               </div>
 
+              {diagnosed && (
+                <div className="flex flex-wrap justify-center gap-4 mb-8">
+                  <button
+                    onClick={runDiagnosis}
+                    className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                  >
+                    再診断
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                  >
+                    結果をダウンロード
+                  </button>
+                </div>
+              )}
 
               {loading && !diagnosed && (
                 <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
@@ -383,9 +407,8 @@ export default function Home() {
 
               {/* NG項目の総括 */}
               {diagnosed && (
-                <div className="border border-blue-300 bg-white rounded-xl px-4 py-6 mt-10 space-y-6">
-                  <h2 className="text-xl font-bold text-blue-700 mb-4">
-                    NG項目の要約</h2>
+                <div className="border border-blue-300 bg-blue-50 rounded-xl px-4 py-6 mt-10 space-y-6">
+                  <h2 className="text-xl font-bold text-blue-700 mb-4">NG項目の要約</h2>
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = (() => {
@@ -400,9 +423,9 @@ export default function Home() {
 
                     if (!isOK && item.ngReason) {
                       return (
-                        <div key={idx} className="bg-white border border-red-200 p-4 rounded shadow">
-                          <p className="font-bold text-red-600 mb-2">【NG項目】{item.label}</p>
-                          <p><span className="font-semibold text-red-500">NG理由:</span> {item.ngReason}</p>
+                        <div key={idx} className="bg-white border border-blue-300 p-4 rounded shadow">
+                          <p className="font-bold text-gray-800 mb-2">【NG項目】{item.label}</p>
+                          <p><span className="font-semibold text-red-600">NG理由:</span> {item.ngReason}</p>
                           {item.action && (
                             <p className="mt-2"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>
                           )}
@@ -414,7 +437,6 @@ export default function Home() {
                   })}
                 </div>
               )}
-
 
               {showDetail && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
