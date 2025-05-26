@@ -93,7 +93,7 @@ export default function Home() {
   // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
-    let connectionType: "P2P" | "TURN" | "" = ""; 
+    let connectionType: "P2P" | "TURN" | "" = "";
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -259,9 +259,14 @@ export default function Home() {
   // - 各項目のログを元に「OK / NG」としてカードを出力
   // - NG時はNG理由と補足情報を表示
   // -------------------------
-  const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number, status: string[]) => {
+  const renderResultCard = (
+    item: (typeof CHECK_ITEMS)[number],
+    idx: number,
+    status: string[]
+  ) => {
     const logsForItem = status.filter(log => log.includes(item.keyword));
     let isOK = false;
+
     if (item.label === 'サービスへの通信確認') {
       isOK = logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
     } else if (item.label === 'WebRTC接続成功') {
@@ -271,7 +276,10 @@ export default function Home() {
     }
 
     return (
-      <div key={idx} className="relative bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl">
+      <div
+        key={idx}
+        className="relative bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl"
+      >
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold">{item.label}</h3>
           <button
@@ -281,10 +289,9 @@ export default function Home() {
           >
             ？
           </button>
-
         </div>
         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
-        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`} >
+        <p className={`text-3xl font-bold text-center ${item.keyword === '外部IP:' ? 'text-emerald-500' : (isOK ? 'text-emerald-500' : 'text-rose-500')}`}>
           {item.keyword === '外部IP:' ? status.find(log => log.startsWith('外部IP:'))?.split(': ')[1] ?? '取得失敗' : (isOK ? 'OK' : 'NG')}
         </p>
         {item.label === 'WebRTC接続成功' && isOK && (
@@ -292,10 +299,10 @@ export default function Home() {
             {status.find(log => log.includes("【接続方式】"))}
           </p>
         )}
-
       </div>
     );
   };
+
 
   return (
     <div>
@@ -337,6 +344,12 @@ export default function Home() {
               )}
 
               <div className="flex flex-wrap justify-center gap-2 mb-4">
+                {diagnosed && (
+                  <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
+                    {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
+                  </div>
+                )}
+
                 {!loading && !diagnosed && (
                   <button onClick={runDiagnosis} className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap">
                     診断開始
@@ -375,9 +388,7 @@ export default function Home() {
               {diagnosed && (
                 <div className="border border-red-200 bg-red-50 rounded-xl px-4 py-6 mt-10 space-y-6">
                   <h2 className="text-xl font-bold text-blue-700 mb-4">
-                    🟡 NG項目の総括
-                  </h2>
-
+                    🟡 NG項目の総括</h2>
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = (() => {
@@ -401,6 +412,7 @@ export default function Home() {
                         </div>
                       );
                     }
+
                     return null;
                   })}
                 </div>
