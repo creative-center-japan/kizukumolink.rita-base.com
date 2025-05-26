@@ -32,12 +32,13 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
     // 外部IPが取得できていればOK
     const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
     const ip = ipLog?.split(": ")[1] ?? "";
+    console.log("IPログ:", ipLog, "IPアドレス:", ip); // ←追加
     return !!ip && ip !== "取得失敗";
   }
 
   if (item.label === 'サービスへの通信確認') {
     // 先頭が "サービスへの通信確認: OK" ならOK
-    return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
+    return logsForItem.some(log => log.includes("サービスへの通信確認: OK"));
   }
 
   if (item.label === 'WebRTC接続成功') {
