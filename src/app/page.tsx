@@ -333,17 +333,26 @@ export default function Home() {
         </div>
         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
 
-        {(() => {
-          const ipLog = status.find(log => log.startsWith('外部IP:'));
-          const ipAddress = ipLog?.split(': ')[1] ?? '取得失敗';
-          const isIpOK = ipAddress !== '取得失敗';
-
-          return (
-            <p className={`text-3xl font-bold text-center ${isIpOK ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {ipAddress}
-            </p>
-          );
-        })()}
+        <p className="text-3xl font-bold text-center">
+          {(() => {
+            if (item.label === 'ご利用IPアドレス') {
+              const ipLog = status.find(log => log.startsWith('外部IP:'));
+              const ipAddress = ipLog?.split(': ')[1] ?? '取得失敗';
+              const isIpOK = ipAddress !== '取得失敗';
+              return (
+                <span className={isIpOK ? 'text-emerald-500' : 'text-rose-500'}>
+                  {ipAddress}
+                </span>
+              );
+            } else {
+              return (
+                <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
+                  {isOK ? 'OK' : 'NG'}
+                </span>
+              );
+            }
+          })()}
+        </p>
 
         {item.label === 'WebRTC接続成功' && isOK && (
           <p className="text-sm text-green-700 text-center mt-1">
