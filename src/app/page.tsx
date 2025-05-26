@@ -173,6 +173,13 @@ export default function Home() {
       };
     });
 
+    try {
+      await waitForOpen;
+    } catch (e) {
+      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
+      logs.push(`詳細: ${(e as Error).message}`);
+    }
+
     const waitForIceGathering = new Promise<void>((resolve) => {
       if (pc.iceGatheringState === "complete") return resolve();
       pc.onicegatheringstatechange = () => {
@@ -472,14 +479,6 @@ export default function Home() {
                       const logsForItem = status.filter(log => log.includes(item?.keyword || ''));
                       const isOK = item ? checkIsOK(item, logsForItem) : false;
 
-                      // ご利用IPアドレスのときはNG理由を非表示
-                      if (!isOK && item?.ngReason && item.label !== 'ご利用IPアドレス') {
-                        return (
-                          <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
-                            NG理由: {item.ngReason}
-                          </div>
-                        );
-                      }
                       return null;
                     })()}
 
