@@ -63,7 +63,7 @@ const CHECK_ITEMS = [
   {
     label: 'ご利用IPアドレス',
     description: 'インターネットへ接続する際のIPを確認',
-    keyword: '外部IP:',
+    keyword: '外部IP', // ← 修正ポイント：prefixに限定しないよう汎用化
     tooltip: 'ブラウザまたは当テスト通信から抽出されたIPアドレスです',
     detail: 'インターネットへ接続する際に使用されるグローバルIPを表示します。',
     ngReason: 'ブラウザまたは当テスト通信からIPアドレスが取得できませんでした。Proxyを利用されている可能性があります。',
