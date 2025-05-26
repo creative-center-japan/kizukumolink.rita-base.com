@@ -477,8 +477,6 @@ export default function Home() {
 
                     {(() => {
                       const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                      const logsForItem = status.filter(log => log.includes(item?.keyword || ''));
-
                       return null;
                     })()}
 
