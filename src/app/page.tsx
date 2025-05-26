@@ -326,6 +326,63 @@ export default function Home() {
                 </span>
               </p>
 
+              {/* ▼ 診断結果タイル（診断完了後のみ表示） */}
+              {diagnosed && (
+                <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
+                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
+                </div>
+              )}
+
+              {/* ▼ ボタン表示エリア（常時表示） */}
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
+                {!loading && !diagnosed && (
+                  <button
+                    onClick={runDiagnosis}
+                    className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                  >
+                    診断開始
+                  </button>
+                )}
+
+                {loading && !diagnosed && (
+                  <button
+                    onClick={() => {
+                      setLoading(false);
+                      setStatus([]);
+                    }}
+                    className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                  >
+                    キャンセル
+                  </button>
+                )}
+
+                {diagnosed && (
+                  <>
+                    <button
+                      onClick={runDiagnosis}
+                      className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                    >
+                      再診断
+                    </button>
+                    <button
+                      onClick={() => {
+                        const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `ritabase_check_${new Date().toISOString().slice(0, 10)}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
+                    >
+                      結果をダウンロード
+                    </button>
+                  </>
+                )}
+              </div>
+
+
               {loading && !diagnosed && (
                 <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
                   <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
