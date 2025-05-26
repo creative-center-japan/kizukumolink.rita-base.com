@@ -122,7 +122,6 @@ export default function Home() {
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
 
-    let connectionType = '';
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const cand = event.candidate.candidate;
