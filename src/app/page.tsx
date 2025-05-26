@@ -475,11 +475,6 @@ export default function Home() {
                       {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
                     </p>
 
-                    {(() => {
-                      const item = CHECK_ITEMS.find(i => i.label === showDetail);
-                      return null;
-                    })()}
-
                     <div className="text-right">
                       <button
                         onClick={() => setShowDetail(null)}
