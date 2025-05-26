@@ -33,41 +33,46 @@ const CHECK_ITEMS = [
     label: 'ご利用IPアドレス',
     description: 'インターネットへ接続する際のIPを確認',
     keyword: '外部IP:',
-    tooltip: 'ブラウザまたは当テスト通信より抽出されたIPアドレスです',
-    detail: 'お客様が外部インターネットに接続する際に使われているグローバルIPアドレスを表示します。',
-    ngReason: 'ブラウザまたは当テスト通信からグローバルIPアドレスを取得できませんでした。Proxyを経由している場合や、カメラ通信（WebRTC）が遮断されている場合に発生します。\n\n今後の対応：\nIPアドレスが取得できなくても、通信そのものに問題がなければご利用可能です。\nただし、Proxy経由などで外部IPが不明な場合は、接続判定が一部正確に行えないことがあります。\n社内のネットワーク機器設定や、情報システム部門にご確認ください。'
+    tooltip: 'ブラウザまたは当テスト通信から抽出されたIPアドレスです',
+    detail: '外部との通信に使用されるグローバルIPを表示します。',
+    ngReason: 'ブラウザまたは当テスト通信からIPアドレスが取得できませんでした。Proxyを利用されている可能性があります。',
+    action: 'IPアドレスが取得できなくてもカメラ利用が可能な場合があります。ただし、Proxy経由やセキュリティ設定が厳しい環境では正確な診断が難しいため、ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCプロトコルを利用したカメラサービスを利用」をご相談させてください。'
   },
   {
     label: 'サービスへの通信確認',
     description: 'キヅクモサービスへの接続（TCP 443）が可能か',
     keyword: 'サービスへの通信確認',
     tooltip: 'キヅクモサービス サーバへ TCP接続できたかを確認します',
-    detail: 'キヅクモのサービス（Alarm.com）へ、HTTPS通信（TCP 443番）で接続できるか確認します。',
-    ngReason: 'キヅクモのクラウドサービス（Alarm.com）へのHTTPS接続に失敗しました。\nセキュリティ機器やWebフィルタ、DNS制限などが原因の可能性があります。\n\n今後の対応：\nこの通信ができないと、カメラの映像配信や設定取得が行えません。\nネットワーク管理者または情報システム部門へ「キヅクモサービスで利用するドメインでの外部TCP 443番ポートの通信許可」が必要であることをお伝えください。'
+    detail: 'キヅクモカメラサービスのクラウド連携やライブ配信に必要なポートです。443はHTTPSに使われる標準ポートです。',
+    ngReason: 'サービス提供元（Alarm.com）へTCP接続できませんでした。ファイアウォールやセキュリティ機器でブロックされている可能性があります。',
+    action: 'この通信ができないとサービスを利用できません。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「キヅクモサービスのドメインに対するTCP 443番ポートの許可」をご相談ください。キヅクモサービスのドメインに関しては弊社コンタクトよりお問い合わせください。'
   },
   {
     label: '通信ポート確認',
     description: 'キヅクモサービス（管理用途やP2P用途）で使用するポートが接続可能か確認',
     keyword: 'ポート確認:',
     tooltip: 'サーバ側ポートに対する接続の成功/失敗を確認します',
-    detail: 'キヅクモで利用する各種ポート（TCP/UDP）が開いているかを確認します。映像配信やリモート管理などに必要です。',
-    ngReason: 'キヅクモが使用する一部の通信ポートで接続がブロックされていることが確認されました。\nファイアウォールやUTMなどで制限されている可能性があります。\n\n今後の対応：\n制限されているポートを解除することで、映像の途切れや接続不良を回避できます。\n社内のネットワーク設定や機器の管理者にご相談ください。必要なポート一覧のご案内も可能です。'
+    detail: 'ライブビュー・管理通信・動画配信にて利用するポートが接続可能かを検査します。企業ネットワークでは一部ポートが制限されている場合があります。',
+    ngReason: '必要なポートの一部が閉じています。社内のセキュリティポリシーにより制限されている可能性があります。',
+    action: '一部ポートが閉じていると映像配信や接続に支障が出る可能性があります。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「キヅクモサービスで利用するポートの許可」をご相談ください。キヅクモサービスのポートに関しては弊社コンタクトよりお問い合わせください。'
   },
   {
     label: 'WebRTC接続成功',
     description: 'サーバとの通信（P2P or TURN）が確立できたか',
     keyword: 'candidate-pair: succeeded',
     tooltip: 'candidate-pair: succeeded が出たらOKです',
-    detail: 'カメラとお客様の端末間で、WebRTCという技術を使ってリアルタイム通信ができるかを確認します。',
-    ngReason: 'ブラウザからカメラとの通信を確立できませんでした。DataChannelの開通に失敗しています。\nネットワーク制限、Proxy、ブラウザ制限（古いバージョンや社内ポリシー）が原因となる場合があります。\n\n今後の対応：\nWebRTC通信ができない場合、一部機能（リアルタイム映像確認等）が制限されます。\n最新のChrome等をご利用のうえ、Proxyやファイアウォール設定をご確認ください。'
+    detail: 'P2P通信が確立されたことを示します。通信相手との双方向通信に成功した場合のみ出力されます。',
+    ngReason: '通信の確立に必要な応答が得られず、カメラ通信を開始するができませんでした。ネットワーク構成やブラウザの制限が原因の可能性があります。',
+    action: 'WebRTC未接続の場合、一部機能が制限される可能性があります。ブラウザが最新か、ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCを利用したP2PおよびTURNリレーの利用」をご相談ください。ご利用のVPN/Proxy/Firewallの影響がないかご確認ください。'
   },
   {
     label: 'リレーサーバの利用',
     description: 'TURNサーバを経由した通信ができたか',
     keyword: 'typ relay',
     tooltip: 'typ relay を含む候補があれば中継成功と判断します',
-    detail: 'カメラとの直接通信ができない場合に備え、中継サーバを経由した接続が可能かを確認します。',
-    ngReason: '中継サーバ（TURN）経由での通信が確立できませんでした。UDPポート制限や認証失敗が考えられます。\n\n今後の対応：\nP2P通信ができない環境では中継サーバが必要となります。\nネットワーク管理者に「UDP通信の制限があるか」「外部中継サーバの利用可否」をご確認ください。'
+    detail: 'STUN/TURN応答で relay タイプの候補があれば、P2Pが通らなくても通信可能な環境です。',
+    ngReason: '中継サーバとの通信に失敗しました。ファイアウォールでUDP通信が制限されている場合などに発生します。',
+    action: '中継サーバが使えないとP2Pに失敗した場合の代替通信ができません。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「UDP通信が制限」されていないかご確認ください。'
   }
 ];
 
@@ -81,11 +86,11 @@ export default function Home() {
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
 
 
-// -------------------------
-// WebRTC診断（DataChannelの接続確認）
-// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
-// - 成功時は DataChannel open と candidate-pair をログ出力
-// -------------------------
+  // -------------------------
+  // WebRTC診断（DataChannelの接続確認）
+  // - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
+  // - 成功時は DataChannel open と candidate-pair をログ出力
+  // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
 
@@ -98,6 +103,7 @@ export default function Home() {
     });
 
     const channel = pc.createDataChannel("test");
+    await new Promise((r) => setTimeout(r, 300));
 
     channel.onmessage = (event) => {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
@@ -162,12 +168,12 @@ export default function Home() {
     return logs;
   };
 
-// -------------------------
-// 全体診断フロー（フェーズ1〜3を順に実行）
-// - IP取得 / TCP接続確認（フェーズ1）
-// - ポート確認API実行（フェーズ2）
-// - WebRTC接続確認（フェーズ3）
-// -------------------------
+  // -------------------------
+  // 全体診断フロー（フェーズ1〜3を順に実行）
+  // - IP取得 / TCP接続確認（フェーズ1）
+  // - ポート確認API実行（フェーズ2）
+  // - WebRTC接続確認（フェーズ3）
+  // -------------------------
   const runDiagnosis = async () => {
     setLoading(true);
     setDiagnosed(false);
@@ -238,11 +244,11 @@ export default function Home() {
     }
   };
 
-// -------------------------
-// チェック結果パネル表示用関数
-// - 各項目のログを元に「OK / NG」としてカードを出力
-// - NG時はNG理由と補足情報を表示
-// -------------------------
+  // -------------------------
+  // チェック結果パネル表示用関数
+  // - 各項目のログを元に「OK / NG」としてカードを出力
+  // - NG時はNG理由と補足情報を表示
+  // -------------------------
   const renderResultCard = (item: (typeof CHECK_ITEMS)[number], idx: number, status: string[]) => {
     const logsForItem = status.filter(log => log.includes(item.keyword));
     let isOK = false;
@@ -352,9 +358,40 @@ export default function Home() {
               </div>
 
               {diagnosed && (
-                <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
-                </div>
+                <>
+                  {/* 結果タイル */}
+                  <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
+                    {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
+                  </div>
+
+                  {/* 🔽 NG項目総括 */}
+                  {CHECK_ITEMS.map((item, idx) => {
+                    const logsForItem = status.filter(log => log.includes(item.keyword));
+                    const isOK = (() => {
+                      if (item.label === 'サービスへの通信確認') {
+                        return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
+                      } else if (item.label === 'WebRTC接続成功') {
+                        return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
+                      } else {
+                        return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
+                      }
+                    })();
+
+                    if (!isOK && item.ngReason) {
+                      return (
+                        <div key={idx} className="bg-red-50 border-l-4 border-red-400 p-4 my-4 text-sm text-gray-800">
+                          <p className="font-bold text-red-600">【NG項目】{item.label}</p>
+                          <p className="mt-1"><span className="font-semibold text-red-500">NG理由:</span> {item.ngReason}</p>
+                          {item.action && (
+                            <p className="mt-1"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
+                </>
               )}
 
               {showDetail && (
@@ -396,8 +433,8 @@ export default function Home() {
           </div>
         </div>
 
-      </main>
-    </div>
+      </main >
+    </div >
   );
 
 }
