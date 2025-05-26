@@ -27,6 +27,9 @@ function useScaleFactor() {
 }
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
+  if (item.label === 'ご利用IPアドレス') {
+    return logsForItem.length > 0 && !logsForItem.some(log => log.includes("取得失敗"));
+  }
   if (item.label === 'サービスへの通信確認') {
     return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
   } else if (item.label === 'WebRTC接続成功') {
@@ -112,7 +115,7 @@ export default function Home() {
     });
 
     const channel = pc.createDataChannel("test");
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 3000));
 
     channel.onmessage = (event) => {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
@@ -421,15 +424,8 @@ export default function Home() {
                   <h2 className="text-xl font-bold text-gray-800 mb-4">NG項目の要約</h2>
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
-                    const isOK = (() => {
-                      if (item.label === 'サービスへの通信確認') {
-                        return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
-                      } else if (item.label === 'WebRTC接続成功') {
-                        return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
-                      } else {
-                        return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
-                      }
-                    })();
+                    const isOK = checkIsOK(item, logsForItem);
+
 
                     if (!isOK && item.ngReason) {
                       return (
@@ -462,19 +458,16 @@ export default function Home() {
                     {(() => {
                       const item = CHECK_ITEMS.find(i => i.label === showDetail);
                       const logsForItem = status.filter(log => log.includes(item?.keyword || ''));
-                      const isOK = (() => {
-                        if (!item) return false;
-                        if (item.label === 'ご利用IPアドレス') {
-                          return logsForItem.every(log => !log.includes("取得失敗"));
-                        } else if (item.label === 'サービスへの通信確認') {
-                          return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
-                        } else if (item.label === 'WebRTC接続成功') {
-                          return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
-                        } else {
-                          return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
-                        }
-                      })();
+                      const isOK = item ? checkIsOK(item, logsForItem) : false;
 
+                      // ご利用IPアドレスのときはNG理由を非表示
+                      if (!isOK && item?.ngReason && item.label !== 'ご利用IPアドレス') {
+                        return (
+                          <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
+                            NG理由: {item.ngReason}
+                          </div>
+                        );
+                      }
                       return null;
                     })()}
 
