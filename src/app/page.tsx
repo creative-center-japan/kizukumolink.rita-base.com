@@ -380,7 +380,9 @@ export default function Home() {
           {(() => {
             if (item.label === 'ご利用IPアドレス') {
               const ipLog = status.find(log =>
-                log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:")
+                log.startsWith("外部IP:") ||
+                log.startsWith("🌐 外部IP（補完）:") ||
+                log.startsWith("🔸外部IP:")
               );
               const ipAddress = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? '';
               return (
