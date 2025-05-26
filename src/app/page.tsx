@@ -155,6 +155,7 @@ export default function Home() {
         reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
       }, 10000);
 
+      // DataChannel 成功時の処理
       channel.onopen = () => {
         logs.push("✅ WebRTC: DataChannel open!");
         channel.send("hello from client");
@@ -162,14 +163,15 @@ export default function Home() {
         clearTimeout(timeout);
         resolve();
       };
-    });
 
-    try {
-      await waitForOpen;
-    } catch (e) {
-      console.error("WebRTCエラー:", e);
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-    }
+      // ICE接続が明示的に失敗した場合の処理
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+          clearTimeout(timeout);
+          reject(new Error("ICE接続に失敗しました"));
+        }
+      };
+    });
 
     const waitForIceGathering = new Promise<void>((resolve) => {
       if (pc.iceGatheringState === "complete") return resolve();
@@ -203,23 +205,31 @@ export default function Home() {
 
     try {
       // フェーズ1：IP取得とサービス接続確認
+      let ip = "取得失敗";
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
-        logs.push(`外部IP: ${data.ip}`);
+        ip = data.ip;
       } catch {
-        logs.push("外部IP: 取得失敗");
+        ip = "取得失敗";
       }
 
+      // FQDNチェック
+      let fqdnResult = "NG";
       try {
         const res = await fetch("/api/fqdncheck");
         const result = await res.text();
-        logs.push(result.startsWith("OK")
-          ? `サービスへの通信確認: ${result}`
-          : `サービスへの通信確認: NG (${result})`);
+        fqdnResult = result.startsWith("OK")
+          ? `OK (Alarm.com 接続成功 - status: 200)`
+          : `NG (${result})`;
       } catch (err) {
-        logs.push(`サービスへの通信確認: NG (エラー: ${(err as Error).message})`);
+        fqdnResult = `NG (エラー: ${(err as Error).message})`;
       }
+
+      // ▼ ログ出力（フェーズ1）
+      logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+      logs.push(`🔸外部IP: ${ip}`);
+      logs.push(`🔸サービスへの通信確認: ${fqdnResult}`);
 
       setStatus([...logs]);
       setPhase(2);
@@ -228,16 +238,17 @@ export default function Home() {
       try {
         const res = await fetch("https://check-api.rita-base.com/check-json");
         const data = await res.json();
-        logs.push(`📅 実行日時: ${data.timestamp}`);
-        logs.push(`診断結果: ${data.status === "OK" ? "🟢 OK" : "🔴 NG"}`);
+
         logs.push("🔸 TCPポート確認:");
         for (const [port, result] of Object.entries(data.tcp)) {
           logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "成功" : "失敗"}`);
         }
+
         logs.push("🔸 UDPポート確認:");
         for (const [port, result] of Object.entries(data.udp)) {
           logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
         }
+
         if (data.failed_ports.length > 0) {
           logs.push("❌ NGとなったポート一覧:");
           logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
@@ -252,6 +263,7 @@ export default function Home() {
       setPhase(3);
 
       // フェーズ3：WebRTC診断
+      logs.push("🔸 WebRTCログ");
       const webrtcLogs = await runWebRTCCheck();
       logs.push(...webrtcLogs);
       setStatus([...logs]);
