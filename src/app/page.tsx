@@ -26,6 +26,16 @@ function useScaleFactor() {
   return scale;
 }
 
+const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
+  if (item.label === 'サービスへの通信確認') {
+    return logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
+  } else if (item.label === 'WebRTC接続成功') {
+    return logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
+  } else {
+    return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
+  }
+};
+
 const CHECK_ITEMS = [
   {
     label: 'ご利用IPアドレス',
@@ -102,7 +112,7 @@ export default function Home() {
     });
 
     const channel = pc.createDataChannel("test");
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 1000));
 
     channel.onmessage = (event) => {
       logs.push(`📨 サーバからのメッセージ: ${event.data}`);
@@ -171,7 +181,7 @@ export default function Home() {
       logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     pc.close();
     return logs;
   };
