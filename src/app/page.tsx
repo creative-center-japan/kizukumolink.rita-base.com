@@ -475,11 +475,7 @@ export default function Home() {
                         }
                       })();
 
-                      return !isOK && item?.ngReason ? (
-                        <div className="text-base text-red-600 bg-red-100 border border-red-300 p-3 rounded mb-4">
-                          NG理由: {item.ngReason}
-                        </div>
-                      ) : null;
+                      return null;
                     })()}
 
                     <div className="text-right">
