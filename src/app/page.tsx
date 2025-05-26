@@ -29,20 +29,16 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
   if (item.label === 'ご利用IPアドレス') {
-    // 外部IPが取得できていればOK
     const ipLog = logsForItem.find(log => log.startsWith("外部IP:"));
-    const ip = ipLog?.split(": ")[1] ?? "";
-    console.log("IPログ:", ipLog, "IPアドレス:", ip); //
-    return !!ip && ip !== "取得失敗" && /^[0-9.]+$/.test(ip);
+    const ip = ipLog?.split(/外部IP:\s*/)[1]?.trim() ?? "";
+    return !!ip && /^[0-9.]+$/.test(ip);
   }
 
   if (item.label === 'サービスへの通信確認') {
-    // 先頭が "サービスへの通信確認: OK" ならOK
     return logsForItem.some(log => log.includes("サービスへの通信確認: OK"));
   }
 
   if (item.label === 'WebRTC接続成功') {
-    // DataChannelが開いたログ or candidate-pair 成功ログがあればOK
     return logsForItem.some(log =>
       log.includes("candidate-pair: succeeded") ||
       log.includes("✅ WebRTC: DataChannel open!") ||
@@ -51,13 +47,11 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
   }
 
   if (item.label === 'リレーサーバの利用') {
-    // relay 候補があれば中継成功
     return logsForItem.some(log =>
-      log.includes("typ relay")
+      log.includes("typ relay") || log.includes("✅ relay候補を検出")
     );
   }
 
-  // その他（ポート確認など）：成功／応答あり を含むログがあればOK
   return logsForItem.some(log =>
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
@@ -172,6 +166,8 @@ export default function Home() {
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
 
+    let relayFound = false;
+
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const c = event.candidate;
@@ -179,7 +175,11 @@ export default function Home() {
         logs.push(`↳ 詳細: type=${c.type}, protocol=${c.protocol}, address=${c.address}, port=${c.port}, priority=${c.priority}`);
 
         if (c.candidate.includes("typ srflx")) connectionType = 'P2P';
-        if (c.candidate.includes("typ relay")) connectionType = 'TURN';
+        if (c.candidate.includes("typ relay")) {
+          connectionType = 'TURN';
+          relayFound = true;
+          logs.push("✅ relay候補を検出");
+        }
 
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
@@ -193,7 +193,6 @@ export default function Home() {
         logs.push("ICE候補: 収集完了");
       }
     };
-
 
     const waitForOpen = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -245,6 +244,10 @@ export default function Home() {
       };
     });
     await waitForIceGathering;
+
+    if (!relayFound) {
+      logs.push("⚠️ relay候補が検出されませんでした");
+    }
 
     if (connectionType) {
       logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
