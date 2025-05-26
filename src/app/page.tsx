@@ -156,7 +156,7 @@ export default function Home() {
     try {
       await waitForOpen;
     } catch (e) {
-      console.error("WebRTCエラー:", e); 
+      console.error("WebRTCエラー:", e);
       logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     }
 
@@ -276,11 +276,7 @@ export default function Home() {
             {status.find(log => log.includes("【接続方式】"))}
           </p>
         )}
-        {!isOK && item.ngReason && (
-          <div className="text-sm text-black border border-blue-300 bg-blue-50 p-2 rounded mt-2">
-            <span className="text-red-500 font-semibold">NG理由:</span> {item.ngReason}
-          </div>
-        )}
+      
       </div>
     );
   };
@@ -358,14 +354,14 @@ export default function Home() {
                 )}
               </div>
 
-              {diagnosed && (
-                <>
-                  {/* 結果タイル */}
-                  <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%]">
-                    {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
-                  </div>
 
-                  {/* 🔽 NG項目総括 */}
+              {/* 🟡 NG項目の総括 */}
+              {diagnosed && (
+                <div className="border border-red-200 bg-red-50 rounded-xl px-4 py-6 mt-10 space-y-6">
+                  <h2 className="text-xl font-bold text-blue-700 mb-4">
+                    🟡 NG項目の総括
+                  </h2>
+
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = (() => {
@@ -380,20 +376,20 @@ export default function Home() {
 
                     if (!isOK && item.ngReason) {
                       return (
-                        <div key={idx} className="bg-red-50 border-l-4 border-red-400 p-4 my-4 text-sm text-gray-800">
-                          <p className="font-bold text-red-600">【NG項目】{item.label}</p>
-                          <p className="mt-1"><span className="font-semibold text-red-500">NG理由:</span> {item.ngReason}</p>
+                        <div key={idx} className="bg-white border border-red-200 p-4 rounded shadow">
+                          <p className="font-bold text-red-600 mb-2">【NG項目】{item.label}</p>
+                          <p><span className="font-semibold text-red-500">NG理由:</span> {item.ngReason}</p>
                           {item.action && (
-                            <p className="mt-1"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>
+                            <p className="mt-2"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>
                           )}
                         </div>
                       );
                     }
-
                     return null;
                   })}
-                </>
+                </div>
               )}
+
 
               {showDetail && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
