@@ -268,11 +268,19 @@ export default function Home() {
     let isOK = false;
 
     if (item.label === 'サービスへの通信確認') {
-      isOK = logsForItem.some(log => log.trim().startsWith("サービスへの通信確認: OK"));
+      isOK = logsForItem.some(log =>
+        log.trim().startsWith("サービスへの通信確認: OK")
+      );
     } else if (item.label === 'WebRTC接続成功') {
-      isOK = logsForItem.some(log => log.includes("candidate-pair: succeeded") || log.includes("DataChannel open"));
+      isOK = logsForItem.some(log =>
+        log.includes("candidate-pair: succeeded") ||
+        log.includes("✅ WebRTC: DataChannel open!") ||
+        log.includes("DataChannel open")
+      );
     } else {
-      isOK = logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
+      isOK = logsForItem.some(log =>
+        log.includes("OK") || log.includes("成功") || log.includes("応答あり")
+      );
     }
 
     return (
@@ -441,11 +449,11 @@ export default function Home() {
               </div>
 
 
-              {/* 🟡 NG項目の総括 */}
+              {/* NG項目の総括 */}
               {diagnosed && (
-                <div className="border border-red-200 bg-red-50 rounded-xl px-4 py-6 mt-10 space-y-6">
+                <div className="border border-blue-300 bg-white rounded-xl px-4 py-6 mt-10 space-y-6">
                   <h2 className="text-xl font-bold text-blue-700 mb-4">
-                    🟡 NG項目の総括</h2>
+                    NG項目の要約</h2>
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = (() => {
