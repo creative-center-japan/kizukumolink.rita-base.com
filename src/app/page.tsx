@@ -146,7 +146,7 @@ export default function Home() {
           credential: 'testpass'
         }
       ],
-      iceTransportPolicy: 'relay',
+      iceTransportPolicy: 'all',
       iceCandidatePoolSize: 2
     };
 
@@ -598,7 +598,6 @@ export default function Home() {
   return (
     <div>
       <main className="p-4">
-
         {/* ▼ PDF対象の診断結果ブロック（診断完了後のみ） */}
         {diagnosed && (
           <div id="result-summary" className="bg-white p-4 shadow rounded">
@@ -622,9 +621,7 @@ export default function Home() {
             <PdfExportButton />
           </div>
         )}
-
       </main>
     </div>
   );
-
 }
