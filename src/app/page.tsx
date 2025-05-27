@@ -163,9 +163,16 @@ export default function Home() {
       console.log("✅ DataChannel opened!!");
     };
 
+    channel.onerror = (e: Event) => {
+      const errorMessage = (e instanceof ErrorEvent && e.message) || "不明なエラー";
+      logs.push(`❌ DataChannel エラー発生: ${errorMessage}`);
+      console.error("DataChannel ERROR:", e);
+    };
 
-    channel.onerror = () => logs.push(`❌ DataChannel エラー発生`);
-    channel.onclose = () => logs.push(`⚠️ DataChannel がクローズされました`);
+    channel.onclose = () => {
+      logs.push("⚠️ DataChannel がクローズされました");
+      console.warn("DataChannel CLOSED");
+    };
 
     pc.ondatachannel = (event) => {
       logs.push("📥 DataChannel を受信（受信モードのブラウザで動作）");
@@ -210,6 +217,14 @@ export default function Home() {
           body: JSON.stringify({ candidate: null, pc_id: answer.pc_id })
         });
         logs.push("📤 end-of-candidates を送信完了");
+
+        const stats = await pc.getStats();
+        stats.forEach(report => {
+          if (report.type === "candidate-pair") {
+            logs.push(`📊 candidate-pair state=${report.state}, nominated=${report.nominated}`);
+            console.log("📊 Candidate-pair:", report);
+          }
+        });
       }
     };
 
@@ -218,6 +233,7 @@ export default function Home() {
     };
     pc.onconnectionstatechange = () => {
       logs.push(`全体接続状態: ${pc.connectionState}`);
+      console.log("🔄 connectionState:", pc.connectionState);
     };
     pc.onicegatheringstatechange = () => {
       logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
