@@ -344,6 +344,39 @@ export default function Home() {
     }
   };
 
+  // テキストレポート出力用関数
+  function generateReportText(logs: string[]): string {
+    const lines: string[] = [];
+
+    // ヘッダー情報（IP, 日時など）
+    const header = logs.filter(log =>
+      log.startsWith("📅") || log.startsWith("🔸外部IP:") || log.startsWith("🔸サービスへの通信確認")
+    );
+    lines.push(...header);
+
+    // TCP/UDPポート
+    const tcp = logs.filter(log => log.startsWith("ポート確認: TCP"));
+    const udp = logs.filter(log => log.startsWith("ポート確認: UDP"));
+    if (tcp.length || udp.length) {
+      lines.push("🔸 TCPポート確認:");
+      lines.push(...tcp);
+      lines.push("🔸 UDPポート確認:");
+      lines.push(...udp);
+    }
+
+    // WebRTCログ
+    const webrtc = logs.filter(log =>
+      log.startsWith("[設定]") || log.startsWith("🔧") || log.startsWith("📝") ||
+      log.startsWith("📥") || log.startsWith("ICE") || log.startsWith("✅") ||
+      log.startsWith("⚠️") || log.startsWith("❌") || log.startsWith("📤") ||
+      log.startsWith("candidate-pair") || log.startsWith("📊") || log.startsWith("全体接続状態")
+    );
+    lines.push("🔸 WebRTCログ");
+    lines.push(...webrtc);
+
+    return lines.join('\n');
+  }
+
   // -------------------------
   // チェック結果パネル表示用関数
   // - 各項目のログを元に「OK / NG」としてカードを出力
@@ -471,7 +504,8 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => {
-                      const blob = new Blob([status.join('\n')], { type: 'text/plain' });
+                      const text = generateReportText(status);
+                      const blob = new Blob([text], { type: 'text/plain' });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = url;
@@ -562,35 +596,35 @@ export default function Home() {
   );
 
   return (
-  <div>
-    <main className="p-4">
+    <div>
+      <main className="p-4">
 
-      {/* ▼ PDF対象の診断結果ブロック（診断完了後のみ） */}
-      {diagnosed && (
-        <div id="result-summary" className="bg-white p-4 shadow rounded">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">キヅクモ接続診断結果</h2>
-          <p className="text-sm text-gray-700">📅 実行日時: 2025/5/27</p>
-          <p className="text-sm text-gray-700">🌐 外部IP: 14.8.21.0</p>
-          <p className="text-sm text-gray-700">✅ サービス通信: OK</p>
-          <p className="text-sm text-gray-700">🔁 WebRTC接続: ❌ 失敗</p>
-          <p className="text-sm text-gray-700">🔁 TURN中継: ❌ 利用不可</p>
-          <h3 className="mt-4 text-red-600 font-bold">NG要約</h3>
-          <ul className="list-disc list-inside text-sm text-gray-700">
-            <li>DataChannelが開かず接続が `failed` 状態で終了</li>
-            <li>relay候補は表示されるがTURN確立に失敗</li>
-          </ul>
-        </div>
-      )}
+        {/* ▼ PDF対象の診断結果ブロック（診断完了後のみ） */}
+        {diagnosed && (
+          <div id="result-summary" className="bg-white p-4 shadow rounded">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">キヅクモ接続診断結果</h2>
+            <p className="text-sm text-gray-700">📅 実行日時: 2025/5/27</p>
+            <p className="text-sm text-gray-700">🌐 外部IP: 14.8.21.0</p>
+            <p className="text-sm text-gray-700">✅ サービス通信: OK</p>
+            <p className="text-sm text-gray-700">🔁 WebRTC接続: ❌ 失敗</p>
+            <p className="text-sm text-gray-700">🔁 TURN中継: ❌ 利用不可</p>
+            <h3 className="mt-4 text-red-600 font-bold">NG要約</h3>
+            <ul className="list-disc list-inside text-sm text-gray-700">
+              <li>DataChannelが開かず接続が `failed` 状態で終了</li>
+              <li>relay候補は表示されるがTURN確立に失敗</li>
+            </ul>
+          </div>
+        )}
 
-      {/* ▼ PDFダウンロードボタン（診断完了後のみ） */}
-      {diagnosed && (
-        <div className="mt-6">
-          <PdfExportButton />
-        </div>
-      )}
+        {/* ▼ PDFダウンロードボタン（診断完了後のみ） */}
+        {diagnosed && (
+          <div className="mt-6">
+            <PdfExportButton />
+          </div>
+        )}
 
-    </main>
-  </div>
-);
+      </main>
+    </div>
+  );
 
 }
