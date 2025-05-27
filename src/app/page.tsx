@@ -145,7 +145,7 @@ export default function Home() {
           credential: 'testpass'
         }
       ],
-      iceTransportPolicy: 'all',
+      iceTransportPolicy: 'relay',
       iceCandidatePoolSize: 2
     };
 
