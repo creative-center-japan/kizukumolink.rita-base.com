@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 
-
 // スケール計算関数
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
@@ -23,7 +22,6 @@ function useScaleFactor() {
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
   }, []);
-
   return scale;
 }
 
@@ -60,7 +58,8 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
 
   if (item.label === 'リレーサーバの利用') {
     return logsForItem.some(log =>
-      log.includes("typ relay") || log.includes("✅ relay候補を検出")
+      log.includes("✅ relay候補を検出") ||
+      log.includes("TURN中継通信に成功")
     );
   }
 
@@ -135,6 +134,7 @@ export default function Home() {
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
     let connectionType: "P2P" | "TURN" | "" = "";
+    let turnSucceeded = false;
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -147,23 +147,13 @@ export default function Home() {
     const channel = pc.createDataChannel("test");
     await new Promise((r) => setTimeout(r, 3000));
 
-    channel.onmessage = (event) => {
-      logs.push(`📨 サーバからのメッセージ: ${event.data}`);
-    };
-
-    channel.onerror = () => {
-      logs.push(`❌ DataChannel エラー発生`);
-    };
-
-    channel.onclose = () => {
-      logs.push(`⚠️ DataChannel がクローズされました`);
-    };
+    channel.onmessage = (event) => logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+    channel.onerror = () => logs.push(`❌ DataChannel エラー発生`);
+    channel.onclose = () => logs.push(`⚠️ DataChannel がクローズされました`);
 
     pc.ondatachannel = (event) => {
       logs.push("📥 DataChannel を受信（受信モードのブラウザで動作）");
-      event.channel.onmessage = (msg) => {
-        logs.push(`📨 受信メッセージ: ${msg.data}`);
-      };
+      event.channel.onmessage = (msg) => logs.push(`📨 受信メッセージ: ${msg.data}`);
     };
 
     const offer = await pc.createOffer();
@@ -174,45 +164,33 @@ export default function Home() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
     });
-
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
-
-    let relayFound = false;
 
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const c = event.candidate;
         logs.push(`ICE候補: ${c.candidate}`);
         logs.push(`↳ 詳細: type=${c.type}, protocol=${c.protocol}, address=${c.address}, port=${c.port}, priority=${c.priority}`);
-
-        if (c.candidate.includes("typ srflx")) connectionType = 'P2P';
+        if (c.candidate.includes("typ srflx") || c.candidate.includes("typ host")) connectionType = 'P2P';
         if (c.candidate.includes("typ relay")) {
           connectionType = 'TURN';
-          relayFound = true;
+          turnSucceeded = true;
           logs.push("✅ relay候補を検出");
         }
-
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidate: c,
-            pc_id: answer.pc_id
-          })
+          body: JSON.stringify({ candidate: c, pc_id: answer.pc_id })
         });
       } else {
         logs.push("ICE候補: 収集完了");
-
         setTimeout(async () => {
           logs.push("📤 end-of-candidates を送信中...");
           await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              candidate: null,
-              pc_id: answer.pc_id
-            })
+            body: JSON.stringify({ candidate: null, pc_id: answer.pc_id })
           });
           logs.push("📤 end-of-candidates を送信完了");
         }, 500);
@@ -220,10 +198,7 @@ export default function Home() {
     };
 
     const waitForOpen = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
-      }, 10000);
-
+      const timeout = setTimeout(() => reject(new Error("DataChannelの接続が10秒以内に完了しませんでした")), 10000);
       channel.onopen = () => {
         logs.push("✅ WebRTC: DataChannel open!");
         channel.send("hello from client");
@@ -231,26 +206,16 @@ export default function Home() {
         clearTimeout(timeout);
         resolve();
       };
-
       pc.oniceconnectionstatechange = () => {
         logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
-        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        if (['failed', 'disconnected'].includes(pc.iceConnectionState)) {
           clearTimeout(timeout);
           reject(new Error("ICE接続に失敗しました"));
         }
       };
-
-      pc.onicegatheringstatechange = () => {
-        logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
-      };
-
-      pc.onconnectionstatechange = () => {
-        logs.push(`全体接続状態: ${pc.connectionState}`);
-      };
-
-      pc.onicecandidateerror = (event) => {
-        logs.push(`ICE候補エラー: ${event.errorText}`);
-      };
+      pc.onicegatheringstatechange = () => logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
+      pc.onconnectionstatechange = () => logs.push(`全体接続状態: ${pc.connectionState}`);
+      pc.onicecandidateerror = (event) => logs.push(`ICE候補エラー: ${event.errorText}`);
     });
 
     try {
@@ -262,24 +227,12 @@ export default function Home() {
       logs.push(`詳細: ${(e as Error).message}`);
     }
 
-    const waitForIceGathering = new Promise<void>((resolve) => {
-      if (pc.iceGatheringState === "complete") return resolve();
-      pc.onicegatheringstatechange = () => {
-        if (pc.iceGatheringState === "complete") resolve();
-      };
-    });
-    await waitForIceGathering;
-
-    if (!relayFound) {
-      logs.push("⚠️ relay候補が検出されませんでした");
-    }
-
-    if (connectionType) {
-      logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     pc.close();
+
+    if (connectionType) logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
+    if (!turnSucceeded) logs.push("❌ TURN中継通信に失敗（relay候補が利用不可）");
+
     return logs;
   };
 
@@ -423,11 +376,12 @@ export default function Home() {
           })()}
         </p>
 
-        {item.label === 'WebRTC接続成功' && isOK && (
-          <p className="text-sm text-green-700 text-center mt-1">
-            {status.find(log => log.includes("【接続方式】"))}
+        {item.label === 'WebRTC接続成功' && (
+          <p className="text-sm text-blue-700 text-center mt-1">
+            {status.find(log => log.includes("【接続方式】")) || "【接続方式】不明"}
           </p>
         )}
+
       </div>
     );
   };
