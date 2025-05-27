@@ -160,7 +160,9 @@ export default function Home() {
       logs.push("✅ WebRTC: DataChannel open!");
       channel.send("hello from client");
       logs.push("candidate-pair: succeeded");
+      console.log("✅ DataChannel opened!!");
     };
+
 
     channel.onerror = () => logs.push(`❌ DataChannel エラー発生`);
     channel.onclose = () => logs.push(`⚠️ DataChannel がクローズされました`);
