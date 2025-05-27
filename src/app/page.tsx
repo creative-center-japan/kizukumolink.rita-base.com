@@ -136,23 +136,32 @@ export default function Home() {
     let connectionType: "P2P" | "TURN" | "" = "";
     let turnSucceeded = false;
 
-    const pc = new RTCPeerConnection({
+    const config: RTCConfiguration = {
       iceServers: [
         { urls: 'stun:3.80.218.25:3478' },
         {
-          urls: 'turn:3.80.218.25:3478?transport=udp', // UDP明示
+          urls: 'turn:3.80.218.25:3478?transport=udp',
           username: 'test',
           credential: 'testpass'
         }
       ],
       iceTransportPolicy: 'all',
       iceCandidatePoolSize: 2
-    });
+    };
 
+    logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
+
+    const pc = new RTCPeerConnection(config);
     const channel = pc.createDataChannel("test");
-    await new Promise((r) => setTimeout(r, 3000));
+    logs.push("🔧 DataChannel 作成済み");
+    await new Promise((r) => setTimeout(r, 2000));
 
-    channel.onmessage = (event) => logs.push(`📨 サーバからのメッセージ: ${event.data}`);
+    channel.onopen = () => {
+      logs.push("✅ WebRTC: DataChannel open!");
+      channel.send("hello from client");
+      logs.push("candidate-pair: succeeded");
+    };
+
     channel.onerror = () => logs.push(`❌ DataChannel エラー発生`);
     channel.onclose = () => logs.push(`⚠️ DataChannel がクローズされました`);
 
@@ -163,6 +172,7 @@ export default function Home() {
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    logs.push("📝 SDP offer 生成済み・セット完了");
 
     const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
       method: "POST",
@@ -171,6 +181,7 @@ export default function Home() {
     });
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
+    logs.push("📥 SDP answer 受信＆セット完了");
 
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
@@ -183,6 +194,7 @@ export default function Home() {
           turnSucceeded = true;
           logs.push("✅ relay候補を検出");
         }
+
         await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
           method: "POST",
           headers: { 'Content-Type': 'application/json' },
@@ -190,49 +202,35 @@ export default function Home() {
         });
       } else {
         logs.push("ICE候補: 収集完了");
-        setTimeout(async () => {
-          logs.push("📤 end-of-candidates を送信中...");
-          await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ candidate: null, pc_id: answer.pc_id })
-          });
-          logs.push("📤 end-of-candidates を送信完了");
-        }, 500);
+        await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidate: null, pc_id: answer.pc_id })
+        });
+        logs.push("📤 end-of-candidates を送信完了");
       }
     };
 
-    const waitForOpen = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("DataChannelの接続が10秒以内に完了しませんでした")), 10000);
-      channel.onopen = () => {
-        logs.push("✅ WebRTC: DataChannel open!");
-        channel.send("hello from client");
-        logs.push("candidate-pair: succeeded");
-        clearTimeout(timeout);
-        resolve();
-      };
-      pc.oniceconnectionstatechange = () => {
-        logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
-        if (['failed', 'disconnected'].includes(pc.iceConnectionState)) {
-          clearTimeout(timeout);
-          reject(new Error("ICE接続に失敗しました"));
-        }
-      };
-      pc.onicegatheringstatechange = () => logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
-      pc.onconnectionstatechange = () => logs.push(`全体接続状態: ${pc.connectionState}`);
-      pc.onicecandidateerror = (event) => logs.push(`ICE候補エラー: ${event.errorText}`);
-    });
+    pc.oniceconnectionstatechange = () => {
+      logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
+    };
+    pc.onconnectionstatechange = () => {
+      logs.push(`全体接続状態: ${pc.connectionState}`);
+    };
+    pc.onicegatheringstatechange = () => {
+      logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
+    };
+    pc.onicecandidateerror = (event) => {
+      logs.push(`ICE候補エラー: ${event.errorText}`);
+    };
 
-    try {
-      await waitForOpen;
-    } catch (e) {
-      logs.push(`最終 ICE状態: ${pc.iceConnectionState}`);
-      logs.push(`最終 connection状態: ${pc.connectionState}`);
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-      logs.push(`詳細: ${(e as Error).message}`);
-    }
+    const timeout = setTimeout(() => {
+      logs.push("❌ DataChannel接続タイムアウト（20秒以内に接続できず）");
+      pc.close();
+    }, 20000);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 22000));
+    clearTimeout(timeout);
     pc.close();
 
     if (connectionType) logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
