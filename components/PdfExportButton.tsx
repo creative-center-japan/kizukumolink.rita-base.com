@@ -1,4 +1,6 @@
 // components/PdfExportButton.tsx
+
+'use client';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
