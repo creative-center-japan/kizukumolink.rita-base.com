@@ -141,13 +141,13 @@ export default function Home() {
       iceServers: [
         { urls: 'stun:3.80.218.25:3478' },
         {
-          urls: 'turn:3.80.218.25:3478?transport=udp',
+          urls: 'turn:3.80.218.25:3478?transport=tcp',
           username: 'test',
           credential: 'testpass'
         }
       ],
       iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 2
+      iceCandidatePoolSize: 0
     };
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
