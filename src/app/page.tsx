@@ -117,6 +117,33 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
 
+  return (
+    <div>
+      <main className="p-4">
+        {/* ▼ PDF対象の診断結果ブロック（診断完了後のみ） */}
+        {diagnosed && (
+          <div id="result-summary" className="bg-white p-4 shadow rounded">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">キヅクモ接続診断結果</h2>
+            <p className="text-sm text-gray-700">📅 実行日時: 2025/5/27</p>
+            <p className="text-sm text-gray-700">🌐 外部IP: 14.8.21.0</p>
+            <p className="text-sm text-gray-700">✅ サービス通信: OK</p>
+            <p className="text-sm text-gray-700">🔁 WebRTC接続: ❌ 失敗</p>
+            <h3 className="mt-4 text-red-600 font-bold">NG要約</h3>
+            <ul className="list-disc list-inside text-sm text-gray-700">
+              <li>DataChannelが開かず接続が `failed` 状態で終了</li>
+            </ul>
+          </div>
+        )}
+
+        {/* ▼ PDFダウンロードボタン（診断完了後のみ） */}
+        {diagnosed && (
+          <div className="mt-6">
+            <PdfExportButton />
+          </div>
+        )}
+      </main>
+    </div>
+  );
 
   // -------------------------
   // WebRTC診断（DataChannelの接続確認）
@@ -592,5 +619,5 @@ export default function Home() {
     </div >
   );
 
-  
+
 }
