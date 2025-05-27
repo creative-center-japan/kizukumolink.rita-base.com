@@ -30,10 +30,20 @@ function useScaleFactor() {
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
-      log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:")
+      log.startsWith("外部IP:") ||
+      log.startsWith("🌐 外部IP（補完）:") ||
+      log.startsWith("🔸外部IP:")
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
-    return !!ip && /^[0-9.]+$/.test(ip) && !/^0\.0\.0\.0$/.test(ip) && !/^127\./.test(ip);
+
+    // ✅ グローバルIPだけOKにする
+    return !!ip &&
+      /^[0-9.]+$/.test(ip) &&
+      !/^0\.0\.0\.0$/.test(ip) &&
+      !/^127\./.test(ip) &&
+      !/^10\./.test(ip) &&
+      !/^192\.168\./.test(ip) &&
+      !/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);  // 172.16.0.0 ～ 172.31.255.255 もNG
   }
 
   if (item.label === 'サービスへの通信確認') {
@@ -63,7 +73,7 @@ const CHECK_ITEMS = [
   {
     label: 'ご利用IPアドレス',
     description: 'インターネットへ接続する際のIPを確認',
-    keyword: '外部IP', // ← 修正ポイント：prefixに限定しないよう汎用化
+    keyword: '外部IP',
     tooltip: 'ブラウザまたは当テスト通信から抽出されたIPアドレスです',
     detail: 'インターネットへ接続する際に使用されるグローバルIPを表示します。',
     ngReason: 'ブラウザまたは当テスト通信からIPアドレスが取得できませんでした。Proxyを利用されている可能性があります。',
@@ -194,7 +204,6 @@ export default function Home() {
       } else {
         logs.push("ICE候補: 収集完了");
 
-        // ✅【ここが追記内容】
         setTimeout(async () => {
           logs.push("📤 end-of-candidates を送信中...");
           await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
@@ -206,7 +215,7 @@ export default function Home() {
             })
           });
           logs.push("📤 end-of-candidates を送信完了");
-        }, 500); // ← 500msの遅延で確実に最後に送る
+        }, 500);
       }
     };
 
