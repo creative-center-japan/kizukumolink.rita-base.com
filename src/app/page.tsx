@@ -33,7 +33,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
       log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:")
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
-    return !!ip && /^[0-9.]+$/.test(ip);
+    return !!ip && /^[0-9.]+$/.test(ip) && !/^0\.0\.0\.0$/.test(ip) && !/^127\./.test(ip);
   }
 
   if (item.label === 'サービスへの通信確認') {
@@ -193,6 +193,20 @@ export default function Home() {
         });
       } else {
         logs.push("ICE候補: 収集完了");
+
+        // ✅【ここが追記内容】
+        setTimeout(async () => {
+          logs.push("📤 end-of-candidates を送信中...");
+          await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              candidate: null,
+              pc_id: answer.pc_id
+            })
+          });
+          logs.push("📤 end-of-candidates を送信完了");
+        }, 500); // ← 500msの遅延で確実に最後に送る
       }
     };
 
