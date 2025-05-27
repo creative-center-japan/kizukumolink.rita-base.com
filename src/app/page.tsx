@@ -139,8 +139,13 @@ export default function Home() {
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:3.80.218.25:3478' },
-        { urls: 'turn:3.80.218.25:3478', username: 'test', credential: 'testpass' }
+        {
+          urls: 'turn:3.80.218.25:3478?transport=udp', // UDP明示
+          username: 'test',
+          credential: 'testpass'
+        }
       ],
+      iceTransportPolicy: 'all',
       iceCandidatePoolSize: 2
     });
 
