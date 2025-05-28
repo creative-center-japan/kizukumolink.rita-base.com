@@ -137,7 +137,7 @@ export default function Home() {
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
     let connectionType: "P2P" | "TURN" | "" = "";
-    let turnSucceeded = false;
+
 
     // モバイルとPCで分岐
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -186,7 +186,6 @@ export default function Home() {
     };
 
     // candidate 情報保存用
-    const candidates: Record<string, RTCIceCandidate> = {};
     const candidateMap: Map<string, RTCIceCandidate> = new Map();
 
     pc.onicecandidate = async (event) => {
@@ -239,7 +238,6 @@ export default function Home() {
         const localCand = stats.get(local);
         if (localCand?.candidateType === "relay") {
           logs.push(`✅ TURN中継通信に成功（candidate-pair: ${report.state}, relay）`);
-          turnSucceeded = true;
           connectionType = "TURN";
           foundRelay = true;
         }
