@@ -56,9 +56,12 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   }
 
   if (item.label === 'WebRTC接続成功') {
-    return logsForItem.some(log => log.includes("✅ DataChannel 接続＋応答確認 成功"))
-      && logsForItem.some(log => log.includes("【判定】OK"))
-      && logsForItem.some(log => log.includes("candidate-pair state="));
+    return (
+      logsForItem.some(log => log.includes("✅ DataChannel 接続＋応答確認 成功")) &&
+      logsForItem.some(log => log.includes("【判定】OK")) &&
+      logsForItem.some(log => log.includes("全体接続状態: connected")) &&
+      logsForItem.some(log => log.includes("ICE接続状態: connected"))
+    );
   }
 
   if (item.label === 'リレーサーバの利用') {
