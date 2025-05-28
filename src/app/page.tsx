@@ -172,10 +172,13 @@ export default function Home() {
 
     if (!dataChannelOpened) {
       logs.push("❌ DataChannel接続タイムアウト（10秒以内に open されず）");
+      logs.push("【判定】NG");
     } else if (!pingConfirmed) {
       logs.push("⚠️ DataChannel開通後、pong 応答が確認できませんでした");
+      logs.push("【判定】NG");
     } else {
       logs.push("✅ DataChannel 接続＋応答確認 成功");
+      logs.push("【判定】OK");
     }
 
     channel.onerror = (e: Event) => {
