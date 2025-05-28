@@ -49,6 +49,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
 
   if (item.label === 'WebRTC接続成功') {
     return logsForItem.some(log =>
+      log.includes("【判定】OK") ||
       log.includes("candidate-pair: succeeded") ||
       log.includes("✅ WebRTC: DataChannel open!") ||
       log.includes("DataChannel open")
