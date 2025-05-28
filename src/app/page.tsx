@@ -138,8 +138,6 @@ export default function Home() {
     const logs: string[] = [];
     let connectionType: "P2P" | "TURN" | "" = "";
 
-
-    // モバイルとPCで分岐
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const config: RTCConfiguration = isMobile
       ? {
@@ -161,14 +159,14 @@ export default function Home() {
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
-    let dataChannelOpened = false;
-    let pingConfirmed = false;
-
     const pc = new RTCPeerConnection(config);
     const channel = pc.createDataChannel("test");
+
     logs.push("🔧 DataChannel 作成済み");
 
-    await new Promise((r) => setTimeout(r, 2000));
+    let dataChannelOpened = false;
+    let pingConfirmed = false;
+    let foundRelay = false;
 
     channel.onopen = () => {
       logs.push("✅ WebRTC: DataChannel open!");
@@ -185,9 +183,6 @@ export default function Home() {
       }
     };
 
-    // candidate 情報保存用
-    const candidateMap: Map<string, RTCIceCandidate> = new Map();
-
     pc.onicecandidate = async (event) => {
       if (event.candidate) {
         const c = event.candidate;
@@ -195,7 +190,6 @@ export default function Home() {
         if (c.candidate.includes("typ relay")) {
           logs.push("✅ relay候補を検出");
         }
-        candidateMap.set(c.sdpMid + "_" + c.sdpMLineIndex, c);
       } else {
         logs.push("ICE候補: 収集完了");
       }
@@ -209,12 +203,7 @@ export default function Home() {
       logs.push(`全体接続状態: ${pc.connectionState}`);
     };
 
-    // 接続確立まで待機
-    for (let i = 0; i < 20; i++) {
-      if (dataChannelOpened && pingConfirmed) break;
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-
+    // 🔽 SDP交換
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     logs.push("📝 SDP offer 生成済み・セット完了");
@@ -228,9 +217,9 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
     logs.push("📥 SDP answer 受信＆セット完了");
 
-    // 統計確認
+    // 🔽 統計待機 (candidate-pair 判定のため)
+    await new Promise((r) => setTimeout(r, 4000));
     const stats = await pc.getStats();
-    let foundRelay = false;
 
     stats.forEach(report => {
       if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
