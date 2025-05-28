@@ -139,46 +139,26 @@ export default function Home() {
     let connectionType: "P2P" | "TURN" | "" = "";
     let turnSucceeded = false;
 
-    // デバイス判定に応じたICE構成を返す関数
-    function getRTCConfigByDevice(): RTCConfiguration {
-      const ua = navigator.userAgent;
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
-
-      if (isMobile) {
-        // モバイルは TCP TURN + relay限定
-        return {
-          iceServers: [
-            {
-              urls: ['turn:3.80.218.25:3478?transport=tcp'],
-              username: 'test',
-              credential: 'testpass'
-            }
-          ],
-          iceTransportPolicy: 'relay',
-          iceCandidatePoolSize: 0
-        };
-      } else {
-        // PCは P2P優先＋UDP TURN fallback
-        return {
-          iceServers: [
-            { urls: 'stun:3.80.218.25:3478' },
-            {
-              urls: ['turn:3.80.218.25:3478?transport=udp'],
-              username: 'test',
-              credential: 'testpass'
-            },
-            {
-              urls: ['turn:3.80.218.25:3478?transport=tcp'],
-              username: 'test',
-              credential: 'testpass'
-            }
-          ],
-          iceTransportPolicy: 'all',
-          iceCandidatePoolSize: 0
-        };
+    // モバイルとPCで分岐
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const config: RTCConfiguration = isMobile
+      ? {
+        iceServers: [
+          { urls: ['turn:3.80.218.25:3478?transport=tcp'], username: 'test', credential: 'testpass' }
+        ],
+        iceTransportPolicy: 'relay',
+        iceCandidatePoolSize: 0,
       }
-    }
-    const config = getRTCConfigByDevice();
+      : {
+        iceServers: [
+          { urls: 'stun:3.80.218.25:3478' },
+          { urls: ['turn:3.80.218.25:3478?transport=udp'], username: 'test', credential: 'testpass' },
+          { urls: ['turn:3.80.218.25:3478?transport=tcp'], username: 'test', credential: 'testpass' }
+        ],
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 0,
+      };
+
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
     let dataChannelOpened = false;
@@ -187,13 +167,13 @@ export default function Home() {
     const pc = new RTCPeerConnection(config);
     const channel = pc.createDataChannel("test");
     logs.push("🔧 DataChannel 作成済み");
+
     await new Promise((r) => setTimeout(r, 2000));
 
     channel.onopen = () => {
       logs.push("✅ WebRTC: DataChannel open!");
       channel.send("ping");
       logs.push("📤 ping を送信しました");
-      console.log("✅ DataChannel opened!!");
       dataChannelOpened = true;
     };
 
@@ -205,37 +185,36 @@ export default function Home() {
       }
     };
 
-    for (let i = 0; i < 10; i++) {
+    // candidate 情報保存用
+    const candidates: Record<string, RTCIceCandidate> = {};
+    const candidateMap: Map<string, RTCIceCandidate> = new Map();
+
+    pc.onicecandidate = async (event) => {
+      if (event.candidate) {
+        const c = event.candidate;
+        logs.push(`ICE候補: ${c.candidate}`);
+        if (c.candidate.includes("typ relay")) {
+          logs.push("✅ relay候補を検出");
+        }
+        candidateMap.set(c.sdpMid + "_" + c.sdpMLineIndex, c);
+      } else {
+        logs.push("ICE候補: 収集完了");
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
+    };
+
+    pc.onconnectionstatechange = () => {
+      logs.push(`全体接続状態: ${pc.connectionState}`);
+    };
+
+    // 接続確立まで待機
+    for (let i = 0; i < 20; i++) {
       if (dataChannelOpened && pingConfirmed) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
-
-    if (!dataChannelOpened) {
-      logs.push("❌ DataChannel接続タイムアウト（10秒以内に open されず）");
-      logs.push("【判定】NG");
-    } else if (!pingConfirmed) {
-      logs.push("⚠️ DataChannel開通後、pong 応答が確認できませんでした");
-      logs.push("【判定】NG");
-    } else {
-      logs.push("✅ DataChannel 接続＋応答確認 成功");
-      logs.push("【判定】OK");
-    }
-
-    channel.onerror = (e: Event) => {
-      const errorMessage = (e instanceof ErrorEvent && e.message) || "不明なエラー";
-      logs.push(`❌ DataChannel エラー発生: ${errorMessage}`);
-      console.error("DataChannel ERROR:", e);
-    };
-
-    channel.onclose = () => {
-      logs.push("⚠️ DataChannel がクローズされました");
-      console.warn("DataChannel CLOSED");
-    };
-
-    pc.ondatachannel = (event) => {
-      logs.push("📥 DataChannel を受信（受信モードのブラウザで動作）");
-      event.channel.onmessage = (msg) => logs.push(`📨 受信メッセージ: ${msg.data}`);
-    };
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -243,79 +222,50 @@ export default function Home() {
 
     const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
       method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
     });
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
     logs.push("📥 SDP answer 受信＆セット完了");
 
-    pc.onicecandidate = async (event) => {
-      if (event.candidate) {
-        const c = event.candidate;
-        logs.push(`ICE候補: ${c.candidate}`);
-        logs.push(`↳ 詳細: type=${c.type}, protocol=${c.protocol}, address=${c.address}, port=${c.port}, priority=${c.priority}`);
-        if (c.candidate.includes("typ srflx") || c.candidate.includes("typ host")) connectionType = 'P2P';
-        if (c.candidate.includes("typ relay")) {
-          connectionType = 'TURN';
+    // 統計確認
+    const stats = await pc.getStats();
+    let foundRelay = false;
+
+    stats.forEach(report => {
+      if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+        const local = report.localCandidateId;
+        const localCand = stats.get(local);
+        if (localCand?.candidateType === "relay") {
+          logs.push(`✅ TURN中継通信に成功（candidate-pair: ${report.state}, relay）`);
           turnSucceeded = true;
-          logs.push("✅ relay候補を検出");
+          connectionType = "TURN";
+          foundRelay = true;
         }
-
-        await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ candidate: c, pc_id: answer.pc_id })
-        });
-      } else {
-        logs.push("ICE候補: 収集完了");
-        await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ candidate: null, pc_id: answer.pc_id })
-        });
-        logs.push("📤 end-of-candidates を送信完了");
-
-        const stats = await pc.getStats();
-        stats.forEach(report => {
-          if (report.type === "candidate-pair") {
-            logs.push(`📊 candidate-pair state=${report.state}, nominated=${report.nominated}`);
-            console.log("📊 Candidate-pair:", report);
-          }
-        });
       }
-    };
+    });
 
-    pc.oniceconnectionstatechange = () => {
-      logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
-    };
-    pc.onconnectionstatechange = () => {
-      logs.push(`全体接続状態: ${pc.connectionState}`);
-      console.log("🔄 connectionState:", pc.connectionState);
-    };
-    pc.onicegatheringstatechange = () => {
-      logs.push(`ICE収集状態: ${pc.iceGatheringState}`);
-    };
-    pc.onicecandidateerror = (event) => {
-      logs.push(`ICE候補エラー: ${event.errorText}`);
-    };
+    if (!foundRelay) {
+      logs.push("❌ TURN中継通信に失敗（relay候補はあったが利用されず）");
+    }
 
-    const timeout = setTimeout(() => {
-      if (!dataChannelOpened) {
-        logs.push("❌ DataChannel接続タイムアウト（20秒以内に接続できず）");
-      } else {
-        logs.push("✅ DataChannel 接続は成功しました（タイムアウト前に open）");
-      }
-      pc.close();
-    }, 20000);
+    if (connectionType) {
+      logs.push(`【接続方式】${connectionType === "TURN" ? "TURN中継通信に成功" : "P2P通信に成功"}`);
+    }
 
-    await new Promise(resolve => setTimeout(resolve, 22000));
-    clearTimeout(timeout);
+    if (!dataChannelOpened) {
+      logs.push("❌ DataChannel接続タイムアウト（open されず）");
+      logs.push("【判定】NG");
+    } else if (!pingConfirmed) {
+      logs.push("⚠️ pong 応答が確認できませんでした");
+      logs.push("【判定】NG");
+    } else {
+      logs.push("✅ DataChannel 接続＋応答確認 成功");
+      logs.push("【判定】OK");
+    }
+
     pc.close();
-
-    if (connectionType) logs.push(`【接続方式】${connectionType === "P2P" ? "P2P通信に成功" : "TURN中継通信に成功"}`);
-    if (!turnSucceeded) logs.push("❌ TURN中継通信に失敗（relay候補が利用不可）");
-
     return logs;
   };
 
