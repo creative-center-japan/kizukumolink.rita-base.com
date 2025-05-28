@@ -106,7 +106,7 @@ const CHECK_ITEMS = [
   {
     label: 'WebRTC接続成功',
     description: 'サーバとの通信（P2P or TURN）が確立できたか',
-    keyword: 'candidate-pair: succeeded',
+    keyword: 'WebRTCログ',
     tooltip: 'candidate-pair: succeeded が出たらOKです',
     detail: 'カメラとブラウザなどを利用したカメラ閲覧が直接通信（P2P接続）が確立されたことを示します。通信相手との双方向通信に成功した場合のみ出力されます。',
     ngReason: '通信の確立に必要な応答が得られず、カメラ通信を開始するができませんでした。ネットワーク構成やブラウザの制限が原因の可能性があります。',
