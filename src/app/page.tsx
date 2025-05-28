@@ -24,7 +24,10 @@ function useScaleFactor() {
   return scale;
 }
 
-const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
+const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
+  const logsForItem = item.label === 'WebRTC接続成功'
+    ? status
+    : status.filter(log => log.includes(item.keyword));
 
   console.log(`🧪 [checkIsOK] 判定対象: ${item.label}`);
   logsForItem.forEach((line, idx) => {
@@ -39,14 +42,13 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
 
-    // ✅ グローバルIPだけOKにする
     return !!ip &&
       /^[0-9.]+$/.test(ip) &&
       !/^0\.0\.0\.0$/.test(ip) &&
       !/^127\./.test(ip) &&
       !/^10\./.test(ip) &&
       !/^192\.168\./.test(ip) &&
-      !/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);  // 172.16.0.0 ～ 172.31.255.255 もNG
+      !/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
   }
 
   if (item.label === 'サービスへの通信確認') {
@@ -57,7 +59,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
     return logsForItem.some(log =>
       log.includes("【判定】OK") ||
       log.includes("✅ DataChannel 接続＋応答確認 成功") ||
-      log.includes("candidate-pair: succeeded") ||
+      log.includes("candidate-pair state=succeeded") ||
       log.includes("✅ WebRTC: DataChannel open!") ||
       log.includes("DataChannel open")
     );
