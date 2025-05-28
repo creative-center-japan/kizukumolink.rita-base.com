@@ -50,12 +50,12 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) =>
   if (item.label === 'WebRTC接続成功') {
     return logsForItem.some(log =>
       log.includes("【判定】OK") ||
-      (log.startsWith("📊 candidate-pair") && log.includes("state=succeeded")) ||
+      log.includes("✅ DataChannel 接続＋応答確認 成功") ||
+      log.includes("candidate-pair: succeeded") ||
       log.includes("✅ WebRTC: DataChannel open!") ||
       log.includes("DataChannel open")
     );
   }
-
 
   if (item.label === 'リレーサーバの利用') {
     return logsForItem.some(log =>
@@ -128,19 +128,39 @@ export default function Home() {
     let connectionType: "P2P" | "TURN" | "" = "";
     let turnSucceeded = false;
 
-    const config: RTCConfiguration = {
-      iceServers: [
-        { urls: 'stun:3.80.218.25:3478' },
-        {
-          urls: 'turn:3.80.218.25:3478?transport=udp',
-          username: 'test',
-          credential: 'testpass'
-        }
-      ],
-      iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 0
-    };
+    function getRTCConfigByDevice(): RTCConfiguration {
+      const ua = navigator.userAgent;
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
 
+      if (isMobile) {
+        return {
+          iceServers: [
+            {
+              urls: ['turn:3.80.218.25:3478?transport=tcp'],
+              username: 'test',
+              credential: 'testpass'
+            }
+          ],
+          iceTransportPolicy: 'relay',
+          iceCandidatePoolSize: 0
+        };
+      } else {
+        return {
+          iceServers: [
+            { urls: 'stun:3.80.218.25:3478' },
+            {
+              urls: ['turn:3.80.218.25:3478?transport=udp'],
+              username: 'test',
+              credential: 'testpass'
+            }
+          ],
+          iceTransportPolicy: 'all',
+          iceCandidatePoolSize: 0
+        };
+      }
+    }
+
+    const config = getRTCConfigByDevice(); 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
     let dataChannelOpened = false;
