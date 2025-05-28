@@ -25,6 +25,12 @@ function useScaleFactor() {
 }
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], logsForItem: string[]) => {
+
+  console.log(`🧪 [checkIsOK] 判定対象: ${item.label}`);
+  logsForItem.forEach((line, idx) => {
+    console.log(`  ${idx + 1}: ${line}`);
+  });
+
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
       log.startsWith("外部IP:") ||
