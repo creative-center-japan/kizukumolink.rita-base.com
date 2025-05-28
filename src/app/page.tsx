@@ -128,11 +128,13 @@ export default function Home() {
     let connectionType: "P2P" | "TURN" | "" = "";
     let turnSucceeded = false;
 
+    // デバイス判定に応じたICE構成を返す関数
     function getRTCConfigByDevice(): RTCConfiguration {
       const ua = navigator.userAgent;
       const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
 
       if (isMobile) {
+        // モバイルは TCP TURN + relay限定
         return {
           iceServers: [
             {
@@ -145,11 +147,17 @@ export default function Home() {
           iceCandidatePoolSize: 0
         };
       } else {
+        // PCは P2P優先＋UDP TURN fallback
         return {
           iceServers: [
             { urls: 'stun:3.80.218.25:3478' },
             {
               urls: ['turn:3.80.218.25:3478?transport=udp'],
+              username: 'test',
+              credential: 'testpass'
+            },
+            {
+              urls: ['turn:3.80.218.25:3478?transport=tcp'],
               username: 'test',
               credential: 'testpass'
             }
@@ -159,8 +167,7 @@ export default function Home() {
         };
       }
     }
-
-    const config = getRTCConfigByDevice(); 
+    const config = getRTCConfigByDevice();
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
     let dataChannelOpened = false;
