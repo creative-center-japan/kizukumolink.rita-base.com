@@ -117,33 +117,6 @@ export default function Home() {
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
 
-  return (
-    <div>
-      <main className="p-4">
-        {/* ▼ PDF対象の診断結果ブロック（診断完了後のみ） */}
-        {diagnosed && (
-          <div id="result-summary" className="bg-white p-4 shadow rounded">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">キヅクモ接続診断結果</h2>
-            <p className="text-sm text-gray-700">📅 実行日時: 2025/5/27</p>
-            <p className="text-sm text-gray-700">🌐 外部IP: 14.8.21.0</p>
-            <p className="text-sm text-gray-700">✅ サービス通信: OK</p>
-            <p className="text-sm text-gray-700">🔁 WebRTC接続: ❌ 失敗</p>
-            <h3 className="mt-4 text-red-600 font-bold">NG要約</h3>
-            <ul className="list-disc list-inside text-sm text-gray-700">
-              <li>DataChannelが開かず接続が `failed` 状態で終了</li>
-            </ul>
-          </div>
-        )}
-
-        {/* ▼ PDFダウンロードボタン（診断完了後のみ） */}
-        {diagnosed && (
-          <div className="mt-6">
-            <PdfExportButton />
-          </div>
-        )}
-      </main>
-    </div>
-  );
 
   // -------------------------
   // WebRTC診断（DataChannelの接続確認）
@@ -487,6 +460,52 @@ export default function Home() {
                 </span>
               </p>
 
+              {/* ▼ PDF対象の診断結果まとめ（PDF出力用） */}
+              {
+                diagnosed && (
+                  <div id="result-summary" className="bg-white p-4 shadow rounded">
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">キヅクモ接続診断結果</h2>
+
+                    <p className="text-sm text-gray-700">
+                      📅 実行日時: {
+                        status.find(line => line.startsWith("📅"))?.split(":")[1]?.trim() ?? "不明"
+                      }
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      🌐 外部IP: {
+                        status.find(line => line.includes("🔸外部IP:"))?.split(":")[1]?.trim() ?? "不明"
+                      }
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      ✅ サービス通信: {
+                        status.find(line => line.includes("サービスへの通信確認:"))?.split(":")[1]?.trim() ?? "不明"
+                      }
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      🔁 WebRTC接続: {
+                        status.some(line => line.includes("DataChannel open")) ? "✅ 成功" : "❌ 失敗"
+                      }
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      🔁 TURN中継: {
+                        status.some(line => line.includes("✅ relay候補を検出")) ? "✅ 利用可" : "❌ 利用不可"
+                      }
+                    </p>
+
+                    <h3 className="mt-4 text-red-600 font-bold">NG要約</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      {status.some(line => line.includes("DataChannel open"))
+                        ? null
+                        : <li>DataChannelが開かず接続が `failed` 状態で終了</li>
+                      }
+                      {!status.some(line => line.includes("✅ relay候補を検出")) && (
+                        <li>relay候補は表示されない／TURN確立に失敗</li>
+                      )}
+                    </ul>
+                  </div>
+                )
+              }
+
               {/* ▼ 診断結果タイル（診断完了後のみ表示） */}
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
@@ -568,8 +587,6 @@ export default function Home() {
                   {CHECK_ITEMS.map((item, idx) => {
                     const logsForItem = status.filter(log => log.includes(item.keyword));
                     const isOK = checkIsOK(item, logsForItem);
-
-
                     if (isOK) return null;
 
                     if (item.ngReason) {
@@ -618,6 +635,5 @@ export default function Home() {
       </main >
     </div >
   );
-
 
 }
