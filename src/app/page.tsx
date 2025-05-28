@@ -1,7 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import PdfExportButton from '../../components/PdfExportButton';
-
 // スケール計算関数
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
