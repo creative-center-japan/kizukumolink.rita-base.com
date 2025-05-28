@@ -141,30 +141,41 @@ export default function Home() {
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
+    let dataChannelOpened = false;
+    let pingConfirmed = false;
+
     const pc = new RTCPeerConnection(config);
     const channel = pc.createDataChannel("test");
     logs.push("🔧 DataChannel 作成済み");
     await new Promise((r) => setTimeout(r, 2000));
 
-    let dataChannelOpened = false;
-
     channel.onopen = () => {
       logs.push("✅ WebRTC: DataChannel open!");
-      channel.send("hello from client");
-      logs.push("candidate-pair: succeeded");
+      channel.send("ping");
+      logs.push("📤 ping を送信しました");
       console.log("✅ DataChannel opened!!");
       dataChannelOpened = true;
     };
 
+    channel.onmessage = (event) => {
+      logs.push(`📨 受信メッセージ: ${event.data}`);
+      if (event.data === "pong") {
+        pingConfirmed = true;
+        logs.push("✅ pong を受信 → DataChannel 応答OK");
+      }
+    };
+
     for (let i = 0; i < 10; i++) {
-      if (dataChannelOpened) break;
+      if (dataChannelOpened && pingConfirmed) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
 
     if (!dataChannelOpened) {
       logs.push("❌ DataChannel接続タイムアウト（10秒以内に open されず）");
+    } else if (!pingConfirmed) {
+      logs.push("⚠️ DataChannel開通後、pong 応答が確認できませんでした");
     } else {
-      logs.push("✅ DataChannel 接続成功（10秒以内に open）");
+      logs.push("✅ DataChannel 接続＋応答確認 成功");
     }
 
     channel.onerror = (e: Event) => {
