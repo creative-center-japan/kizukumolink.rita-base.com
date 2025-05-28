@@ -136,7 +136,7 @@ export default function Home() {
         }
       ],
       iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 4
+      iceCandidatePoolSize: 0
     };
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
