@@ -136,7 +136,7 @@ export default function Home() {
         }
       ],
       iceTransportPolicy: 'all',
-      iceCandidatePoolSize: 0
+      iceCandidatePoolSize: 4
     };
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
@@ -146,14 +146,26 @@ export default function Home() {
     logs.push("🔧 DataChannel 作成済み");
     await new Promise((r) => setTimeout(r, 2000));
 
-    const dataChannelOpened = false;
+    let dataChannelOpened = false;
 
     channel.onopen = () => {
       logs.push("✅ WebRTC: DataChannel open!");
       channel.send("hello from client");
       logs.push("candidate-pair: succeeded");
       console.log("✅ DataChannel opened!!");
+      dataChannelOpened = true;
     };
+
+    for (let i = 0; i < 10; i++) {
+      if (dataChannelOpened) break;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    if (!dataChannelOpened) {
+      logs.push("❌ DataChannel接続タイムアウト（10秒以内に open されず）");
+    } else {
+      logs.push("✅ DataChannel 接続成功（10秒以内に open）");
+    }
 
     channel.onerror = (e: Event) => {
       const errorMessage = (e instanceof ErrorEvent && e.message) || "不明なエラー";
