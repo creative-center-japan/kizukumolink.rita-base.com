@@ -226,13 +226,13 @@ export default function Home() {
     }
 
     const stats = await pc.getStats();
-    connectionType = "TURN";
+
     stats.forEach(report => {
       if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
         const local = report.localCandidateId;
         const localCand = stats.get(local);
         if (localCand?.candidateType === 'relay') {
-          connectionType = "TURN";
+
           logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
         } else {
           connectionType = "P2P";
