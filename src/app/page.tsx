@@ -243,6 +243,11 @@ export default function Home() {
     }
 
     pc.close();
+
+    if (connectionType) {
+      logs.push(`【接続方式】${connectionType === "TURN" ? "TURN中継通信に成功" : "P2P通信に成功"}`);
+    }
+
     return logs;
   };
 
