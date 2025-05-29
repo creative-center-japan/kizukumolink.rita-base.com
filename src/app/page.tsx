@@ -226,6 +226,7 @@ export default function Home() {
     }
 
     const stats = await pc.getStats();
+    connectionType = "TURN";
     stats.forEach(report => {
       if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
         const local = report.localCandidateId;
