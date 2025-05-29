@@ -136,9 +136,9 @@ export default function Home() {
   // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
-    let connectionType: "P2P" | "TURN" | "" = "";
     let dataChannelOpened = false;
     let pingConfirmed = false;
+    let connectionType: "P2P" | "TURN" | "" = "";
     let candidatePairSucceeded = false;
 
     // --- ICE設定：デバイスごとに構成を分岐
@@ -147,14 +147,18 @@ export default function Home() {
       iceServers: [
         { urls: ['turn:3.80.218.25:3478?transport=tcp'], username: 'test', credential: 'testpass' }
       ],
-      iceTransportPolicy: 'relay'
+      iceTransportPolicy: 'relay',
+      bundlePolicy: 'max-bundle',
+      iceCandidatePoolSize: 0
     } : {
       iceServers: [
         { urls: 'stun:3.80.218.25:3478' },
         { urls: ['turn:3.80.218.25:3478?transport=udp'], username: 'test', credential: 'testpass' },
         { urls: ['turn:3.80.218.25:3478?transport=tcp'], username: 'test', credential: 'testpass' }
       ],
-      iceTransportPolicy: 'all'
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      iceCandidatePoolSize: 0
     };
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
@@ -197,6 +201,7 @@ export default function Home() {
       logs.push(`全体接続状態: ${pc.connectionState}`);
     };
 
+    // SDP offer 作成＆送信
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     logs.push("📝 SDP offer 生成・セット完了");
@@ -210,8 +215,15 @@ export default function Home() {
     await pc.setRemoteDescription(answer);
     logs.push("📥 SDP answer 受信・セット完了");
 
-    // setRemoteDescription の後に候補処理を待機
-    await new Promise(r => setTimeout(r, 2000));
+    // ICE candidate gathering 完了を通知（ICE-lite対応）
+    await pc.addIceCandidate(null);
+    logs.push("📤 end-of-candidates を送信完了");
+
+    // 接続確立まで最大20秒待機
+    for (let i = 0; i < 20; i++) {
+      if (dataChannelOpened && pingConfirmed) break;
+      await new Promise(r => setTimeout(r, 1000));
+    }
 
     const stats = await pc.getStats();
     stats.forEach(report => {
@@ -220,13 +232,12 @@ export default function Home() {
         const localCand = stats.get(local);
         if (localCand?.candidateType === 'relay') {
           connectionType = "TURN";
-          candidatePairSucceeded = true;
           logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
         } else {
           connectionType = "P2P";
-          candidatePairSucceeded = true;
           logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
         }
+        candidatePairSucceeded = true;
       }
     });
 
@@ -243,11 +254,6 @@ export default function Home() {
     }
 
     pc.close();
-
-    if (connectionType) {
-      logs.push(`【接続方式】${connectionType === "TURN" ? "TURN中継通信に成功" : "P2P通信に成功"}`);
-    }
-
     return logs;
   };
 
