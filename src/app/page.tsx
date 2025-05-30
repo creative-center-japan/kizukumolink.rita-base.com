@@ -135,141 +135,134 @@ export default function Home() {
   // - 成功時は DataChannel open と candidate-pair をログ出力
   // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
-  const logs: string[] = [];
-  let dataChannelOpened = false;
-  let pingConfirmed = false;
-  let candidatePairSucceeded = false;
+    const logs: string[] = [];
+    let dataChannelOpened = false;
+    let pingConfirmed = false;
+    let candidatePairSucceeded = false;
 
-  // --- ICE設定：デバイスごとに構成を分岐
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const config: RTCConfiguration = isMobile
-  ? {
-      iceServers: [
-        {
-          urls: ['turn:3.80.218.25:3478?transport=tcp'],
-          username: 'test',
-          credential: 'testpass'
-        }
-      ],
-      iceTransportPolicy: 'relay',
+    // --- ICE設定：デバイスごとに構成を分岐
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const config: RTCConfiguration = {
+      iceServers: isMobile
+        ? [
+          {
+            urls: ['turn:3.80.218.25:3478?transport=tcp'],
+            username: 'test',
+            credential: 'testpass',
+          },
+        ]
+        : [
+          { urls: 'stun:3.80.218.25:3478' },
+          {
+            urls: ['turn:3.80.218.25:3478?transport=udp'],
+            username: 'test',
+            credential: 'testpass',
+          },
+          {
+            urls: ['turn:3.80.218.25:3478?transport=tcp'],
+            username: 'test',
+            credential: 'testpass',
+          },
+        ],
+      iceTransportPolicy: isMobile ? 'relay' : 'all',
       bundlePolicy: 'max-bundle',
-      // @ts-ignore
-      iceCandidatePoolSize: 0
-    } as any
-  : {
-      iceServers: [
-        { urls: 'stun:3.80.218.25:3478' },
-        {
-          urls: ['turn:3.80.218.25:3478?transport=udp'],
-          username: 'test',
-          credential: 'testpass'
-        },
-        {
-          urls: ['turn:3.80.218.25:3478?transport=tcp'],
-          username: 'test',
-          credential: 'testpass'
-        }
-      ],
-      iceTransportPolicy: 'all',
-      bundlePolicy: 'max-bundle',
-      // @ts-ignore
-      iceCandidatePoolSize: 0
-    } as any;
+      iceCandidatePoolSize: 0,
+    };
 
 
-  logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
+    logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
-  const pc = new RTCPeerConnection(config);
-  const dc = pc.createDataChannel("check");
-  logs.push("🔧 DataChannel 作成済み");
+    const pc = new RTCPeerConnection(config);
+    const dc = pc.createDataChannel("check");
+    logs.push("🔧 DataChannel 作成済み");
 
-  dc.onopen = () => {
-    logs.push("✅ WebRTC: DataChannel open!");
-    dc.send("ping");
-    logs.push("📤 ping を送信しました");
-    dataChannelOpened = true;
-  };
+    dc.onopen = () => {
+      logs.push("✅ WebRTC: DataChannel open!");
+      dc.send("ping");
+      logs.push("📤 ping を送信しました");
+      dataChannelOpened = true;
+    };
 
-  dc.onmessage = (event) => {
-    logs.push(`📨 受信メッセージ: ${event.data}`);
-    if (event.data === "pong") {
-      pingConfirmed = true;
-      logs.push("✅ pong を受信 → DataChannel 応答OK");
-    }
-  };
-
-  pc.onicecandidate = (e) => {
-    if (e.candidate) {
-      logs.push(`ICE候補: ${e.candidate.candidate}`);
-      if (e.candidate.candidate.includes("typ relay")) {
-        logs.push("✅ relay候補を検出");
+    dc.onmessage = (event) => {
+      logs.push(`📨 受信メッセージ: ${event.data}`);
+      if (event.data === "pong") {
+        pingConfirmed = true;
+        logs.push("✅ pong を受信 → DataChannel 応答OK");
       }
-    } else {
-      logs.push("ICE候補: 収集完了");
-    }
-  };
+    };
 
-  pc.oniceconnectionstatechange = () => {
-    logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
-  };
-
-  pc.onconnectionstatechange = () => {
-    logs.push(`全体接続状態: ${pc.connectionState}`);
-  };
-
-  // SDP offer 作成＆送信
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  logs.push("📝 SDP offer 生成・セット完了");
-
-  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-  });
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
-  logs.push("📥 SDP answer 受信・セット完了");
-
-  // ICE candidate gathering 完了を通知（ICE-lite対応）
-  await pc.addIceCandidate(null);
-  logs.push("📤 end-of-candidates を送信完了");
-
-  // 接続確立まで最大20秒待機
-  for (let i = 0; i < 20; i++) {
-    if (dataChannelOpened && pingConfirmed) break;
-    await new Promise(r => setTimeout(r, 1000));
-  }
-
-  const stats = await pc.getStats();
-  stats.forEach(report => {
-    if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-      const local = report.localCandidateId;
-      const localCand = stats.get(local);
-      if (localCand?.candidateType === 'relay') {
-        logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        logs.push(`ICE候補: ${e.candidate.candidate}`);
+        if (e.candidate.candidate.includes("typ relay")) {
+          logs.push("✅ relay候補を検出");
+        }
       } else {
-        logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
+        logs.push("ICE候補: 収集完了");
       }
-      candidatePairSucceeded = true;
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
+    };
+
+    pc.onconnectionstatechange = () => {
+      logs.push(`全体接続状態: ${pc.connectionState}`);
+    };
+
+    // SDP offer 作成＆送信
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    logs.push("📝 SDP offer 生成・セット完了");
+
+    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+    });
+    const answer = await res.json();
+    await pc.setRemoteDescription(answer);
+    logs.push("📥 SDP answer 受信・セット完了");
+
+    // ICE candidate gathering 完了を通知（ICE-lite対応）
+    await pc.addIceCandidate(null);
+    logs.push("📤 end-of-candidates を送信完了");
+
+    // 接続確立まで最大20秒待機
+    for (let i = 0; i < 20; i++) {
+      if (dataChannelOpened && pingConfirmed) break;
+      await new Promise(r => setTimeout(r, 1000));
     }
-  });
 
-  if (!candidatePairSucceeded) {
-    logs.push("❌ 接続候補ペアが確立しませんでした（succeeded候補なし）");
-  }
+    const stats = await pc.getStats();
+    stats.forEach(report => {
+      if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
+        const local = report.localCandidateId;
+        const localCand = stats.get(local);
+        if (localCand?.candidateType === 'relay') {
+          logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
+        } else {
+          logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
+        }
+        candidatePairSucceeded = true;
+      }
+    });
 
-  if (dataChannelOpened && pingConfirmed) {
-    logs.push("✅ DataChannel 接続＋応答確認 成功");
-    logs.push("【判定】OK");
-  } else {
-    logs.push("❌ DataChannel 開通または応答失敗");
-    logs.push("【判定】NG");
-  }
+    if (!candidatePairSucceeded) {
+      logs.push("❌ 接続候補ペアが確立しませんでした（succeeded候補なし）");
+    }
 
-  pc.close();
-  return logs;
-};
+    if (dataChannelOpened && pingConfirmed) {
+      logs.push("✅ DataChannel 接続＋応答確認 成功");
+      logs.push("【判定】OK");
+    } else {
+      logs.push("❌ DataChannel 開通または応答失敗");
+      logs.push("【判定】NG");
+    }
+
+    pc.close();
+    return logs;
+  };
 
 
   // -------------------------
