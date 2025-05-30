@@ -138,8 +138,9 @@ export default function Home() {
     const logs: string[] = [];
     let dataChannelOpened = false;
     let pingConfirmed = false;
-    let connectionType: "P2P" | "TURN" | "" = "";
+
     let candidatePairSucceeded = false;
+    let connectionType: "P2P" | "TURN" | "" = ""; 
 
     // --- ICE設定：デバイスごとに構成を分岐
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -227,20 +228,21 @@ export default function Home() {
 
     const stats = await pc.getStats();
 
-    stats.forEach(report => {
-      if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-        const local = report.localCandidateId;
-        const localCand = stats.get(local);
-        if (localCand?.candidateType === 'relay') {
+stats.forEach(report => {
+  if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
+    const local = report.localCandidateId;
+    const localCand = stats.get(local);
+    if (localCand?.candidateType === 'relay') {
+      connectionType = "TURN"; // 🔧 ←これを追加！
+      logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
+    } else {
+      connectionType = "P2P";
+      logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
+    }
+    candidatePairSucceeded = true;
+  }
+});
 
-          logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
-        } else {
-          connectionType = "P2P";
-          logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
-        }
-        candidatePairSucceeded = true;
-      }
-    });
 
     if (!candidatePairSucceeded) {
       logs.push("❌ 接続候補ペアが確立しませんでした（succeeded候補なし）");
