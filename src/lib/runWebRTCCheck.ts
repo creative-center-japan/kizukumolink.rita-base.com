@@ -25,7 +25,7 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
         urls: ['turn:3.80.218.25:3478?transport=tcp'],
         username: 'test',
         credential: 'testpass',
-      }
+      },
     ],
     iceTransportPolicy: 'relay',
     bundlePolicy: 'max-bundle',
@@ -39,7 +39,7 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push("🔧 DataChannel 作成済み");
 
   dc.onopen = () => {
-    logs.push("✅ WebRTC: DataChannel open!");
+    logs.push("✅ DataChannel open!");
     dc.send("ping");
     logs.push("📤 ping を送信しました");
     dataChannelOpened = true;
@@ -76,22 +76,24 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   await pc.setLocalDescription(offer);
   logs.push("📝 SDP offer 生成・セット完了");
 
+  while (pc.iceGatheringState !== "complete") {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
   });
   const answer = await res.json();
   await pc.setRemoteDescription(answer);
   logs.push("📥 SDP answer 受信・セット完了");
 
-  // 最大20秒待機
   for (let i = 0; i < 20; i++) {
     if (dataChannelOpened && pingConfirmed) break;
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1000));
   }
 
-  // candidate-pair の検出確認
   const stats = await pc.getStats();
   stats.forEach(report => {
     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
@@ -121,3 +123,4 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   pc.close();
   return logs;
 };
+
