@@ -3,19 +3,16 @@
 // -------------------------
 // runWebRTCCheck.ts
 // - WebRTC診断（DataChannelの接続確認）
-// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
-// - 成功時は DataChannel open と candidate-pair をログ出力
-// --------------------------------
+// - UDP TURN接続を基本とし、STUN確認を含め relay候補の接続可否を判定
+// - 実際のカメラ通信がUDP前提であることを踏まえ、TCPはVercel等環境限定で補完
+// - 成功時は DataChannel open と candidate-pair succeeded をログ出力
+// -------------------------
 
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   let dataChannelOpened = false;
   let pingConfirmed = false;
   let candidatePairSucceeded = false;
-
-  // --- ICE設定：デバイスまたは環境ごとに構成を分岐（Vercel考慮）
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const isVercel = location.hostname.endsWith("vercel.app") || location.hostname.includes("kizukumolink");
 
   const config: RTCConfiguration = {
     iceServers: [
@@ -24,25 +21,19 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
         username: 'test',
         credential: 'testpass',
       },
-      ...(isVercel ? [{
+      {
         urls: ['turn:3.80.218.25:3478?transport=tcp'],
         username: 'test',
         credential: 'testpass',
-      }] : [
-        { urls: 'stun:3.80.218.25:3478' },
-        {
-          urls: ['turn:3.80.218.25:3478?transport=tcp'],
-          username: 'test',
-          credential: 'testpass',
-        }
-      ]),
+      }
     ],
-    iceTransportPolicy: 'relay',
+    iceTransportPolicy: 'relay', // UDP→TCP fallbackあり（relayのみ使用）
     bundlePolicy: 'max-bundle',
     iceCandidatePoolSize: 0,
   };
 
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
+
 
   const pc = new RTCPeerConnection(config);
   const dc = pc.createDataChannel("check");
