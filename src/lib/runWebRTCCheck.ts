@@ -8,13 +8,6 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
-// -------------------------
-// runWebRTCCheck.ts
-// - WebRTC診断（DataChannelの接続確認）
-// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
-// - 成功時は DataChannel open と candidate-pair をログ出力
-// -------------------------
-
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   let dataChannelOpened = false;
@@ -60,18 +53,6 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
     }
   };
 
-  dc.onclose = () => {
-    logs.push("❌ DataChannel closed");
-  };
-
-  dc.onerror = (err) => {
-    logs.push(`❌ DataChannel error: ${err}`);
-  };
-
-  pc.addEventListener("icecandidateerror", e => {
-    logs.push(`❌ ICE candidate error: ${e.errorText}`);
-  });
-
   pc.onicecandidate = (e) => {
     if (e.candidate) {
       logs.push(`ICE候補: ${e.candidate.candidate}`);
@@ -95,31 +76,22 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   await pc.setLocalDescription(offer);
   logs.push("📝 SDP offer 生成・セット完了");
 
-  //  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-  //   method: "POST",
-  //    headers: { 'Content-Type': 'application/json' },
-  //    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-  //  });
-
-
-  const res = await fetch("http://webrtc-answer.rita-base.com:8080/offer", {
+  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
   });
-
-
   const answer = await res.json();
   await pc.setRemoteDescription(answer);
   logs.push("📥 SDP answer 受信・セット完了");
 
-  // 20秒間待機（DataChannel応答と candidate-pair 成功を待つ）
+  // 最大20秒待機
   for (let i = 0; i < 20; i++) {
     if (dataChannelOpened && pingConfirmed) break;
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // candidate-pair success 判定
+  // candidate-pair の検出確認
   const stats = await pc.getStats();
   stats.forEach(report => {
     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
