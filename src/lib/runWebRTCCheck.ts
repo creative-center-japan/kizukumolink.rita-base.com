@@ -95,7 +95,7 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   await pc.setLocalDescription(offer);
   logs.push("📝 SDP offer 生成・セット完了");
 
-  //  const res = await fetch("http://webrtc-answer.rita-base.com/offer", {
+  //  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
   //   method: "POST",
   //    headers: { 'Content-Type': 'application/json' },
   //    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
