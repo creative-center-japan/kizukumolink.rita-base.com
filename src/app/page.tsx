@@ -1,5 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { runWebRTCCheck } from "@/lib/runWebRTCCheck";
+import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
+
+
 // スケール計算関数
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
@@ -80,46 +84,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
 };
 
 
-const CHECK_ITEMS = [
-  {
-    label: 'ご利用IPアドレス',
-    description: 'インターネットへ接続する際のIPを確認',
-    keyword: '外部IP',
-    tooltip: 'ブラウザまたは当テスト通信から抽出されたIPアドレスです',
-    detail: 'インターネットへ接続する際に使用されるグローバルIPを表示します。',
-    ngReason: 'ブラウザまたは当テスト通信からIPアドレスが取得できませんでした。Proxyを利用されている可能性があります。',
-    action: 'IPアドレスが取得できなくてもカメラサービスを利用できる可能が場合があります。ただし、ご利用の環境はProxy経由やセキュリティ設定が厳しい環境の可能性があります。その場合、当サービスの利用が行えない場合がございます。事前にネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCプロトコルを利用したカメラサービスを利用」をご相談させてください。'
-  },
-  {
-    label: 'サービスへの通信確認',
-    description: 'キヅクモサービスへの接続（TCP 443）が可能か',
-    keyword: 'サービスへの通信確認',
-    tooltip: 'キヅクモサービス サーバへ TCP接続できたかを確認します',
-    detail: 'キヅクモカメラサービスへ接続しカメラ設定・映像配信確認時に利用するドメインとポートが利用できるか確認します。TCP/443はHTTPSに使われる標準ポートです。',
-    ngReason: 'サービス提供元（Alarm.com）へTCP接続できませんでした。ファイアウォールやセキュリティ機器でブロックされている可能性があります。',
-    action: 'この通信ができないとサービスを利用できません。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「キヅクモサービスのドメインに対するTCP 443番ポートの許可」をご相談ください。キヅクモサービスのドメインに関しては弊社コンタクトよりお問い合わせください。'
-  },
-  {
-    label: '通信ポート確認',
-    description: 'キヅクモサービス（管理用途やP2P用途）で使用するポートが接続可能か確認',
-    keyword: 'ポート確認:',
-    tooltip: 'サーバ側ポートに対する接続の成功/失敗を確認します',
-    detail: 'ライブビュー・管理通信・動画配信にて利用するポートが接続可能かを検査します。企業ネットワークでは一部ポートが制限されている場合があります。',
-    ngReason: '必要なポートの一部が閉じています。社内のセキュリティポリシーにより制限されている可能性があります。',
-    action: '一部ポートが閉じていると映像配信や接続に支障が出る可能性があります。ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「キヅクモサービスで利用するポートの許可」をご相談ください。キヅクモサービスのポートに関しては弊社コンタクトよりお問い合わせください。'
-  },
-  {
-    label: 'WebRTC接続成功',
-    description: 'サーバとの通信（P2P or TURN）が確立できたか',
-    keyword: '🔸 WebRTCログ',
-    tooltip: 'candidate-pair: succeeded が出たらOKです',
-    detail: 'カメラとブラウザなどを利用したカメラ閲覧が直接通信（P2P接続）が確立されたことを示します。通信相手との双方向通信に成功した場合のみ出力されます。',
-    ngReason: '通信の確立に必要な応答が得られず、カメラ通信を開始するができませんでした。ネットワーク構成やブラウザの制限が原因の可能性があります。',
-    action: 'WebRTC未接続の場合、一部機能が制限される可能性があります。ブラウザが最新か、ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCを利用したP2P接続の利用」をご相談ください。ご利用のVPN/Proxy/Firewallの影響がないかご確認ください。'
-  },
-];
-
-
 export default function Home() {
   const scale = useScaleFactor();
   const [status, setStatus] = useState<string[]>([]);
@@ -129,10 +93,13 @@ export default function Home() {
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
 
 
+
+
   // -------------------------
-  // WebRTC診断（DataChannelの接続確認）
-  // - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
-  // - 成功時は DataChannel open と candidate-pair をログ出力
+  // 全体診断フロー（フェーズ1〜3を順に実行）
+  // - IP取得 / TCP接続確認（フェーズ1）
+  // - ポート確認API実行（フェーズ2）
+  // - WebRTC接続確認（フェーズ3）
   // -------------------------
   const runWebRTCCheck = async (): Promise<string[]> => {
     const logs: string[] = [];
@@ -140,10 +107,12 @@ export default function Home() {
     let pingConfirmed = false;
     let candidatePairSucceeded = false;
 
-    // --- ICE設定：デバイスごとに構成を分岐
+    // --- ICE設定：デバイスまたは環境ごとに構成を分岐（Vercel考慮）
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isVercel = location.hostname.endsWith("vercel.app") || location.hostname.includes("kizukumolink");
+
     const config: RTCConfiguration = {
-      iceServers: isMobile
+      iceServers: isVercel || isMobile
         ? [
           {
             urls: ['turn:3.80.218.25:3478?transport=tcp'],
@@ -164,11 +133,10 @@ export default function Home() {
             credential: 'testpass',
           },
         ],
-      iceTransportPolicy: isMobile ? 'relay' : 'all',
+      iceTransportPolicy: isVercel || isMobile ? 'relay' : 'all',
       bundlePolicy: 'max-bundle',
       iceCandidatePoolSize: 0,
     };
-
 
     logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
@@ -198,7 +166,8 @@ export default function Home() {
           logs.push("✅ relay候補を検出");
         }
       } else {
-        logs.push("ICE候補: 収集完了");
+        logs.push("ICE候補: 収集完了（null候補）");
+        pc.addIceCandidate(null); // 明示的にend-of-candidates送信
       }
     };
 
@@ -223,10 +192,6 @@ export default function Home() {
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
     logs.push("📥 SDP answer 受信・セット完了");
-
-    // ICE candidate gathering 完了を通知（ICE-lite対応）
-    await pc.addIceCandidate(null);
-    logs.push("📤 end-of-candidates を送信完了");
 
     // 接続確立まで最大20秒待機
     for (let i = 0; i < 20; i++) {
@@ -264,125 +229,6 @@ export default function Home() {
     return logs;
   };
 
-
-  // -------------------------
-  // 全体診断フロー（フェーズ1〜3を順に実行）
-  // - IP取得 / TCP接続確認（フェーズ1）
-  // - ポート確認API実行（フェーズ2）
-  // - WebRTC接続確認（フェーズ3）
-  // -------------------------
-  const runDiagnosis = async () => {
-    setLoading(true);
-    setDiagnosed(false);
-    setPhase(1);
-    const logs: string[] = [];
-
-    try {
-      // フェーズ1：IP取得とサービス接続確認
-      let ip = "取得失敗";
-      try {
-        const res = await fetch("https://api.ipify.org?format=json");
-        const data = await res.json();
-        ip = data.ip;
-      } catch {
-        ip = "取得失敗";
-      }
-
-      // FQDNチェック
-      let fqdnResult = "NG";
-      try {
-        const res = await fetch("/api/fqdncheck");
-        const result = await res.text();
-        fqdnResult = result.startsWith("OK")
-          ? `OK (Alarm.com 接続成功 - status: 200)`
-          : `NG (${result})`;
-      } catch (err) {
-        fqdnResult = `NG (エラー: ${(err as Error).message})`;
-      }
-
-      // ▼ ログ出力（フェーズ1）
-      logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
-      logs.push(`🔸外部IP: ${ip}`);
-      logs.push(`🔸サービスへの通信確認: ${fqdnResult}`);
-
-      setStatus([...logs]);
-      setPhase(2);
-
-      // フェーズ2：ポート確認
-      try {
-        const res = await fetch("https://check-api.rita-base.com/check-json");
-        const data = await res.json();
-
-        logs.push("🔸 TCPポート確認:");
-        for (const [port, result] of Object.entries(data.tcp)) {
-          logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "成功" : "失敗"}`);
-        }
-
-        logs.push("🔸 UDPポート確認:");
-        for (const [port, result] of Object.entries(data.udp)) {
-          logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
-        }
-
-        if (data.failed_ports.length > 0) {
-          logs.push("❌ NGとなったポート一覧:");
-          logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
-        }
-      } catch (err) {
-        logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-        setStatus([...logs]);
-        return;
-      }
-
-      setStatus([...logs]);
-      setPhase(3);
-
-      // フェーズ3：WebRTC診断
-      logs.push("🔸 WebRTCログ");
-      const webrtcLogs = await runWebRTCCheck();
-      logs.push(...webrtcLogs);
-      setStatus([...logs]);
-      setDiagnosed(true);
-
-    } catch (e) {
-      console.error(e);
-      logs.push("❌ サーバとの接続に失敗しました");
-      if (e instanceof Error) logs.push(`詳細: ${e.message}`);
-      setStatus([...logs]);
-    }
-  };
-
-  // テキストレポート出力用関数
-  function generateReportText(logs: string[]): string {
-    const lines: string[] = [];
-
-    // ヘッダー情報（IP, 日時など）
-    const header = logs.filter(log =>
-      log.startsWith("📅") || log.startsWith("🔸外部IP:") || log.startsWith("🔸サービスへの通信確認")
-    );
-    lines.push(...header);
-
-    // TCP/UDPポート
-    const tcp = logs.filter(log => log.startsWith("ポート確認: TCP"));
-    const udp = logs.filter(log => log.startsWith("ポート確認: UDP"));
-    if (tcp.length || udp.length) {
-      lines.push("🔸 TCPポート確認:");
-      lines.push(...tcp);
-      lines.push("🔸 UDPポート確認:");
-      lines.push(...udp);
-    }
-
-    // WebRTCログ
-    const webrtc = logs.filter(log =>
-      log.startsWith("[設定]") || log.startsWith("🔧") || log.startsWith("📝") ||
-      log.startsWith("📥") || log.startsWith("ICE") || log.startsWith("✅") ||
-      log.startsWith("⚠️") || log.startsWith("❌") || log.startsWith("📤") ||
-      log.startsWith("candidate-pair") || log.startsWith("📊") || log.startsWith("全体接続状態")
-    );
-    lines.push("🔸 WebRTCログ");
-    lines.push(...webrtc);
-
-    return lines.join('\n');
-  }
 
   // -------------------------
   // チェック結果パネル表示用関数
