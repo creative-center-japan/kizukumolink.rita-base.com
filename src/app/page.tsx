@@ -1,8 +1,20 @@
+// rita-base\src\app\page.tsx
+
+// -------------------------
+// page.tsx
+// - メイン画面：診断UIの表示・ボタン操作・ステータス管理を行う
+// - useStateで各状態を制御し、lib/components/constants から機能分離したモジュールを呼び出す
+// -------------------------
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { runWebRTCCheck } from "@/lib/runWebRTCCheck";
-import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
-
+import { runDiagnosis } from "@/lib/runDiagnosis";
+import { ResultCard } from "@/components/ResultCard";
+import { generateReportText } from "@/lib/utils";
+import { NgSummary } from "@/components/NgSummary";
+import { DetailModal } from "@/components/DetailModal";
+import { CHECK_ITEMS, CheckItem } from "@/constants/CHECK_ITEMS";
 
 // スケール計算関数
 function useScaleFactor() {
@@ -83,7 +95,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   );
 };
 
-
 export default function Home() {
   const scale = useScaleFactor();
   const [status, setStatus] = useState<string[]>([]);
@@ -91,208 +102,6 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
-
-
-
-
-  // -------------------------
-  // 全体診断フロー（フェーズ1〜3を順に実行）
-  // - IP取得 / TCP接続確認（フェーズ1）
-  // - ポート確認API実行（フェーズ2）
-  // - WebRTC接続確認（フェーズ3）
-  // -------------------------
-  const runWebRTCCheck = async (): Promise<string[]> => {
-    const logs: string[] = [];
-    let dataChannelOpened = false;
-    let pingConfirmed = false;
-    let candidatePairSucceeded = false;
-
-    // --- ICE設定：デバイスまたは環境ごとに構成を分岐（Vercel考慮）
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isVercel = location.hostname.endsWith("vercel.app") || location.hostname.includes("kizukumolink");
-
-    const config: RTCConfiguration = {
-      iceServers: isVercel || isMobile
-        ? [
-          {
-            urls: ['turn:3.80.218.25:3478?transport=tcp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-        ]
-        : [
-          { urls: 'stun:3.80.218.25:3478' },
-          {
-            urls: ['turn:3.80.218.25:3478?transport=udp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-          {
-            urls: ['turn:3.80.218.25:3478?transport=tcp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-        ],
-      iceTransportPolicy: isVercel || isMobile ? 'relay' : 'all',
-      bundlePolicy: 'max-bundle',
-      iceCandidatePoolSize: 0,
-    };
-
-    logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
-
-    const pc = new RTCPeerConnection(config);
-    const dc = pc.createDataChannel("check");
-    logs.push("🔧 DataChannel 作成済み");
-
-    dc.onopen = () => {
-      logs.push("✅ WebRTC: DataChannel open!");
-      dc.send("ping");
-      logs.push("📤 ping を送信しました");
-      dataChannelOpened = true;
-    };
-
-    dc.onmessage = (event) => {
-      logs.push(`📨 受信メッセージ: ${event.data}`);
-      if (event.data === "pong") {
-        pingConfirmed = true;
-        logs.push("✅ pong を受信 → DataChannel 応答OK");
-      }
-    };
-
-    pc.onicecandidate = (e) => {
-      if (e.candidate) {
-        logs.push(`ICE候補: ${e.candidate.candidate}`);
-        if (e.candidate.candidate.includes("typ relay")) {
-          logs.push("✅ relay候補を検出");
-        }
-      } else {
-        logs.push("ICE候補: 収集完了（null候補）");
-        pc.addIceCandidate(null); // 明示的にend-of-candidates送信
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
-    };
-
-    pc.onconnectionstatechange = () => {
-      logs.push(`全体接続状態: ${pc.connectionState}`);
-    };
-
-    // SDP offer 作成＆送信
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    logs.push("📝 SDP offer 生成・セット完了");
-
-    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-      method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
-    });
-    const answer = await res.json();
-    await pc.setRemoteDescription(answer);
-    logs.push("📥 SDP answer 受信・セット完了");
-
-    // 接続確立まで最大20秒待機
-    for (let i = 0; i < 20; i++) {
-      if (dataChannelOpened && pingConfirmed) break;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-
-    const stats = await pc.getStats();
-    stats.forEach(report => {
-      if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-        const local = report.localCandidateId;
-        const localCand = stats.get(local);
-        if (localCand?.candidateType === 'relay') {
-          logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
-        } else {
-          logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
-        }
-        candidatePairSucceeded = true;
-      }
-    });
-
-    if (!candidatePairSucceeded) {
-      logs.push("❌ 接続候補ペアが確立しませんでした（succeeded候補なし）");
-    }
-
-    if (dataChannelOpened && pingConfirmed) {
-      logs.push("✅ DataChannel 接続＋応答確認 成功");
-      logs.push("【判定】OK");
-    } else {
-      logs.push("❌ DataChannel 開通または応答失敗");
-      logs.push("【判定】NG");
-    }
-
-    pc.close();
-    return logs;
-  };
-
-
-  // -------------------------
-  // チェック結果パネル表示用関数
-  // - 各項目のログを元に「OK / NG」としてカードを出力
-  // - NG時はNG理由と補足情報を表示
-  // -------------------------
-  const renderResultCard = (
-    item: (typeof CHECK_ITEMS)[number],
-    idx: number,
-    status: string[]
-  ) => {
-    const logsForItem = status.filter(log => log.includes(item.keyword));
-    const isOK = checkIsOK(item, logsForItem);
-
-    return (
-      <div
-        key={idx}
-        className="relative bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl"
-      >
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold">{item.label}</h3>
-          <button
-            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200"
-            title={item.tooltip}
-            onClick={() => setShowDetail(item.label)}
-          >
-            ？
-          </button>
-        </div>
-        <p className="text-sm text-gray-600 mb-1">{item.description}</p>
-
-        <p className="text-3xl font-bold text-center">
-          {(() => {
-            if (item.label === 'ご利用IPアドレス') {
-              const ipLog = status.find(log =>
-                log.startsWith("外部IP:") ||
-                log.startsWith("🌐 外部IP（補完）:") ||
-                log.startsWith("🔸外部IP:")
-              );
-              const ipAddress = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? '';
-              return (
-                <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
-                  {ipAddress || '取得失敗'}
-                </span>
-              );
-            } else {
-              return (
-                <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
-                  {isOK ? 'OK' : 'NG'}
-                </span>
-              );
-            }
-          })()}
-        </p>
-
-        {item.label === 'WebRTC接続成功' && (
-          <p className="text-sm text-blue-700 text-center mt-1">
-            {status.find(log => log.includes("【接続方式】")) || "【接続方式】不明"}
-          </p>
-        )}
-
-      </div>
-    );
-  };
 
   return (
     <div>
@@ -319,7 +128,16 @@ export default function Home() {
               {/* ▼ 診断結果タイル（診断完了後のみ表示） */}
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
-                  {CHECK_ITEMS.map((item, idx) => renderResultCard(item, idx, status))}
+                  {CHECK_ITEMS.map((item: CheckItem, idx: number) => (
+                    <ResultCard
+                      key={idx}
+                      item={item}
+                      idx={idx}
+                      status={status}
+                      checkIsOK={checkIsOK}
+                      setShowDetail={setShowDetail}
+                    />
+                  ))}
                 </div>
               )}
 
@@ -327,7 +145,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-center gap-2 mb-4">
                 {!loading && !diagnosed && (
                   <button
-                    onClick={runDiagnosis}
+                    onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
                   >
                     診断開始
@@ -350,7 +168,7 @@ export default function Home() {
               {diagnosed && (
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
                   <button
-                    onClick={runDiagnosis}
+                    onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
                   >
                     再診断
@@ -392,52 +210,9 @@ export default function Home() {
 
               {/* NG項目の総括 */}
               {diagnosed && (
-                <div className="border border-blue-300 bg-blue-100 rounded-xl px-4 py-6 mt-10 space-y-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">NG項目の要約</h2>
-                  {CHECK_ITEMS.map((item, idx) => {
-                    const logsForItem = status.filter(log => log.includes(item.keyword));
-                    const isOK = checkIsOK(item, logsForItem);
-                    if (isOK) return null;
-
-                    if (item.ngReason) {
-                      return (
-                        <div key={idx} className="bg-white border border-blue-300 p-4 rounded shadow">
-                          <p className="font-bold text-gray-800 mb-2">【NG項目】{item.label}</p>
-                          <p><span className="font-semibold text-red-600">NG理由:</span> {item.ngReason}</p>
-                          {item.action && (
-                            <p className="mt-2"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return null;
-                  })}
-                </div>
+                <NgSummary status={status} checkIsOK={checkIsOK} />
               )}
-
-              {showDetail && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 shadow-xl text-gray-900 max-w-lg w-full">
-                    <h2 className="text-xl font-bold text-blue-700 mb-4">
-                      {CHECK_ITEMS.find(i => i.label === showDetail)?.label}
-                    </h2>
-
-                    <p className="text-base text-gray-700 whitespace-pre-wrap mb-4">
-                      {CHECK_ITEMS.find(i => i.label === showDetail)?.detail}
-                    </p>
-
-                    <div className="text-right">
-                      <button
-                        onClick={() => setShowDetail(null)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-base"
-                      >
-                        閉じる
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <DetailModal showDetail={showDetail} setShowDetail={setShowDetail} />
             </div>
           </div>
         </div>
@@ -445,5 +220,4 @@ export default function Home() {
       </main >
     </div >
   );
-
 }

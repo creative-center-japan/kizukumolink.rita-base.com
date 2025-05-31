@@ -1,5 +1,11 @@
 // rita-base\src\constants\CHECK_ITEMS.ts
 
+// -------------------------
+// CHECK_ITEMS.ts
+// - 各診断項目の定義と表示内容（説明・NG理由・対応アドバイス）を格納
+// - page.tsx や ResultCard などから参照される診断ロジックの基礎データ
+// -------------------------
+
 export const CHECK_ITEMS = [
   {
     label: 'ご利用IPアドレス',
@@ -38,3 +44,6 @@ export const CHECK_ITEMS = [
     action: 'WebRTC未接続の場合、一部機能が制限される可能性があります。ブラウザが最新か、ネットワーク管理者またはご利用のネットワーク機器のベンダーへ「WebRTCを利用したP2P接続の利用」をご相談ください。ご利用のVPN/Proxy/Firewallの影響がないかご確認ください。'
   },
 ];
+
+// 型補完用（item: CheckItem として利用）
+export type CheckItem = (typeof CHECK_ITEMS)[number];

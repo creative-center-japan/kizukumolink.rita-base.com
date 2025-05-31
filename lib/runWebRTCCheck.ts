@@ -1,10 +1,11 @@
-//ita-base\lib\runWebRTCCheck.ts
+//rita-base\lib\runWebRTCCheck.ts
   
-  // -------------------------
-  // - WebRTC診断（DataChannelの接続確認）
-  // - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
-  // - 成功時は DataChannel open と candidate-pair をログ出力
-  // -------------------------
+// -------------------------
+// runWebRTCCheck.ts
+// - WebRTC診断（DataChannelの接続確認）
+// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
+// - 成功時は DataChannel open と candidate-pair をログ出力
+// --------------------------------
   
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
