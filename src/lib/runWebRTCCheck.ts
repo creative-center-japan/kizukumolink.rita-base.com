@@ -8,6 +8,13 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
+// -------------------------
+// runWebRTCCheck.ts
+// - WebRTC診断（DataChannelの接続確認）
+// - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
+// - 成功時は DataChannel open と candidate-pair をログ出力
+// -------------------------
+
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   let dataChannelOpened = false;
@@ -39,7 +46,6 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push("🔧 DataChannel 作成済み");
 
   dc.onopen = () => {
-    console.log("✅ DataChannel open!");
     logs.push("✅ WebRTC: DataChannel open!");
     dc.send("ping");
     logs.push("📤 ping を送信しました");
@@ -47,13 +53,24 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onmessage = (event) => {
-    console.log("📨 DataChannel message received:", event.data);
     logs.push(`📨 受信メッセージ: ${event.data}`);
     if (event.data === "pong") {
       pingConfirmed = true;
       logs.push("✅ pong を受信 → DataChannel 応答OK");
     }
   };
+
+  dc.onclose = () => {
+    logs.push("❌ DataChannel closed");
+  };
+
+  dc.onerror = (err) => {
+    logs.push(`❌ DataChannel error: ${err}`);
+  };
+
+  pc.addEventListener("icecandidateerror", e => {
+    logs.push(`❌ ICE candidate error: ${e.errorText}`);
+  });
 
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -87,13 +104,13 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   await pc.setRemoteDescription(answer);
   logs.push("📥 SDP answer 受信・セット完了");
 
-  // 待機（最大20秒）
+  // 20秒間待機（DataChannel応答と candidate-pair 成功を待つ）
   for (let i = 0; i < 20; i++) {
     if (dataChannelOpened && pingConfirmed) break;
     await new Promise(r => setTimeout(r, 1000));
   }
 
-  // 統計情報から candidate-pair 成功チェック
+  // candidate-pair success 判定
   const stats = await pc.getStats();
   stats.forEach(report => {
     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
