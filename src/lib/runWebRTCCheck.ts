@@ -1,12 +1,12 @@
 //rita-base\lib\runWebRTCCheck.ts
-  
+
 // -------------------------
 // runWebRTCCheck.ts
 // - WebRTC診断（DataChannelの接続確認）
 // - STUN/TURNを通してP2PまたはTURN中継通信が成功するか確認
 // - 成功時は DataChannel open と candidate-pair をログ出力
 // --------------------------------
-  
+
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   let dataChannelOpened = false;
@@ -18,28 +18,26 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   const isVercel = location.hostname.endsWith("vercel.app") || location.hostname.includes("kizukumolink");
 
   const config: RTCConfiguration = {
-    iceServers: isVercel || isMobile
-      ? [
-          {
-            urls: ['turn:3.80.218.25:3478?transport=tcp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-        ]
-      : [
-          { urls: 'stun:3.80.218.25:3478' },
-          {
-            urls: ['turn:3.80.218.25:3478?transport=udp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-          {
-            urls: ['turn:3.80.218.25:3478?transport=tcp'],
-            username: 'test',
-            credential: 'testpass',
-          },
-        ],
-    iceTransportPolicy: isVercel || isMobile ? 'relay' : 'all',
+    iceServers: [
+      {
+        urls: ['turn:3.80.218.25:3478?transport=udp'],
+        username: 'test',
+        credential: 'testpass',
+      },
+      ...(isVercel ? [{
+        urls: ['turn:3.80.218.25:3478?transport=tcp'],
+        username: 'test',
+        credential: 'testpass',
+      }] : [
+        { urls: 'stun:3.80.218.25:3478' },
+        {
+          urls: ['turn:3.80.218.25:3478?transport=tcp'],
+          username: 'test',
+          credential: 'testpass',
+        }
+      ]),
+    ],
+    iceTransportPolicy: 'relay',
     bundlePolicy: 'max-bundle',
     iceCandidatePoolSize: 0,
   };
