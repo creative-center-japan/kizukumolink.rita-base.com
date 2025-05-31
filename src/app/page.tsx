@@ -8,7 +8,6 @@
 
 'use client';
 import React, { useState, useEffect } from 'react';
-import { runWebRTCCheck } from "@/lib/runWebRTCCheck";
 import { runDiagnosis } from "@/lib/runDiagnosis";
 import { ResultCard } from "@/components/ResultCard";
 import { generateReportText } from "@/lib/utils";
