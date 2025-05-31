@@ -28,7 +28,6 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
       }
     ],
     iceTransportPolicy: 'all',
-    bundlePolicy: 'max-bundle',
     iceCandidatePoolSize: 0,
   };
 
