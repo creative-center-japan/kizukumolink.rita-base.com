@@ -27,7 +27,7 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass',
       }
     ],
-    iceTransportPolicy: 'relay', // UDP→TCP fallbackあり（relayのみ使用）
+    iceTransportPolicy: 'all', // UDP→TCP fallbackあり（relayのみ使用）
     bundlePolicy: 'max-bundle',
     iceCandidatePoolSize: 0,
   };
