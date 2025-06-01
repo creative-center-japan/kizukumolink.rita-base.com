@@ -34,24 +34,25 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
   const pc = new RTCPeerConnection(config);
-
-  // ✅ createDataChannel を先に作成（negotiated: true）
   const dc = pc.createDataChannel("check", {
     ordered: true,
     negotiated: true,
     id: 0,
   });
 
-  // 🔁 接続待ちタイマー
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
     }, 10000);
 
-    dc.onopen = () => {
+    dc.onopen = async () => {
       logs.push("✅ DataChannel open!");
       dc.send("ping");
       logs.push("📤 ping を送信しました");
+
+      // ✅ TURNセッションが維持されるよう 3秒ほど待つ
+      await new Promise(res => setTimeout(res, 3000));
+
       clearTimeout(timeout);
       resolve();
     };
@@ -61,7 +62,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
 
-  // ✅ ICE candidate収集前に setLocalDescription して gather 開始
   const offer = await pc.createOffer({
     offerToReceiveAudio: false,
     offerToReceiveVideo: false,
@@ -70,20 +70,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   await pc.setLocalDescription(offer);
 
-  // ✅ ICE候補の収集完了まで待機
+  // ICE候補収集完了を待機
   await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") {
-      resolve();
-    } else {
-      pc.onicegatheringstatechange = () => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
-        }
-      };
-    }
+    if (pc.iceGatheringState === "complete") resolve();
+    else pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState === "complete") resolve();
+    };
   });
 
-  // ✅ /offer へ送信（ICE候補が付いた SDP を含む）
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
