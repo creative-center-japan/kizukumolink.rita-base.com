@@ -108,5 +108,3 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.close();
   return logs;
 };
-
-export default runWebRTCCheck;
