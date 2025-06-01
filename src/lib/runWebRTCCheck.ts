@@ -38,9 +38,9 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
 
   const dc = pc.createDataChannel("check", {
     ordered: true,
-    negotiated: true,
-    id: 0, // negotiated: true の場合は id 必須
+    negotiated: false,
   });
+
   logs.push("🔧 DataChannel 作成済み（negotiated: true, id: 0）");
 
   dc.onopen = () => {
