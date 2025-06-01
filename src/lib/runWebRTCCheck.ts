@@ -8,7 +8,7 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
-const runWebRTCCheck = async (): Promise<string[]> => {
+export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
@@ -26,7 +26,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       },
     ],
     iceTransportPolicy: 'relay',
-    bundlePolicy: 'balanced',
+    bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
@@ -34,70 +34,94 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
   const pc = new RTCPeerConnection(config);
+
   const dc = pc.createDataChannel("check", {
-    ordered: true,
     negotiated: true,
     id: 0,
+    ordered: true,
   });
+  logs.push("🔧 DataChannel 作成済み（negotiated: true, id: 0）");
 
-  const waitForOpen = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("DataChannelの接続が10秒以内に完了しませんでした")), 10000);
+  let pingConfirmed = false;
 
-    dc.onopen = () => {
-      logs.push("✅ DataChannel open!");
-      dc.send("ping");
-      logs.push("📤 ping を送信しました");
-      clearTimeout(timeout);
-      resolve();
-    };
-  });
+  dc.onopen = () => {
+    logs.push("✅ DataChannel open!");
+    dc.send("ping");
+    logs.push("📤 ping を送信しました");
+  };
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
+    if (event.data === "pong") {
+      logs.push("✅ pong を受信 → DataChannel 応答OK");
+      pingConfirmed = true;
+    }
+  };
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      logs.push(`ICE候補: ${e.candidate.candidate}`);
+      if (e.candidate.candidate.includes("typ relay")) {
+        logs.push("✅ relay候補を検出");
+      }
+    } else {
+      logs.push("ICE候補: 収集完了（null候補）");
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    logs.push(`ICE接続状態: ${pc.iceConnectionState}`);
+  };
+
+  pc.onconnectionstatechange = () => {
+    logs.push(`全体接続状態: ${pc.connectionState}`);
   };
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  logs.push("📝 SDP offer 生成・セット完了");
+
+  while (pc.iceGatheringState !== "complete") {
+    await new Promise((r) => setTimeout(r, 100));
+  }
 
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
   });
 
   const answer = await res.json();
   await pc.setRemoteDescription(answer);
+  logs.push("📥 SDP answer 受信・セット完了");
 
-  pc.onicecandidate = async (event) => {
-    if (event.candidate) {
-      const cand = event.candidate.candidate;
-      if (cand.includes("typ srflx")) logs.push("🌐 srflx: 応答あり");
-      if (cand.includes("typ relay")) logs.push("🔁 relay: TURN中継成功");
+  await new Promise((r) => setTimeout(r, 3000));
 
-      await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidate: event.candidate, pc_id: answer.pc_id }),
-      });
+  const stats = await pc.getStats();
+  let succeeded = false;
+  stats.forEach((report) => {
+    if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+      const local = report.localCandidateId;
+      const localCand = stats.get(local);
+      if (localCand?.candidateType === "relay") {
+        logs.push("✅ TURN中継通信に成功（candidate-pair: succeeded, relay）");
+      } else {
+        logs.push("✅ P2P接続に成功（candidate-pair: succeeded, host/srflx）");
+      }
+      succeeded = true;
     }
-  };
-
-  await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") resolve();
-    else pc.onicegatheringstatechange = () => {
-      if (pc.iceGatheringState === "complete") resolve();
-    };
   });
 
-  try {
-    await waitForOpen;
-  } catch (err) {
-    if (err instanceof Error) {
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-      logs.push(`詳細: ${err.message}`);
-    } else {
-      logs.push("❌ WebRTC接続に失敗しました（原因不明）");
-    }
+  if (!succeeded) {
+    logs.push("❌ 接続候補ペアが確立しませんでした（succeeded候補なし）");
+  }
+
+  if (pingConfirmed) {
+    logs.push("✅ DataChannel 応答確認 成功");
+    logs.push("【判定】OK");
+  } else {
+    logs.push("❌ DataChannel 応答失敗");
+    logs.push("【判定】NG");
   }
 
   pc.close();
