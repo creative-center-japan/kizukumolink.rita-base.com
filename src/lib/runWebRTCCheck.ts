@@ -25,11 +25,13 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'relay',
+    iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
+    ...(typeof window !== 'undefined' ? { sdpSemantics: 'unified-plan' as any } : {}),
   };
+
 
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
