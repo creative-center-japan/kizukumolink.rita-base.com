@@ -8,7 +8,7 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
-const runWebRTCCheck = async (): Promise<string[]> => {
+export default async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
@@ -36,10 +36,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   const dc = pc.createDataChannel("check", {
     ordered: true,
-    negotiated: false, // 明示的に指定（デフォルトと同じ）
+    negotiated: false,
   });
 
-  // ✅ DataChannel が開くのを最大10秒待機
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
