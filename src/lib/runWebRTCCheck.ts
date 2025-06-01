@@ -34,6 +34,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
   const pc = new RTCPeerConnection(config);
+
   const dc = pc.createDataChannel("check", {
     ordered: true,
     negotiated: true,
@@ -58,7 +59,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
 
-  const offer = await pc.createOffer();
+  // ✅ 修正点: createOffer 時に明示的にオプションを指定
+  const offer = await pc.createOffer({
+    offerToReceiveAudio: false,
+    offerToReceiveVideo: false,
+    iceRestart: true, // 明示的に candidate 再収集させる
+  });
+
   await pc.setLocalDescription(offer);
 
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
