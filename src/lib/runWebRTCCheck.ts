@@ -50,8 +50,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       dc.send("ping");
       logs.push("📤 ping を送信しました");
 
-      // ✅ TURNセッションが維持されるよう 3秒ほど待つ
-      await new Promise(res => setTimeout(res, 7000));
+      // ✅ TURNセッションが維持されるよう 20秒ほど待つ
+      await new Promise(res => setTimeout(res, 20000));
 
       clearTimeout(timeout);
       resolve();
