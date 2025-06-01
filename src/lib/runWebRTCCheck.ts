@@ -35,13 +35,11 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
   const pc = new RTCPeerConnection(config);
-
   const dc = pc.createDataChannel("check", {
     ordered: true,
     negotiated: false,
   });
-
-  logs.push("🔧 DataChannel 作成済み（negotiated: true, id: 0）");
+  logs.push("🔧 DataChannel 作成済み");
 
   dc.onopen = () => {
     logs.push("✅ DataChannel open!");
@@ -56,14 +54,6 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
       pingConfirmed = true;
       logs.push("✅ pong を受信 → DataChannel 応答OK");
     }
-  };
-
-  dc.onerror = (err) => {
-    logs.push(`⚠️ DataChannel error: ${err}`);
-  };
-
-  dc.onclose = () => {
-    logs.push("📪 DataChannel closed");
   };
 
   pc.onicecandidate = (e) => {
