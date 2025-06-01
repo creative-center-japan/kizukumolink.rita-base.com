@@ -10,7 +10,6 @@
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
-  let success = false;
 
   const config: RTCConfiguration = {
     iceServers: [
@@ -35,7 +34,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
   const pc = new RTCPeerConnection(config);
-  const dc = pc.createDataChannel("check"); // negotiated: false
+  const dc = pc.createDataChannel("check", {
+    ordered: true,
+    negotiated: false, // 明示的に指定（デフォルトと同じ）
+  });
 
   // ✅ DataChannel が開くのを最大10秒待機
   const waitForOpen = new Promise<void>((resolve, reject) => {
@@ -47,7 +49,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       logs.push("✅ DataChannel open!");
       dc.send("ping");
       logs.push("📤 ping を送信しました");
-      success = true;
       clearTimeout(timeout);
       resolve();
     };
@@ -56,18 +57,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onmessage = (event) => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
-  });
-
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
 
   pc.onicecandidate = async (event) => {
     if (event.candidate) {
@@ -85,6 +74,18 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       });
     }
   };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+  });
+
+  const answer = await res.json();
+  await pc.setRemoteDescription(answer);
 
   await new Promise<void>((resolve) => {
     if (pc.iceGatheringState === "complete") resolve();
@@ -107,3 +108,5 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.close();
   return logs;
 };
+
+export default runWebRTCCheck;
