@@ -8,12 +8,7 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
-// -------------------------
-// runWebRTCCheck.ts
-// - WebRTC診断（DataChannelの接続確認）
-// -------------------------
-
-export const runWebRTCCheck = async (): Promise<string[]> => {
+const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
@@ -30,8 +25,8 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'all',
-    bundlePolicy: 'max-bundle',
+    iceTransportPolicy: 'relay',
+    bundlePolicy: 'balanced',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
@@ -41,13 +36,12 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   const dc = pc.createDataChannel("check", {
     ordered: true,
-    negotiated: false,
+    negotiated: true,
+    id: 0,
   });
 
   const waitForOpen = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
-    }, 10000);
+    const timeout = setTimeout(() => reject(new Error("DataChannelの接続が10秒以内に完了しませんでした")), 10000);
 
     dc.onopen = () => {
       logs.push("✅ DataChannel open!");
@@ -83,10 +77,7 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
       await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate: event.candidate,
-          pc_id: answer.pc_id,
-        }),
+        body: JSON.stringify({ candidate: event.candidate, pc_id: answer.pc_id }),
       });
     }
   };
@@ -112,3 +103,5 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
   pc.close();
   return logs;
 };
+
+export default runWebRTCCheck;
