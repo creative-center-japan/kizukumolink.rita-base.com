@@ -11,7 +11,7 @@
 export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
-  const config: RTCConfiguration = {
+  const config: RTCConfiguration & { sdpSemantics?: 'unified-plan' } = {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
       {
@@ -29,9 +29,8 @@ export const runWebRTCCheck = async (): Promise<string[]> => {
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
-    ...(typeof window !== 'undefined' ? { sdpSemantics: 'unified-plan' as any } : {}),
+    sdpSemantics: 'unified-plan',
   };
-
 
   logs.push(`[設定] iceServers: ${JSON.stringify(config.iceServers)}`);
 
