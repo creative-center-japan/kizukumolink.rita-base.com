@@ -8,7 +8,12 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
-export default async (): Promise<string[]> => {
+// -------------------------
+// runWebRTCCheck.ts
+// - WebRTC診断（DataChannelの接続確認）
+// -------------------------
+
+export const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
@@ -57,6 +62,18 @@ export default async (): Promise<string[]> => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
 
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+  });
+
+  const answer = await res.json();
+  await pc.setRemoteDescription(answer);
+
   pc.onicecandidate = async (event) => {
     if (event.candidate) {
       const cand = event.candidate.candidate;
@@ -73,18 +90,6 @@ export default async (): Promise<string[]> => {
       });
     }
   };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
-  });
-
-  const answer = await res.json();
-  await pc.setRemoteDescription(answer);
 
   await new Promise<void>((resolve) => {
     if (pc.iceGatheringState === "complete") resolve();
