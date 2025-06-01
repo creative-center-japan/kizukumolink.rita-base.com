@@ -35,12 +35,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const pc = new RTCPeerConnection(config);
 
+  // ✅ createDataChannel を先に作成（negotiated: true）
   const dc = pc.createDataChannel("check", {
     ordered: true,
     negotiated: true,
     id: 0,
   });
 
+  // 🔁 接続待ちタイマー
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
@@ -59,19 +61,33 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
 
-  // ✅ 修正点: createOffer 時に明示的にオプションを指定
+  // ✅ ICE candidate収集前に setLocalDescription して gather 開始
   const offer = await pc.createOffer({
     offerToReceiveAudio: false,
     offerToReceiveVideo: false,
-    iceRestart: true, // 明示的に candidate 再収集させる
+    iceRestart: true,
   });
 
   await pc.setLocalDescription(offer);
 
+  // ✅ ICE候補の収集完了まで待機
+  await new Promise<void>((resolve) => {
+    if (pc.iceGatheringState === "complete") {
+      resolve();
+    } else {
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") {
+          resolve();
+        }
+      };
+    }
+  });
+
+  // ✅ /offer へ送信（ICE候補が付いた SDP を含む）
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sdp: pc.localDescription!.sdp, type: pc.localDescription!.type }),
   });
 
   const answer = await res.json();
@@ -85,7 +101,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
       await fetch("https://webrtc-answer.rita-base.com/ice-candidate", {
         method: "POST",
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           candidate: event.candidate,
           pc_id: answer.pc_id,
@@ -93,13 +109,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       });
     }
   };
-
-  await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") resolve();
-    else pc.onicegatheringstatechange = () => {
-      if (pc.iceGatheringState === "complete") resolve();
-    };
-  });
 
   try {
     await waitForOpen;
