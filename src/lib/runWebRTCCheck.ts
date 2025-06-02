@@ -15,44 +15,40 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
       { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
-      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' },
+      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' }
     ],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: 0,
+    iceCandidatePoolSize: 0
   };
 
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  // --- 状態ログ出力 ---
+  // イベントログ
   pc.addEventListener('icecandidate', (e) => {
-    logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
+    logs.push(`[ICE] candidate: ${e.candidate?.candidate ?? '(収集完了)'}`);
   });
 
   pc.addEventListener('iceconnectionstatechange', () => {
-    logs.push('[ICE] connection state: ' + pc.iceConnectionState);
+    logs.push(`[ICE] connection state: ${pc.iceConnectionState}`);
   });
 
   pc.addEventListener('connectionstatechange', () => {
-    logs.push('[WebRTC] connection state: ' + pc.connectionState);
+    logs.push(`[WebRTC] connection state: ${pc.connectionState}`);
   });
 
   pc.addEventListener('signalingstatechange', () => {
-    logs.push('[WebRTC] signaling state: ' + pc.signalingState);
+    logs.push(`[WebRTC] signaling state: ${pc.signalingState}`);
   });
 
   pc.addEventListener('icegatheringstatechange', () => {
-    logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
+    logs.push(`[ICE] gathering state: ${pc.iceGatheringState}`);
   });
 
-  // --- DataChannel生成（negotiated） ---
-  const dc = pc.createDataChannel("check", {
-    ordered: true,
-    negotiated: true,
-    id: 0,
-  });
+  // DataChannel
+  const dc = pc.createDataChannel("check", { ordered: true, negotiated: true, id: 0 });
 
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -75,17 +71,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     };
   });
 
-  dc.onmessage = (event) => {
-    logs.push(`📨 受信メッセージ: ${event.data}`);
-  };
-
+  dc.onmessage = (event) => logs.push(`📨 受信メッセージ: ${event.data}`);
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer();
+  const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false, iceRestart: true });
   await pc.setLocalDescription(offer);
 
-  // --- ICE収集待機 ---
   await new Promise<void>((resolve) => {
     if (pc.iceGatheringState === "complete") return resolve();
     const check = () => {
@@ -102,14 +94,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     return logs;
   }
 
-  // --- SDP送信 ---
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       sdp: pc.localDescription.sdp,
-      type: pc.localDescription.type,
-    }),
+      type: pc.localDescription.type
+    })
   });
 
   const answer = await res.json();
@@ -122,13 +113,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     await waitForOpen;
     logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-      logs.push(`詳細: ${err.message}`);
-    } else {
-      logs.push("❌ WebRTC接続に失敗しました（原因不明）");
-    }
+  } catch (err: any) {
+    logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
+    logs.push(`詳細: ${err.message}`);
   }
 
   pc.close();
@@ -136,4 +123,3 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 };
 
 export default runWebRTCCheck;
-
