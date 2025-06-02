@@ -67,6 +67,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
+  let pingInterval: ReturnType<typeof setInterval>;
+
+
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
@@ -79,13 +82,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         dc.send("ping");
         logs.push("📤 ping を送信しました");
 
-        // 🔁 keepalive (3秒ごとに ping を送信し続ける)
-        const pingInterval = setInterval(() => {
+        // 🔁 keepalive を継続
+        pingInterval = setInterval(() => {
           if (dc.readyState === "open") {
             dc.send("ping");
             logs.push("📤 ping keepalive");
           } else {
-            logs.push("🛑 keepalive停止（closed）");
+            logs.push("🛑 keepalive 停止（closed）");
             clearInterval(pingInterval);
           }
         }, 3000);
@@ -145,6 +148,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   try {
     await waitForOpen;
     logs.push("✅ DataChannel 接続＋応答確認 成功");
+
+    // ✅ 5秒間は保持する
+    await new Promise((res) => setTimeout(res, 5000));
+    logs.push("⏱ 接続を5秒保持後にclose");
+
+    clearInterval(pingInterval);
     logs.push("【判定】OK");
   } catch (err: unknown) {
     logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
