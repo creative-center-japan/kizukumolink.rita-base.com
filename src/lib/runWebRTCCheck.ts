@@ -15,20 +15,20 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
       { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
-      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' }
+      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' },
     ],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: 0
+    iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  // 状態イベントログ出力
+  // --- 状態ログ出力 ---
   pc.addEventListener('icecandidate', (e) => {
-    logs.push('[ICE] candidate:', e.candidate?.candidate ?? '(収集完了)');
+    logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   });
 
   pc.addEventListener('iceconnectionstatechange', () => {
@@ -47,7 +47,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  // DataChannel
+  // --- DataChannel生成（negotiated） ---
   const dc = pc.createDataChannel("check", {
     ordered: true,
     negotiated: true,
@@ -64,7 +64,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       dc.send("ping");
       logs.push("📤 ping を送信しました");
 
-      // 追加: keepalive ping（3回送信）
       for (let i = 1; i <= 3; i++) {
         await new Promise(res => setTimeout(res, 3000));
         dc.send("ping");
@@ -83,26 +82,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer({
-    offerToReceiveAudio: false,
-    offerToReceiveVideo: false,
-    iceRestart: true
-  });
-
+  const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
-  // ICE収集の完了を明示的に待機
+  // --- ICE収集待機 ---
   await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") resolve();
-    else {
-      const check = () => {
-        if (pc.iceGatheringState === "complete") {
-          pc.removeEventListener("icegatheringstatechange", check);
-          resolve();
-        }
-      };
-      pc.addEventListener("icegatheringstatechange", check);
-    }
+    if (pc.iceGatheringState === "complete") return resolve();
+    const check = () => {
+      if (pc.iceGatheringState === "complete") {
+        pc.removeEventListener("icegatheringstatechange", check);
+        resolve();
+      }
+    };
+    pc.addEventListener("icegatheringstatechange", check);
   });
 
   if (!pc.localDescription) {
@@ -110,13 +102,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     return logs;
   }
 
+  // --- SDP送信 ---
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       sdp: pc.localDescription.sdp,
-      type: pc.localDescription.type
-    })
+      type: pc.localDescription.type,
+    }),
   });
 
   const answer = await res.json();
@@ -143,3 +136,4 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 };
 
 export default runWebRTCCheck;
+
