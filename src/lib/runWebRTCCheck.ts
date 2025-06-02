@@ -179,8 +179,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     await waitForOpen;
     logs.push("✅ DataChannel 接続＋応答確認 成功");
 
-    await new Promise((res) => setTimeout(res, 5000));
-    logs.push("⏱ 接続を5秒保持後にclose");
+    await new Promise((res) => setTimeout(res, 15000));
+    logs.push("⏱ 接続を15秒保持後にclose");
 
     if (pingInterval) clearInterval(pingInterval);
     logs.push("【判定】OK");
