@@ -7,14 +7,23 @@
 // - DataChannel は negotiated: true / id: 0 を使用（server/client一致）
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
+
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
-      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' }
+      {
+        urls: 'turn:3.80.218.25:3478?transport=udp',
+        username: 'test',
+        credential: 'testpass'
+      },
+      {
+        urls: 'turn:3.80.218.25:3478?transport=tcp',
+        username: 'test',
+        credential: 'testpass'
+      }
     ],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
@@ -51,27 +60,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     id: 0,
   });
 
-  const waitForOpen = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
-    }, 10000);
-
-    dc.onopen = async () => {
-      logs.push("✅ DataChannel open");
-      dc.send("ping");
-      logs.push("📤 ping を送信しました");
-
-      for (let i = 1; i <= 3; i++) {
-        await new Promise(res => setTimeout(res, 3000));
-        dc.send("ping");
-        logs.push(`📤 ping keepalive #${i}`);
-      }
-
-      clearTimeout(timeout);
-      resolve();
-    };
-  });
-
   dc.onmessage = (event) => {
     logs.push(`📨 受信メッセージ: ${event.data}`);
   };
@@ -79,19 +67,46 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
+  const waitForOpen = new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
+    }, 10000);
+
+    dc.onopen = async () => {
+      logs.push("✅ DataChannel open");
+
+      if (dc.readyState === "open") {
+        dc.send("ping");
+        logs.push("📤 ping を送信しました");
+      } else {
+        logs.push("⚠ DataChannel は open 状態ではありません");
+        clearTimeout(timeout);
+        return;
+      }
+
+      for (let i = 1; i <= 3; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        if (dc.readyState === "open") {
+          dc.send("ping");
+          logs.push(`📤 ping keepalive #${i}`);
+        } else {
+          logs.push(`⚠ keepalive #${i} 送信スキップ（closed状態）`);
+          break;
+        }
+      }
+
+      clearTimeout(timeout);
+      resolve();
+    };
+  });
+
   const offer = await pc.createOffer({
     offerToReceiveAudio: false,
     offerToReceiveVideo: false,
     iceRestart: true
   });
 
-  try {
-    await pc.setLocalDescription(offer);
-  } catch (err) {
-    logs.push("❌ setLocalDescription に失敗しました");
-    logs.push((err as Error).message);
-    return logs;
-  }
+  await pc.setLocalDescription(offer);
 
   await new Promise<void>((resolve) => {
     if (pc.iceGatheringState === "complete") resolve();
@@ -111,20 +126,30 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     return logs;
   }
 
-  const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sdp: pc.localDescription.sdp,
-      type: pc.localDescription.type
-    })
-  });
+  try {
+    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sdp: pc.localDescription.sdp,
+        type: pc.localDescription.type
+      })
+    });
 
-  const answer = await res.json();
-  logs.push("📨 サーバからSDP answerを受信");
+    if (!res.ok) {
+      throw new Error(`fetchエラー status=${res.status}`);
+    }
 
-  await pc.setRemoteDescription(new RTCSessionDescription(answer));
-  logs.push("✅ setRemoteDescription 完了");
+    const answer = await res.json();
+    logs.push("📨 サーバからSDP answerを受信");
+
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    logs.push("✅ setRemoteDescription 完了");
+  } catch (err) {
+    logs.push(`❌ SDP answer 取得・設定失敗: ${(err as Error).message}`);
+    pc.close();
+    return logs;
+  }
 
   try {
     await waitForOpen;
