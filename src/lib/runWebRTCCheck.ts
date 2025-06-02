@@ -112,9 +112,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     await waitForOpen;
     logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
-  } catch (err: any) {
+  } catch (err: unknown) {
     logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
-    logs.push(`詳細: ${err.message}`);
+    if (err instanceof Error) {
+      logs.push(`詳細: ${err.message}`);
+    } else {
+      logs.push("詳細: 不明なエラーが発生しました");
+    }
   }
 
   pc.close();
