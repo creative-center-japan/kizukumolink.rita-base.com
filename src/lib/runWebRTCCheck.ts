@@ -72,27 +72,23 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
     }, 10000);
 
-    dc.onopen = async () => {
+    dc.onopen = () => {
       logs.push("✅ DataChannel open");
 
       if (dc.readyState === "open") {
         dc.send("ping");
         logs.push("📤 ping を送信しました");
-      } else {
-        logs.push("⚠ DataChannel は open 状態ではありません");
-        clearTimeout(timeout);
-        return;
-      }
 
-      for (let i = 1; i <= 3; i++) {
-        await new Promise(res => setTimeout(res, 3000));
-        if (dc.readyState === "open") {
-          dc.send("ping");
-          logs.push(`📤 ping keepalive #${i}`);
-        } else {
-          logs.push(`⚠ keepalive #${i} 送信スキップ（closed状態）`);
-          break;
-        }
+        // ✅ keepaliveを無限に継続
+        const pingInterval = setInterval(() => {
+          if (dc.readyState === "open") {
+            dc.send("ping");
+            logs.push("📤 ping keepalive");
+          } else {
+            logs.push("🛑 keepalive停止（closed）");
+            clearInterval(pingInterval);
+          }
+        }, 3000);
       }
 
       clearTimeout(timeout);
@@ -121,18 +117,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     }
   });
 
-  if (!pc.localDescription) {
-    logs.push("❌ setLocalDescription が未完了");
-    return logs;
-  }
-
   try {
     const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sdp: pc.localDescription.sdp,
-        type: pc.localDescription.type
+        sdp: pc.localDescription!.sdp,
+        type: pc.localDescription!.type
       })
     });
 
@@ -156,11 +147,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
   } catch (err: unknown) {
+    logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     if (err instanceof Error) {
-      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
       logs.push(`詳細: ${err.message}`);
-    } else {
-      logs.push("❌ WebRTC接続に失敗しました（原因不明）");
     }
   }
 
