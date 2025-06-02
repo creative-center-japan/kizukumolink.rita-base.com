@@ -47,33 +47,30 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         const stats = await pc.getStats();
         let candidatePairInfo = '❌ 候補ペア情報が取得できませんでした';
 
-        const localCandidates = new Map<string, any>();
-        const remoteCandidates = new Map<string, any>();
+        type CandidateWithIP = RTCStats & { ip?: string; port?: number };
+        const localCandidates = new Map<string, CandidateWithIP>();
+        const remoteCandidates = new Map<string, CandidateWithIP>();
 
         stats.forEach(report => {
           if (report.type === 'local-candidate') {
-            localCandidates.set(report.id, report);
+            localCandidates.set(report.id, report as CandidateWithIP);
           } else if (report.type === 'remote-candidate') {
-            remoteCandidates.set(report.id, report);
+            remoteCandidates.set(report.id, report as CandidateWithIP);
           }
         });
 
         stats.forEach(report => {
-          if (
-            report.type === 'candidate-pair' &&
-            report.state === 'succeeded' &&
-            report.nominated
-          ) {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
             const local = localCandidates.get(report.localCandidateId);
             const remote = remoteCandidates.get(report.remoteCandidateId);
             if (local && remote) {
-              candidatePairInfo = `ICE Candidate pair: ${local.ip}:${local.port} <=> ${remote.ip}:${remote.port}`;
+              candidatePairInfo = `ICE Candidate pair: ${local.ip ?? '??'}:${local.port ?? '??'} <=> ${remote.ip ?? '??'}:${remote.port ?? '??'}`;
             }
           }
         });
 
         logs.push(candidatePairInfo);
-      }, 300); // 少し遅らせるのがポイント
+      }, 300);
     }
   });
 
