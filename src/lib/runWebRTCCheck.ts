@@ -73,11 +73,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     };
   });
 
-  dc.onmessage = (event) => logs.push(`📨 受信メッセージ: ${event.data}`);
+  dc.onmessage = (event) => {
+    logs.push(`📨 受信メッセージ: ${event.data}`);
+  };
+
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer({ iceRestart: true });
+  const offer = await pc.createOffer({
+    offerToReceiveAudio: false,
+    offerToReceiveVideo: false,
+    iceRestart: true
+  });
+
   await pc.setLocalDescription(offer);
 
   await new Promise<void>((resolve) => {
@@ -99,7 +107,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
+    body: JSON.stringify({
+      sdp: pc.localDescription.sdp,
+      type: pc.localDescription.type
+    })
   });
 
   const answer = await res.json();
@@ -113,11 +124,11 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
   } catch (err: unknown) {
-    logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
     if (err instanceof Error) {
+      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
       logs.push(`詳細: ${err.message}`);
     } else {
-      logs.push("詳細: 不明なエラーが発生しました");
+      logs.push("❌ WebRTC接続に失敗しました（原因不明）");
     }
   }
 
