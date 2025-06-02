@@ -79,7 +79,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         dc.send("ping");
         logs.push("📤 ping を送信しました");
 
-        // ✅ keepaliveを無限に継続
+        // 🔁 keepalive (3秒ごとに ping を送信し続ける)
         const pingInterval = setInterval(() => {
           if (dc.readyState === "open") {
             dc.send("ping");
