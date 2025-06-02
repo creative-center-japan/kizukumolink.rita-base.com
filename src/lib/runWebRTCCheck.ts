@@ -32,19 +32,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   });
 
   pc.addEventListener('iceconnectionstatechange', () => {
-    logs.push('[ICE] connection state:', pc.iceConnectionState);
+    logs.push('[ICE] connection state: ' + pc.iceConnectionState);
   });
 
   pc.addEventListener('connectionstatechange', () => {
-    logs.push('[WebRTC] connection state:', pc.connectionState);
+    logs.push('[WebRTC] connection state: ' + pc.connectionState);
   });
 
   pc.addEventListener('signalingstatechange', () => {
-    logs.push('[WebRTC] signaling state:', pc.signalingState);
+    logs.push('[WebRTC] signaling state: ' + pc.signalingState);
   });
 
   pc.addEventListener('icegatheringstatechange', () => {
-    logs.push('[ICE] gathering state:', pc.iceGatheringState);
+    logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
   // DataChannel
@@ -63,7 +63,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       logs.push("✅ DataChannel open");
       dc.send("ping");
       logs.push("📤 ping を送信しました");
-      await new Promise(res => setTimeout(res, 5000));
+
+      // 追加: keepalive ping（3回送信）
+      for (let i = 1; i <= 3; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        dc.send("ping");
+        logs.push(`📤 ping keepalive #${i}`);
+      }
+
       clearTimeout(timeout);
       resolve();
     };
@@ -84,11 +91,18 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   await pc.setLocalDescription(offer);
 
+  // ICE収集の完了を明示的に待機
   await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") return resolve();
-    pc.addEventListener("icegatheringstatechange", () => {
-      if (pc.iceGatheringState === "complete") resolve();
-    });
+    if (pc.iceGatheringState === "complete") resolve();
+    else {
+      const check = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", check);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", check);
+    }
   });
 
   if (!pc.localDescription) {
