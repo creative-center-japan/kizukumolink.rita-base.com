@@ -67,8 +67,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  let pingInterval: ReturnType<typeof setInterval>;
-
+  let pingInterval: ReturnType<typeof setInterval> | undefined;
 
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -98,6 +97,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       resolve();
     };
   });
+
 
   const offer = await pc.createOffer({
     offerToReceiveAudio: false,
