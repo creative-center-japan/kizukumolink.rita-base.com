@@ -41,7 +41,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.addEventListener('iceconnectionstatechange', () => {
     logs.push('[ICE] connection state: ' + pc.iceConnectionState);
 
-    // ✅ 接続成功時に candidate-pair を調査
     if (pc.iceConnectionState === 'connected') {
       setTimeout(async () => {
         const stats = await pc.getStats();
@@ -136,19 +135,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   });
 
   await pc.setLocalDescription(offer);
-
-  await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") resolve();
-    else {
-      const check = () => {
-        if (pc.iceGatheringState === "complete") {
-          pc.removeEventListener("icegatheringstatechange", check);
-          resolve();
-        }
-      };
-      pc.addEventListener("icegatheringstatechange", check);
-    }
-  });
 
   try {
     const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
