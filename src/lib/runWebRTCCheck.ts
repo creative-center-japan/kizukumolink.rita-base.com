@@ -7,10 +7,6 @@
 // - DataChannel は negotiated: true / id: 0 を使用（server/client一致）
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
-
-// runWebRTCCheck.ts
-// WebRTC接続確認用クライアントサイドロジック
-
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -18,12 +14,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
       { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
-      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' },
+      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' }
     ],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: 0,
+    iceCandidatePoolSize: 0
   };
 
   const pc = new RTCPeerConnection(config);
@@ -83,17 +79,17 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  try {
-    const offer = await pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
-      iceRestart: true
-    });
+  const offer = await pc.createOffer({
+    offerToReceiveAudio: false,
+    offerToReceiveVideo: false,
+    iceRestart: true
+  });
 
+  try {
     await pc.setLocalDescription(offer);
   } catch (err) {
-    logs.push('❌ setLocalDescription 失敗: ' + (err instanceof Error ? err.message : '不明なエラー'));
-    pc.close();
+    logs.push("❌ setLocalDescription に失敗しました");
+    logs.push((err as Error).message);
     return logs;
   }
 
@@ -112,7 +108,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   if (!pc.localDescription) {
     logs.push("❌ setLocalDescription が未完了");
-    pc.close();
     return logs;
   }
 
@@ -121,8 +116,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       sdp: pc.localDescription.sdp,
-      type: pc.localDescription.type,
-    }),
+      type: pc.localDescription.type
+    })
   });
 
   const answer = await res.json();
