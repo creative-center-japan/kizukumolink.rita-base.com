@@ -25,7 +25,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass'
       }
     ],
-    iceTransportPolicy: 'all',
+    iceTransportPolicy: 'relay',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0
