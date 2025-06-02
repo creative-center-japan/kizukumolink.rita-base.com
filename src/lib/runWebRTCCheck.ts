@@ -8,6 +8,7 @@
 // - 成功時は DataChannel open と candidate-pair succeeded をログ出力
 // -------------------------
 
+// ✅ runWebRTCCheck.ts（クライアント側 TypeScript）
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -42,49 +43,48 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  const dc = pc.createDataChannel("check", {
-    ordered: true,
-    negotiated: true,
-    id: 0,
-  });
+  const dc = pc.createDataChannel("check");
 
   const waitForOpen = new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error("DataChannelが10秒以内に開通しませんでした"));
+      reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
     }, 10000);
 
     dc.onopen = async () => {
       logs.push("✅ DataChannel open");
       dc.send("ping");
       logs.push("📤 ping を送信しました");
-
       for (let i = 1; i <= 3; i++) {
         await new Promise(res => setTimeout(res, 3000));
         dc.send("ping");
-        logs.push(`📤 keepalive ping #${i}`);
+        logs.push(`📤 ping keepalive #${i}`);
       }
-
       clearTimeout(timeout);
       resolve();
     };
   });
 
-  dc.onmessage = (e) => logs.push(`📨 受信: ${e.data}`);
-  dc.onclose = () => logs.push("❌ DataChannel closed");
+  dc.onmessage = (event) => {
+    logs.push(`📨 受信メッセージ: ${event.data}`);
+  };
+
+  dc.onclose = () => logs.push("❌ DataChannel closed（クライアント側）");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer({ iceRestart: true });
+  const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false, iceRestart: true });
   await pc.setLocalDescription(offer);
 
   await new Promise<void>((resolve) => {
-    if (pc.iceGatheringState === "complete") return resolve();
-    const check = () => {
-      if (pc.iceGatheringState === "complete") {
-        pc.removeEventListener("icegatheringstatechange", check);
-        resolve();
-      }
-    };
-    pc.addEventListener("icegatheringstatechange", check);
+    if (pc.iceGatheringState === "complete") resolve();
+    else {
+      const check = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", check);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", check);
+    }
   });
 
   if (!pc.localDescription) {
@@ -95,29 +95,27 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(pc.localDescription)
+    body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
   });
 
   const answer = await res.json();
   logs.push("📨 サーバからSDP answerを受信");
-
   await pc.setRemoteDescription(new RTCSessionDescription(answer));
   logs.push("✅ setRemoteDescription 完了");
 
   try {
     await waitForOpen;
-    logs.push("✅ DataChannel 応答確認 成功");
+    logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
   } catch (err: unknown) {
     if (err instanceof Error) {
-      logs.push("❌ DataChannel 未確立");
+      logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
       logs.push(`詳細: ${err.message}`);
     } else {
-      logs.push("❌ DataChannel 確立失敗（不明なエラー）");
+      logs.push("❌ WebRTC接続に失敗しました（原因不明）");
     }
   }
 
-  await new Promise(res => setTimeout(res, 3000)); // 保持のため少し待つ
   pc.close();
   return logs;
 };
