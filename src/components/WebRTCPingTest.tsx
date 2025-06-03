@@ -21,7 +21,7 @@ export default function WebRTCPingTest() {
                     credential: 'testpass',
                 },
             ],
-            iceTransportPolicy: 'relay',
+            iceTransportPolicy: 'all',
         });
 
         const channel = pc.createDataChannel('ping-test');
