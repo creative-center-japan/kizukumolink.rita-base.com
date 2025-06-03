@@ -15,7 +15,6 @@ export default function WebRTCPingTest() {
             iceServers: [
                 {
                     urls: [
-                        'stun:stun.l.google.com:19302',
                         'turn:3.80.218.25:3478?transport=udp'
                     ],
                     username: 'test',
