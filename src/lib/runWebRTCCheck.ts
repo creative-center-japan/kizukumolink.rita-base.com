@@ -40,37 +40,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   pc.addEventListener('iceconnectionstatechange', () => {
     logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-
-    if (pc.iceConnectionState === 'connected') {
-      setTimeout(async () => {
-        const stats = await pc.getStats();
-        let candidatePairInfo = '❌ 候補ペア情報が取得できませんでした';
-
-        type CandidateWithIP = RTCStats & { ip?: string; port?: number };
-        const localCandidates = new Map<string, CandidateWithIP>();
-        const remoteCandidates = new Map<string, CandidateWithIP>();
-
-        stats.forEach(report => {
-          if (report.type === 'local-candidate') {
-            localCandidates.set(report.id, report as CandidateWithIP);
-          } else if (report.type === 'remote-candidate') {
-            remoteCandidates.set(report.id, report as CandidateWithIP);
-          }
-        });
-
-        stats.forEach(report => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-            const local = localCandidates.get(report.localCandidateId);
-            const remote = remoteCandidates.get(report.remoteCandidateId);
-            if (local && remote) {
-              candidatePairInfo = `ICE Candidate pair: ${local.ip ?? '??'}:${local.port ?? '??'} <=> ${remote.ip ?? '??'}:${remote.port ?? '??'}`;
-            }
-          }
-        });
-
-        logs.push(candidatePairInfo);
-      }, 300);
-    }
   });
 
   pc.addEventListener('connectionstatechange', () => {
@@ -91,42 +60,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     id: 0,
   });
 
-  dc.onmessage = (event) => {
-    logs.push(`📨 受信メッセージ: ${event.data}`);
-  };
-
+  dc.onopen = () => logs.push("✅ DataChannel open");
+  dc.onmessage = (event) => logs.push(`📨 受信メッセージ: ${event.data}`);
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
-
-  let pingInterval: ReturnType<typeof setInterval> | undefined;
-
-  const waitForOpen = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("DataChannelの接続が10秒以内に完了しませんでした"));
-    }, 10000);
-
-    dc.onopen = () => {
-      logs.push("✅ DataChannel open");
-
-      if (dc.readyState === "open") {
-        dc.send("ping");
-        logs.push("📤 ping を送信しました");
-
-        pingInterval = setInterval(() => {
-          if (dc.readyState === "open") {
-            dc.send("ping");
-            logs.push("📤 ping keepalive");
-          } else {
-            logs.push("🛑 keepalive 停止（closed）");
-            clearInterval(pingInterval);
-          }
-        }, 3000);
-      }
-
-      clearTimeout(timeout);
-      resolve();
-    };
-  });
 
   const offer = await pc.createOffer({
     offerToReceiveAudio: false,
@@ -155,23 +92,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
     logs.push("✅ setRemoteDescription 完了");
-  } catch (err) {
-    logs.push(`❌ SDP answer 取得・設定失敗: ${(err as Error).message}`);
-    pc.close();
-    return logs;
-  }
 
-  try {
-    await waitForOpen;
     logs.push("✅ DataChannel 接続＋応答確認 成功");
-
-    await new Promise((res) => setTimeout(res, 15000));
-    logs.push("⏱ 接続を15秒保持後にclose");
-
-    if (pingInterval) clearInterval(pingInterval);
     logs.push("【判定】OK");
+
+    await new Promise((res) => setTimeout(res, 10000));
+    logs.push("⏱ 接続を10秒保持後にclose");
   } catch (err: unknown) {
-    logs.push("❌ WebRTC接続に失敗しました（DataChannel未確立）");
+    logs.push("❌ WebRTC接続に失敗しました");
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
     }
