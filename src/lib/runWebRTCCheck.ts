@@ -74,7 +74,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   await pc.setLocalDescription(offer);
 
   try {
-    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
+    const res = await fetch("https://signaling.rita-base.com/offer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
