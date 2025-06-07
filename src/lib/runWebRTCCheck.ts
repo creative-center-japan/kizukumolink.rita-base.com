@@ -1,10 +1,3 @@
-// -------------------------
-// runWebRTCCheck.ts
-// - WebRTC診断（DataChannelの接続確認）
-// - UDP TURN接続を基本とし、relay候補の接続可否を判定
-// - DataChannel は negotiated: true / id: 0 を使用（server/client一致）
-// -------------------------
-
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -30,17 +23,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
-
-  let idleTimer: NodeJS.Timeout | null = null;
-  const IDLE_TIMEOUT = 60 * 1000; // 1分
-
-  const resetIdleTimer = () => {
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      logs.push('⏱ アイドル1分経過 → DataChannel close() 実行');
-      pc.close();
-    }, IDLE_TIMEOUT);
-  };
 
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
@@ -70,25 +52,25 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
-    resetIdleTimer();
     dc.send('ping');
-    logs.push('📤 sent: ping');
+    logs.push('📤 送信: ping');
   };
 
   dc.onmessage = (event) => {
-    logs.push(`📨 受信メッセージ: ${event.data}`);
-    resetIdleTimer();
+    logs.push(`📨 受信: ${event.data}`);
+    logs.push('✅ DataChannel 応答確認完了');
+
+    // 60秒後にクローズ
+    setTimeout(() => {
+      logs.push('⏱ DataChannel を60秒維持後に close 実行');
+      pc.close();
+    }, 60000);
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer({
-    offerToReceiveAudio: false,
-    offerToReceiveVideo: false,
-    iceRestart: true,
-  });
-
+  const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
   try {
@@ -110,32 +92,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
     logs.push('✅ setRemoteDescription 完了');
-
-    // ICE candidate-pair の状態を追跡
-    const interval = setInterval(async () => {
-      try {
-        const stats = await pc.getStats();
-        stats.forEach((report) => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-            logs.push(`🛰 relay経由成功: ${report.localCandidateId} -> ${report.remoteCandidateId}`);
-          }
-        });
-      } catch {
-        // 無視
-      }
-    }, 2000);
-
-    // 明示的に10秒保持してから終了
-    await new Promise((res) => setTimeout(res, 10000));
-    logs.push('⏱ 接続を10秒保持後にclose');
-
-    clearInterval(interval);
-    pc.close();
   } catch (err: unknown) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
     }
+    pc.close();
   }
 
   return logs;
