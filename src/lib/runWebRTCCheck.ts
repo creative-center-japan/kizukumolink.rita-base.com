@@ -50,20 +50,25 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     id: 0,
   });
 
+  let lastActivity = Date.now();
+
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
     dc.send('ping');
+    lastActivity = Date.now();
     logs.push('📤 送信: ping');
   };
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
     logs.push('✅ DataChannel 応答確認完了');
+    lastActivity = Date.now();
 
-    // 60秒後にクローズ
     setTimeout(() => {
-      logs.push('⏱ DataChannel を60秒維持後に close 実行');
-      pc.close();
+      if (pc.connectionState !== 'closed') {
+        logs.push('⏱ DataChannel を60秒維持後に close 実行');
+        pc.close();
+      }
     }, 60000);
   };
 
