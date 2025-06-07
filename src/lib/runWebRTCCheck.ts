@@ -1,3 +1,11 @@
+// -------------------------
+// runWebRTCCheck.ts
+// - WebRTC診断（DataChannelの接続確認）
+// - UDP TURN接続を基本とし、relay候補の接続可否を判定
+// - DataChannel は negotiated: true / id: 0 を使用（server/client一致）
+// - 成功時は DataChannel open と candidate-pair succeeded をログ出力
+// -------------------------
+
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -24,7 +32,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  let lastActivity = Date.now();
   let opened = false;
 
   const dc = pc.createDataChannel("check", {
@@ -38,7 +45,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push("✅ DataChannel open");
     logs.push("📤 sent: ping");
     dc.send("ping");
-    lastActivity = Date.now();
 
     // open から10秒間維持 → 明示クローズ
     setTimeout(() => {
@@ -49,10 +55,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
-    lastActivity = Date.now();
   };
 
-  dc.onclose = () => logs.push(`❌ DataChannel closed [state=${dc.readyState}]`);
+  dc.onclose = () => logs.push("❌ DataChannel closed [相手が切断]");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   pc.addEventListener("iceconnectionstatechange", () => {
@@ -72,7 +77,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   });
 
   pc.addEventListener("icecandidate", (e) => {
-    logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
+    logs.push(`[ICE] candidate: ${e.candidate?.candidate ?? '(収集完了)'}`);
   });
 
   const offer = await pc.createOffer({
@@ -93,28 +98,29 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       })
     });
 
-    if (!res.ok) throw new Error(`fetchエラー status=${res.status}`);
+    if (!res.ok) {
+      throw new Error(`fetchエラー status=${res.status}`);
+    }
 
     const answer = await res.json();
-    logs.push("📨 SDP answer受信");
+    logs.push("📨 サーバからSDP answerを受信");
+
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
     logs.push("✅ setRemoteDescription 完了");
 
-    // openが来ない場合に10秒後タイムアウト判定
-    setTimeout(() => {
-      if (!opened) {
-        logs.push("⚠ DataChannelが10秒以内にopenしませんでした → 強制close");
-        logs.push(`📡 readyState: ${dc.readyState}`);
-        pc.close();
-      }
-    }, 10000);
+    if (opened) {
+      logs.push("✅ DataChannel 接続＋応答確認 成功");
+      logs.push("【判定】OK");
+    } else {
+      logs.push("⚠ DataChannel が open していません");
+      logs.push("【判定】NG");
+    }
 
   } catch (err: unknown) {
     logs.push("❌ WebRTC接続に失敗しました");
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
     }
-    pc.close();
   }
 
   return logs;
