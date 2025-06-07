@@ -1,3 +1,5 @@
+// runWebRTCCheck.ts（繰り返し安全な構成）
+
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -24,6 +26,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
+  // イベントログ
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   });
@@ -50,24 +53,20 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     id: 0,
   });
 
-  let lastActivity = Date.now();
-
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
     dc.send('ping');
-    lastActivity = Date.now();
     logs.push('📤 送信: ping');
   };
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
     logs.push('✅ DataChannel 応答確認完了');
-    lastActivity = Date.now();
-
     setTimeout(() => {
+      logs.push('⏱ DataChannel を60秒維持後に close 実行');
       if (pc.connectionState !== 'closed') {
-        logs.push('⏱ DataChannel を60秒維持後に close 実行');
         pc.close();
+        logs.push('✅ RTCPeerConnection を close しました');
       }
     }, 60000);
   };
@@ -75,16 +74,16 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onclose = () => logs.push('❌ DataChannel closed');
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
   try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
     const res = await fetch('https://signaling.rita-base.com/offer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sdp: pc.localDescription!.sdp,
-        type: pc.localDescription!.type,
+        sdp: offer.sdp,
+        type: offer.type,
       }),
     });
 
@@ -103,6 +102,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       logs.push(`詳細: ${err.message}`);
     }
     pc.close();
+    logs.push('🔚 異常終了のため RTCPeerConnection を明示的に close');
   }
 
   return logs;
