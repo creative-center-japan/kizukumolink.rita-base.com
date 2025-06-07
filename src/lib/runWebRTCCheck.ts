@@ -60,8 +60,42 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     id: 0,
   });
 
-  dc.onopen = () => logs.push("✅ DataChannel open");
-  dc.onmessage = (event) => logs.push(`📨 受信メッセージ: ${event.data}`);
+  let lastActivity = Date.now();
+  let pingTimer: NodeJS.Timeout;
+  let idleTimer: NodeJS.Timeout;
+
+  dc.onopen = () => {
+    logs.push("✅ DataChannel open");
+
+    // ping送信（10秒おき）
+    pingTimer = setInterval(() => {
+      try {
+        dc.send("ping");
+        logs.push("📤 sent: ping");
+        lastActivity = Date.now();
+      } catch (e) {
+        logs.push("⚠ ping送信エラー: " + (e as Error).message);
+      }
+    }, 10000);
+
+    // アイドル検出（60秒何もなければ切断）
+    idleTimer = setInterval(() => {
+      const now = Date.now();
+      const idleMs = now - lastActivity;
+      if (idleMs > 60000) {
+        logs.push("⏱ アイドル超過のため自動切断します");
+        clearInterval(pingTimer);
+        clearInterval(idleTimer);
+        pc.close();
+      }
+    }, 15000);
+  };
+
+  dc.onmessage = (event) => {
+    logs.push(`📨 受信メッセージ: ${event.data}`);
+    lastActivity = Date.now();
+  };
+
   dc.onclose = () => logs.push("❌ DataChannel closed");
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
@@ -96,16 +130,14 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push("✅ DataChannel 接続＋応答確認 成功");
     logs.push("【判定】OK");
 
-    await new Promise((res) => setTimeout(res, 10000));
-    logs.push("⏱ 接続を10秒保持後にclose");
   } catch (err: unknown) {
     logs.push("❌ WebRTC接続に失敗しました");
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
     }
+    pc.close();
   }
 
-  pc.close();
   return logs;
 };
 
