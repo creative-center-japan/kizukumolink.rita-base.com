@@ -1,5 +1,5 @@
 // rita-base\src\lib\runWebRTCCheck.ts
-// runWebRTCCheck.ts（常駐GCPカメラ接続を再利用）
+// runWebRTCCheck.ts（常駐カメラ接続チェック対応）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -49,8 +49,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const dc = pc.createDataChannel('check', {
     ordered: true,
-    negotiated: true,
-    id: 0,
+    negotiated: false,
   });
 
   dc.onopen = () => {
@@ -72,26 +71,22 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) => logs.push(`⚠ DataChannel error`);
+  dc.onerror = () => logs.push('⚠ DataChannel error');
 
   try {
-    console.log('[Debug] GET /camera-status をリクエスト');
-    const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
-    console.log('[Debug] fetch 結果:', res);
+    const cameraStatusRes = await fetch('https://webrtc-answer.rita-base.com/camera-status');
+    if (!cameraStatusRes.ok) throw new Error('camera-status取得失敗');
 
-    if (!res.ok) {
-      throw new Error(`fetch失敗 status=${res.status}`);
-    }
+    const remoteOffer = await cameraStatusRes.json();
+    logs.push('📡 /camera-status からSDP取得成功');
 
-    const offer = await res.json();
-    logs.push('📨 GCPカメラからSDP offerを取得');
-
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    await pc.setRemoteDescription(new RTCSessionDescription(remoteOffer));
     logs.push('✅ setRemoteDescription 完了');
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    logs.push('✅ setLocalDescription 完了');
+    logs.push('📤 setLocalDescription 完了');
+
   } catch (err: unknown) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
