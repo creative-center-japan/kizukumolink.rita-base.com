@@ -1,5 +1,5 @@
 // rita-base\src\lib\runWebRTCCheck.ts
-// runWebRTCCheck.ts（修正版：camera-statusからSDP取得 → createAnswer対応）
+// runWebRTCCheck.ts（修正版：camera-statusからSDP取得 → createAnswer対応＋keepalive対応）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -47,14 +47,15 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  const dc = pc.createDataChannel('check', {
-    ordered: true,
-    negotiated: false,
+  // ✅ GCP側の構成に合わせて negotiated: true, id: 0
+  const dc = pc.createDataChannel('keepalive', {
+    negotiated: true,
+    id: 0,
   });
 
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
-    dc.send('ping');
+    dc.send('ping'); // GCP側が "📨 received: ping" をログするはず
     logs.push('📤 送信: ping');
   };
 
@@ -71,7 +72,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  dc.onerror = (e) =>
+    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
