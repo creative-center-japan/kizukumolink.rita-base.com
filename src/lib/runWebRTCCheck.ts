@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts（繰り返し安全な構成）
+//rita-base\src\lib\runWebRTCCheck.ts
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -49,8 +49,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const dc = pc.createDataChannel('check', {
     ordered: true,
-    negotiated: true,
-    id: 0,
+    negotiated: false, // ✅ 自動ネゴシエーションに変更
   });
 
   dc.onopen = () => {
