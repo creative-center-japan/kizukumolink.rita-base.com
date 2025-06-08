@@ -27,7 +27,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  // イベントログ
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   });
@@ -50,8 +49,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const dc = pc.createDataChannel('check', {
     ordered: true,
-    negotiated: true, // negotiatedモードで両者id=0
-    id: 0,
+    negotiated: false,
   });
 
   dc.onopen = () => {
@@ -73,22 +71,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (err) => logs.push(`⚠ DataChannel error`);
+  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
-    if (!res.ok) throw new Error('camera-status取得失敗');
+    const offer = await res.json();
 
-    const remoteOffer = await res.json();
-    logs.push('📥 camera-statusからSDPを取得');
-
-    await pc.setRemoteDescription(new RTCSessionDescription(remoteOffer));
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
     logs.push('✅ setRemoteDescription 完了');
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    logs.push('📤 setLocalDescription 完了');
-  } catch (err: unknown) {
+    logs.push('✅ setLocalDescription 完了');
+  } catch (err) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
