@@ -1,7 +1,6 @@
 // rita-base\src\lib\runWebRTCCheck.ts
 // runWebRTCCheck.ts（常駐GCPカメラ接続を再利用）
 
-
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
@@ -28,7 +27,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  // イベントログ
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   });
@@ -49,10 +47,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  const dc = pc.createDataChannel('keepalive', {
+  const dc = pc.createDataChannel('check', {
+    ordered: true,
     negotiated: true,
     id: 0,
-    ordered: true,
   });
 
   dc.onopen = () => {
@@ -74,25 +72,31 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = () => logs.push(`⚠ DataChannel error 発生`);
+  dc.onerror = (e) => logs.push(`⚠ DataChannel error`);
 
   try {
-    // ① GCPのカメラSDPを取得
+    console.log('[Debug] GET /camera-status をリクエスト');
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
-    if (!res.ok) throw new Error(`SDP取得失敗 status=${res.status}`);
-    const remoteSDP = await res.json();
-    logs.push('📡 /camera-status からSDP取得成功');
+    console.log('[Debug] fetch 結果:', res);
 
-    // ② 相手側SDPでsetRemoteしてAnswer
-    await pc.setRemoteDescription(new RTCSessionDescription(remoteSDP));
+    if (!res.ok) {
+      throw new Error(`fetch失敗 status=${res.status}`);
+    }
+
+    const offer = await res.json();
+    logs.push('📨 GCPカメラからSDP offerを取得');
+
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
     logs.push('✅ setRemoteDescription 完了');
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    logs.push('📤 createAnswer → setLocalDescription 完了');
+    logs.push('✅ setLocalDescription 完了');
   } catch (err: unknown) {
     logs.push('❌ WebRTC接続に失敗しました');
-    if (err instanceof Error) logs.push(`詳細: ${err.message}`);
+    if (err instanceof Error) {
+      logs.push(`詳細: ${err.message}`);
+    }
     pc.close();
     logs.push('🔚 異常終了のため RTCPeerConnection を明示的に close');
   }
