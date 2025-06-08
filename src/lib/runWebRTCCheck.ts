@@ -1,5 +1,6 @@
 // rita-base\src\lib\runWebRTCCheck.ts
-// runWebRTCCheck.ts（修正版：camera-statusからSDP取得 → createAnswer対応＋keepalive対応）
+// rita-base\src\lib\runWebRTCCheck.ts
+// runWebRTCCheck.ts（最新版：camera-statusからSDP取得 → createAnswer + DataChannel通信確認）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -25,7 +26,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] WebRTC設定を適用しました');
+  logs.push('✅ WebRTC設定を適用');
 
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
@@ -47,37 +48,36 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  // ✅ GCP側の構成に合わせて negotiated: true, id: 0
-  const dc = pc.createDataChannel('keepalive', {
-    negotiated: true,
-    id: 0,
-  });
+  const dc = pc.createDataChannel('check', { ordered: true });
 
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
-    dc.send('ping'); // GCP側が "📨 received: ping" をログするはず
-    logs.push('📤 送信: ping');
+    dc.send('ping');
+    logs.push('📤 ping送信');
   };
 
   dc.onmessage = (event) => {
-    logs.push(`📨 受信: ${event.data}`);
-    logs.push('✅ DataChannel 応答確認完了');
+    logs.push(`📨 DataChannel応答: ${event.data}`);
     setTimeout(() => {
-      logs.push('⏱ DataChannel を60秒維持後に close 実行');
+      logs.push('⏱ 60秒経過後にclose');
       if (pc.connectionState !== 'closed') {
         pc.close();
-        logs.push('✅ RTCPeerConnection を close しました');
+        logs.push('🔚 RTCPeerConnection close完了');
       }
     }, 60000);
   };
 
+  dc.onerror = (e) => {
+    logs.push(`⚠ DataChannelエラー: ${(e as ErrorEvent).message}`);
+  };
+
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) =>
-    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
+    logs.push('🌐 SDP取得中...');
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
     const offer = await res.json();
+    logs.push('✅ SDP取得成功');
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     logs.push('✅ setRemoteDescription 完了');
@@ -86,12 +86,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     await pc.setLocalDescription(answer);
     logs.push('✅ setLocalDescription 完了');
   } catch (err) {
-    logs.push('❌ WebRTC接続に失敗しました');
+    logs.push('❌ WebRTC初期化失敗');
     if (err instanceof Error) {
       logs.push(`詳細: ${err.message}`);
     }
     pc.close();
-    logs.push('🔚 異常終了のため RTCPeerConnection を明示的に close');
+    logs.push('🔚 異常終了により close 実施');
   }
 
   return logs;
