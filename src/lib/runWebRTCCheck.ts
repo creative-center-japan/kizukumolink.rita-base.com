@@ -1,5 +1,5 @@
 // rita-base/src/lib/runWebRTCCheck.ts
-// src/lib/runWebRTCCheck.ts
+// runWebRTCCheck.ts（詳細ログ付き修正版）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -30,26 +30,22 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.addEventListener('icecandidate', (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   });
-
   pc.addEventListener('iceconnectionstatechange', () => {
     logs.push('[ICE] connection state: ' + pc.iceConnectionState);
   });
-
   pc.addEventListener('connectionstatechange', () => {
     logs.push('[WebRTC] connection state: ' + pc.connectionState);
   });
-
   pc.addEventListener('signalingstatechange', () => {
     logs.push('[WebRTC] signaling state: ' + pc.signalingState);
   });
-
   pc.addEventListener('icegatheringstatechange', () => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
   const dc = pc.createDataChannel('check', {
     ordered: true,
-    negotiated: false,
+    negotiated: false, // 自動ネゴシエーション
   });
 
   dc.onopen = () => {
@@ -57,7 +53,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     dc.send('ping');
     logs.push('📤 送信: ping');
   };
-
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
     logs.push('✅ DataChannel 応答確認完了');
@@ -69,27 +64,30 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       }
     }, 60000);
   };
-
   dc.onclose = () => logs.push('❌ DataChannel closed');
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
+    logs.push('[STEP] /camera-status へ fetch 開始');
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
-    if (!res.ok) {
-      throw new Error(`camera-status 取得失敗 status=${res.status}`);
-    }
-
+    if (!res.ok) throw new Error(`status=${res.status}`);
     const offer = await res.json();
+    logs.push('✅ /camera-status から SDP offer を受信');
+
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     logs.push('✅ setRemoteDescription 完了');
 
     const answer = await pc.createAnswer();
+    logs.push('✅ createAnswer 完了');
+
     await pc.setLocalDescription(answer);
     logs.push('✅ setLocalDescription 完了');
   } catch (err) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
-      logs.push(`詳細: ${err.message}`);
+      logs.push(`❗詳細: ${err.message}`);
+    } else {
+      logs.push(`❗詳細(unknown): ${JSON.stringify(err)}`);
     }
     pc.close();
     logs.push('🔚 異常終了のため RTCPeerConnection を明示的に close');
