@@ -1,4 +1,4 @@
-// rita-base/src/lib/runWebRTCCheck.ts
+// ✅ runWebRTCCheck.ts - 最終調整マージ版（②15秒待機 + ③getStats確認あり）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -18,7 +18,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         credential: "testpass",
       },
     ],
-    iceTransportPolicy: "relay",
+    iceTransportPolicy: "relay", // ✅ TURN限定
     bundlePolicy: "max-bundle",
     rtcpMuxPolicy: "require",
     iceCandidatePoolSize: 0,
@@ -36,13 +36,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onmessage = (e) => {
     logs.push(`📨 received: ${e.data}`);
     logs.push("✅ DataChannel 応答確認完了");
-
-    setTimeout(() => {
-      if (pc.connectionState !== "closed") {
-        pc.close();
-        logs.push("🔚 RTCPeerConnection を close しました");
-      }
-    }, 10000);
   };
 
   dc.onerror = (e: Event) => {
@@ -89,25 +82,39 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     }
     logs.push(`[ICE] gathering 完了: ${pc.iceGatheringState}`);
 
-    await new Promise((r) => setTimeout(r, 2000));
-    const stats = await pc.getStats();
-    stats.forEach((r) => {
-      if (r.type === "candidate-pair" && r.nominated) {
-        logs.push(`✅ 使用中 candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId}, state=${r.state}`);
+    // ✅ ③：候補ペアの状態確認（最終判断）
+    setTimeout(async () => {
+      const stats = await pc.getStats();
+      let succeeded = false;
+      stats.forEach((r) => {
+        if (r.type === "candidate-pair" && r.nominated && r.state === "succeeded") {
+          logs.push(`✅ 使用中 candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId}, nominated, state=${r.state}`);
+          succeeded = true;
+        }
+      });
+
+      if (!succeeded) {
+        logs.push("❌ nominatedかつsucceededな候補が存在しません。TURN経由で確立していない可能性があります。");
       }
-    });
+
+      if (pc.connectionState !== "closed") {
+        pc.close();
+        logs.push("🔚 RTCPeerConnection を close しました");
+      }
+
+      logs.push("🔚 診断終了");
+    }, 15000); // ✅ ②：15秒後に終了
   } catch (err: unknown) {
     if (err instanceof Error) {
       logs.push("❌ WebRTC診断中にエラー");
       logs.push(`❗ 詳細: ${err.message}`);
     } else {
-      logs.push("❌ WebRTC診断中に不明なエラー");
-      logs.push(`❗ 詳細: ${JSON.stringify(err)}`);
+      logs.push("❌ 不明なエラーが発生");
     }
     pc.close();
+    logs.push("🔚 RTCPeerConnection を強制 close");
   }
 
-  logs.push("🔚 診断終了");
   return logs;
 };
 
