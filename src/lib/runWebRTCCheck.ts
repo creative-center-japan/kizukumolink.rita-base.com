@@ -91,11 +91,11 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     } else {
       logs.push('❌ 診断失敗: 候補未確定またはpong未到達');
     }
-  } catch (err) {
+  } catch (err: unknown) {
     if (err instanceof Error) {
-      logs.push(`❌ エラー発生: ${err.message}`);
+      logs.push(`❌ WebRTC診断中にエラー: ${err.message}`);
     } else {
-      logs.push('❌ 不明なエラー発生');
+      logs.push('❌ 不明なエラーが発生');
     }
   } finally {
     pc.close();
