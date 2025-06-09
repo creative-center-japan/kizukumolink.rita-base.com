@@ -116,4 +116,4 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 };
 
 export default runWebRTCCheck;
-""
+
