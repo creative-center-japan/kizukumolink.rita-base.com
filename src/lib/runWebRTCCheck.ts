@@ -18,14 +18,13 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         credential: "testpass",
       },
     ],
-    iceTransportPolicy: "all",
+    iceTransportPolicy: "relay", // ✅ TURNのみに限定
     bundlePolicy: "max-bundle",
     rtcpMuxPolicy: "require",
     iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
-
   const dc = pc.createDataChannel("test-channel", { ordered: true });
 
   dc.onopen = () => {
@@ -36,15 +35,15 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   dc.onmessage = (e) => {
     logs.push(`📨 received: ${e.data}`);
-    logs.push("✅ DataChannel 応答確認完了（pong）");
+    logs.push("✅ DataChannel 応答確認完了");
 
-    // 🔁 安定確認のため5秒後に close
+    // 🔁 10秒後に close（relay確定の安定性確保）
     setTimeout(() => {
       if (pc.connectionState !== "closed") {
         pc.close();
         logs.push("🔚 RTCPeerConnection を close しました");
       }
-    }, 5000);
+    }, 10000);
   };
 
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
@@ -81,19 +80,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     await pc.setRemoteDescription(answer);
     logs.push("✅ setRemoteDescription 完了");
 
-    // ICE gathering 完了まで待機
+    // ICE gathering 完了まで最大3秒待機
     let wait = 0;
     while (pc.iceGatheringState !== "complete" && wait++ < 30) {
       await new Promise((r) => setTimeout(r, 100));
     }
     logs.push(`[ICE] gathering 完了: ${pc.iceGatheringState}`);
 
-    // 5秒後に統計取得
-    await new Promise((r) => setTimeout(r, 5000));
+    // 追加の2秒待機で consent/relay 確定を促す
+    await new Promise((r) => setTimeout(r, 2000));
     const stats = await pc.getStats();
     stats.forEach((r) => {
       if (r.type === "candidate-pair" && r.nominated) {
-        logs.push(`✅ 使用中candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId} state=${r.state}`);
+        logs.push(`✅ 使用中 candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId}, state=${r.state}`);
       }
     });
   } catch (err) {
