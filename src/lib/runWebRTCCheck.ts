@@ -80,8 +80,12 @@ export default async function runWebRTCCheck(): Promise<string[]> {
     await new Promise<void>((resolve) => setTimeout(resolve, 5000));
     logs.push("⏳ 5秒待機完了");
 
-  } catch (error: any) {
-    logs.push(`❌ エラー発生: ${error.message || error}`);
+  } catch (error) {
+    if (error instanceof Error) {
+      logs.push(`❌ エラー発生: ${error.message}`);
+    } else {
+      logs.push(`❌ エラー発生（詳細不明）: ${JSON.stringify(error)}`);
+    }
   }
 
   logs.push("🔚 診断終了");
