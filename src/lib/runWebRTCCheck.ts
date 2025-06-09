@@ -1,4 +1,5 @@
 // rita-base/src/lib/runWebRTCCheck.ts
+// src/lib/runWebRTCCheck.ts
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -73,18 +74,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
-    const res = await fetch('https://webrtc-answer.rita-base.com/camera-status', {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    });
-
+    const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
     if (!res.ok) {
-      throw new Error(`camera-status fetch failed: ${res.status}`);
+      throw new Error(`camera-status 取得失敗 status=${res.status}`);
     }
 
     const offer = await res.json();
-    logs.push('📨 /camera-status からSDP取得');
-
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     logs.push('✅ setRemoteDescription 完了');
 
