@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - 最終版（POST /offer 対応 + TDP除外 + ICE確認）
+// runWebRTCCheck.ts - 接続診断用（TDP削除済み・ログ拡張）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -38,7 +38,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
   });
 
-  const dc = pc.createDataChannel('test-channel', { ordered: true });
+  const dc = pc.createDataChannel('check', { negotiated: true, id: 0 });
 
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
@@ -57,7 +57,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     }, 10000);
   };
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  dc.onerror = (e) =>
+    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
     logs.push('[STEP] /camera-status へ fetch 開始');
