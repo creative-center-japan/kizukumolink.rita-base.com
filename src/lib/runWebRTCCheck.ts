@@ -1,7 +1,6 @@
 // rita-base/src/lib/runWebRTCCheck.ts
 
-
-export default async function runWebRTCCheck(): Promise<string[]> {
+const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   logs.push("🔸診断開始");
 
@@ -27,37 +26,41 @@ export default async function runWebRTCCheck(): Promise<string[]> {
 
   const pc = new RTCPeerConnection(config);
 
-  // データチャネルを作成
-  const channel = pc.createDataChannel("test-channel");
-  channel.onopen = () => {
+  const dc = pc.createDataChannel("test-channel", { ordered: true });
+
+  dc.onopen = () => {
     logs.push("✅ DataChannel open");
-    channel.send("ping");
+    dc.send("ping");
     logs.push("📤 sent: ping");
   };
-  channel.onmessage = (event) => {
-    logs.push(`📨 received: ${event.data}`);
-  };
-  channel.onclose = () => {
-    logs.push("❌ DataChannel closed");
+
+  dc.onmessage = (e) => {
+    logs.push(`📨 received: ${e.data}`);
+    logs.push("✅ DataChannel 応答確認完了（pong）");
+
+    // 🔁 安定確認のため5秒後に close
+    setTimeout(() => {
+      if (pc.connectionState !== "closed") {
+        pc.close();
+        logs.push("🔚 RTCPeerConnection を close しました");
+      }
+    }, 5000);
   };
 
-  // ICE candidate ログ
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      logs.push(`🧊 ICE candidate: ${event.candidate.candidate}`);
-    }
-  };
+  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  dc.onclose = () => logs.push("❌ DataChannel closed");
 
+  pc.onicecandidate = (e) => {
+    logs.push(`[ICE] candidate: ${e.candidate?.candidate ?? "(収集完了)"}`);
+  };
   pc.oniceconnectionstatechange = () => {
-    logs.push(`🔄 ICE connection state: ${pc.iceConnectionState}`);
+    logs.push(`[ICE] connection state: ${pc.iceConnectionState}`);
   };
-
   pc.onconnectionstatechange = () => {
-    logs.push(`🔄 Connection state: ${pc.connectionState}`);
+    logs.push(`[WebRTC] connection state: ${pc.connectionState}`);
   };
-
   pc.onsignalingstatechange = () => {
-    logs.push(`🔄 Signaling state: ${pc.signalingState}`);
+    logs.push(`[WebRTC] signaling state: ${pc.signalingState}`);
   };
 
   try {
@@ -71,23 +74,36 @@ export default async function runWebRTCCheck(): Promise<string[]> {
       body: JSON.stringify(offer),
     });
 
+    if (!res.ok) throw new Error(`status=${res.status}`);
     const answer = await res.json();
     logs.push("📥 SDP answer 受信");
 
     await pc.setRemoteDescription(answer);
     logs.push("✅ setRemoteDescription 完了");
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 5000));
-    logs.push("⏳ 5秒待機完了");
-
-  } catch (error) {
-    if (error instanceof Error) {
-      logs.push(`❌ エラー発生: ${error.message}`);
-    } else {
-      logs.push(`❌ エラー発生（詳細不明）: ${JSON.stringify(error)}`);
+    // ICE gathering 完了まで待機
+    let wait = 0;
+    while (pc.iceGatheringState !== "complete" && wait++ < 30) {
+      await new Promise((r) => setTimeout(r, 100));
     }
+    logs.push(`[ICE] gathering 完了: ${pc.iceGatheringState}`);
+
+    // 5秒後に統計取得
+    await new Promise((r) => setTimeout(r, 5000));
+    const stats = await pc.getStats();
+    stats.forEach((r) => {
+      if (r.type === "candidate-pair" && r.nominated) {
+        logs.push(`✅ 使用中candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId} state=${r.state}`);
+      }
+    });
+  } catch (err) {
+    logs.push("❌ WebRTC診断中にエラー");
+    logs.push(`❗ 詳細: ${(err as Error).message}`);
+    pc.close();
   }
 
   logs.push("🔚 診断終了");
   return logs;
-}
+};
+
+export default runWebRTCCheck;
