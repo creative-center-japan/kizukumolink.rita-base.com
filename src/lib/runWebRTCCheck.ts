@@ -15,11 +15,17 @@ export default async function runWebRTCCheck(): Promise<string[]> {
   try {
     // CameraからSDP取得
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
+    logs.push(`📡 camera-status fetch status: ${res.status}`);
     if (!res.ok) throw new Error('カメラからSDP取得失敗');
     const remote = await res.json();
     logs.push('✅ camera-status取得成功');
 
-    const pc = new RTCPeerConnection({ iceServers: STUN_TURN_SERVERS });
+    const pc = new RTCPeerConnection({
+      iceServers: STUN_TURN_SERVERS,
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'balanced',
+      iceCandidatePoolSize: 1,
+    });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -44,6 +50,11 @@ export default async function runWebRTCCheck(): Promise<string[]> {
     };
 
     await pc.setRemoteDescription(remote);
+
+    // nonce対策：RemoteDescription後に少し待機
+    await new Promise((r) => setTimeout(r, 200));
+    logs.push('⏱ nonce対策のwait完了');
+
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
