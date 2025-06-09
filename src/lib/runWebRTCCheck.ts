@@ -1,22 +1,12 @@
 // rita-base/src/lib/runWebRTCCheck.ts
-// runWebRTCCheck.ts（詳細ログ付き修正版）
-
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
 
   const config: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
-      {
-        urls: 'turn:3.80.218.25:3478?transport=udp',
-        username: 'test',
-        credential: 'testpass',
-      },
-      {
-        urls: 'turn:3.80.218.25:3478?transport=tcp',
-        username: 'test',
-        credential: 'testpass',
-      },
+      { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
+      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' },
     ],
     iceTransportPolicy: 'all',
     bundlePolicy: 'max-bundle',
@@ -27,25 +17,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] WebRTC設定を適用しました');
 
-  pc.addEventListener('icecandidate', (e) => {
-    logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
-  });
-  pc.addEventListener('iceconnectionstatechange', () => {
-    logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-  });
-  pc.addEventListener('connectionstatechange', () => {
-    logs.push('[WebRTC] connection state: ' + pc.connectionState);
-  });
-  pc.addEventListener('signalingstatechange', () => {
-    logs.push('[WebRTC] signaling state: ' + pc.signalingState);
-  });
-  pc.addEventListener('icegatheringstatechange', () => {
-    logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
-  });
-
   const dc = pc.createDataChannel('check', {
     ordered: true,
-    negotiated: false, // 自動ネゴシエーション
+    negotiated: true,
+    id: 0,
   });
 
   dc.onopen = () => {
@@ -82,6 +57,15 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
     await pc.setLocalDescription(answer);
     logs.push('✅ setLocalDescription 完了');
+
+    // ICE完了待ち（最大3秒）
+    let wait = 0;
+    while (pc.iceGatheringState !== 'complete' && wait < 30) {
+      await new Promise(res => setTimeout(res, 100));
+      wait++;
+    }
+    logs.push(`[ICE] gathering state: ${pc.iceGatheringState}`);
+
   } catch (err) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
