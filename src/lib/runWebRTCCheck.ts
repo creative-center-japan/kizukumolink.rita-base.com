@@ -1,100 +1,114 @@
 // rita-base/src/lib/runWebRTCCheck.ts
 
-// src/lib/runWebRTCCheck.ts
+const runWebRTCCheck = async (): Promise<string[]> => {
+  const logs: string[] = [];
+  logs.push("🔸診断開始");
 
-import { v4 as uuidv4 } from 'uuid';
-
-const runWebRTCCheck = async (statusCallback: (log: string) => void): Promise<void> => {
-  const pcId = uuidv4().slice(0, 8);
-  const pc = new RTCPeerConnection({
+  const config: RTCConfiguration = {
     iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
-      { urls: 'turn:3.80.218.25:3478?transport=udp', username: 'test', credential: 'testpass' },
-      { urls: 'turn:3.80.218.25:3478?transport=tcp', username: 'test', credential: 'testpass' }
+      { urls: "stun:3.80.218.25:3478" },
+      {
+        urls: "turn:3.80.218.25:3478?transport=udp",
+        username: "test",
+        credential: "testpass",
+      },
+      {
+        urls: "turn:3.80.218.25:3478?transport=tcp",
+        username: "test",
+        credential: "testpass",
+      },
     ],
-    iceTransportPolicy: 'relay',
-    bundlePolicy: 'max-bundle',
-    rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: 0
-  });
+    iceTransportPolicy: "relay",
+    bundlePolicy: "max-bundle",
+    rtcpMuxPolicy: "require",
+    iceCandidatePoolSize: 0,
+  };
 
-  const dc = pc.createDataChannel("test-channel");
+  const pc = new RTCPeerConnection(config);
+  const dc = pc.createDataChannel("test-channel", { ordered: true });
 
   dc.onopen = () => {
-    console.log(`[DataChannel] ✅ open (${pcId})`);
+    logs.push("✅ DataChannel open");
     dc.send("ping");
+    logs.push("📤 sent: ping");
   };
 
-  dc.onmessage = (event) => {
-    console.log(`[DataChannel] 📨 received: ${event.data} (${pcId})`);
-    dc.close();
+  dc.onmessage = (e) => {
+    logs.push(`📨 received: ${e.data}`);
+    logs.push("✅ DataChannel 応答確認完了");
+
+    setTimeout(() => {
+      if (pc.connectionState !== "closed") {
+        pc.close();
+        logs.push("🔚 RTCPeerConnection を close しました");
+      }
+    }, 10000);
   };
 
-  dc.onclose = () => {
-    console.log(`[DataChannel] ❌ closed (${pcId})`);
+  dc.onerror = (e: Event) => {
+    const message = e instanceof ErrorEvent ? e.message : "不明なエラー";
+    logs.push(`⚠ DataChannel error: ${message}`);
   };
 
+  dc.onclose = () => logs.push("❌ DataChannel closed");
+
+  pc.onicecandidate = (e) => {
+    logs.push(`[ICE] candidate: ${e.candidate?.candidate ?? "(収集完了)"}`);
+  };
   pc.oniceconnectionstatechange = () => {
-    console.log(`[ICE] state: ${pc.iceConnectionState} (${pcId})`);
+    logs.push(`[ICE] connection state: ${pc.iceConnectionState}`);
   };
-
+  pc.onconnectionstatechange = () => {
+    logs.push(`[WebRTC] connection state: ${pc.connectionState}`);
+  };
   pc.onsignalingstatechange = () => {
-    console.log(`[Signal] state: ${pc.signalingState} (${pcId})`);
-  };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      console.log(`[ICE] candidate: ${event.candidate.candidate} (${pcId})`);
-    } else {
-      console.log(`[ICE] candidate gathering done (${pcId})`);
-    }
+    logs.push(`[WebRTC] signaling state: ${pc.signalingState}`);
   };
 
   try {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log(`[OFFER] created and setLocalDescription done (${pcId})`);
+    logs.push("📤 SDP offer 作成・送信");
 
-    // Poll until ICE gathering is complete
-    await new Promise<void>((resolve) => {
-      const checkIce = () => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
-        } else {
-          setTimeout(checkIce, 100);
-        }
-      };
-      checkIce();
-    });
-
-    // Send offer to server
-    const response = await fetch("https://webrtc-answer.rita-base.com/offer", {
+    const res = await fetch("https://webrtc-answer.rita-base.com/offer", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ sdp: pc.localDescription?.sdp })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(offer),
     });
-    const { sdp: answerSDP } = await response.json();
-    await pc.setRemoteDescription({ type: "answer", sdp: answerSDP });
-    console.log(`[ANSWER] received and setRemoteDescription done (${pcId})`);
 
-    // 最終状態確認
-    setTimeout(() => {
-      console.log(`[FINAL] ICE: ${pc.iceConnectionState}, Conn: ${pc.connectionState}`);
-      if (
-        pc.iceConnectionState === 'disconnected' ||
-        pc.connectionState === 'failed'
-      ) {
-        statusCallback("NG: 接続確立後に切断されました。セッション保持に失敗しています。");
-      } else {
-        statusCallback("OK: WebRTC接続は成功しました。");
+    if (!res.ok) throw new Error(`status=${res.status}`);
+    const answer = await res.json();
+    logs.push("📥 SDP answer 受信");
+
+    await pc.setRemoteDescription(answer);
+    logs.push("✅ setRemoteDescription 完了");
+
+    let wait = 0;
+    while (pc.iceGatheringState !== "complete" && wait++ < 30) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    logs.push(`[ICE] gathering 完了: ${pc.iceGatheringState}`);
+
+    await new Promise((r) => setTimeout(r, 2000));
+    const stats = await pc.getStats();
+    stats.forEach((r) => {
+      if (r.type === "candidate-pair" && r.nominated) {
+        logs.push(`✅ 使用中 candidate-pair: ${r.localCandidateId} ⇄ ${r.remoteCandidateId}, state=${r.state}`);
       }
-    }, 3000);
-  } catch (err: any) {
-    console.error("[ERROR]", err);
-    statusCallback("NG: offer/post/answer処理中にエラーが発生しました");
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      logs.push("❌ WebRTC診断中にエラー");
+      logs.push(`❗ 詳細: ${err.message}`);
+    } else {
+      logs.push("❌ WebRTC診断中に不明なエラー");
+      logs.push(`❗ 詳細: ${JSON.stringify(err)}`);
+    }
+    pc.close();
   }
+
+  logs.push("🔚 診断終了");
+  return logs;
 };
 
 export default runWebRTCCheck;
