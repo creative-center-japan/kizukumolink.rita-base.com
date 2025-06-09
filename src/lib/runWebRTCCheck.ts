@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - マージ済最新版（TDP削除・POST offer対応・ログ拡張）
+// runWebRTCCheck.ts - 最終版（POST /offer 対応 + TDP除外 + ICE確認）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
