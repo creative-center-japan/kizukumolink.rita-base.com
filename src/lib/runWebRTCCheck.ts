@@ -1,19 +1,13 @@
-// runWebRTCCheck.ts - 最新版（KeepAlive分離 + candidateペア検出 + DataChannel応答 + 明示close）
+// runWebRTCCheck.ts - 最終診断用のWebRTCチェック関数
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
-  const statsLog: string[] = [];
 
   const config: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:3.80.218.25:3478' },
       {
         urls: 'turn:3.80.218.25:3478?transport=udp',
-        username: 'test',
-        credential: 'testpass',
-      },
-      {
-        urls: 'turn:3.80.218.25:3478?transport=tcp',
         username: 'test',
         credential: 'testpass',
       },
@@ -25,93 +19,86 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] WebRTC設定を適用しました');
+  const statsLog: string[] = [];
 
-  // イベントログ
-  pc.addEventListener('icecandidate', (e) => {
+  logs.push('[構成] WebRTC設定を適用しました');
+
+  pc.onicecandidate = (e) => {
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
-  });
-  pc.addEventListener('iceconnectionstatechange', () => {
+  };
+  pc.oniceconnectionstatechange = () => {
     logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-  });
-  pc.addEventListener('connectionstatechange', () => {
+  };
+  pc.onconnectionstatechange = () => {
     logs.push('[WebRTC] connection state: ' + pc.connectionState);
-  });
-  pc.addEventListener('signalingstatechange', () => {
+  };
+  pc.onsignalingstatechange = () => {
     logs.push('[WebRTC] signaling state: ' + pc.signalingState);
-  });
-  pc.addEventListener('icegatheringstatechange', () => {
+  };
+  pc.onicegatheringstatechange = () => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
-  });
+  };
 
-  // DataChannel作成
   const dc = pc.createDataChannel('test-channel');
 
-  let isPongReceived = false;
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
     dc.send('ping');
     logs.push('📤 ping送信');
   };
-
   dc.onmessage = (event) => {
-    logs.push(`📨 受信: ${event.data}`);
-    if (event.data === 'pong') {
-      isPongReceived = true;
-      logs.push('✅ pong応答を確認');
-    }
-  };
+    logs.push('📨 DataChannel受信: ' + event.data);
+    logs.push('✅ DataChannel応答確認');
 
-  dc.onclose = () => {
-    logs.push('❌ DataChannel closed');
+    setTimeout(() => {
+      if (pc.connectionState !== 'closed') {
+        logs.push('⏱ 15秒後にPeerConnectionをcloseします');
+        pc.close();
+        logs.push('✅ RTCPeerConnectionをcloseしました');
+      }
+    }, 15000);
   };
-
-  dc.onerror = (e) => {
-    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
-  };
+  dc.onclose = () => logs.push('❌ DataChannel closed');
+  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
-    logs.push('[STEP] /camera-status からSDP取得開始');
+    logs.push('[STEP] /camera-statusへfetch実行');
     const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
     if (!res.ok) throw new Error(`status=${res.status}`);
     const offer = await res.json();
-    logs.push('✅ /camera-statusからSDP取得完了');
+    logs.push('✅ /camera-statusからSDP受信完了');
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    logs.push('✅ setRemoteDescription 完了');
+    logs.push('✅ setRemoteDescription完了');
 
     const answer = await pc.createAnswer();
+    logs.push('✅ createAnswer完了');
+
     await pc.setLocalDescription(answer);
-    logs.push('✅ setLocalDescription 完了');
+    logs.push('✅ setLocalDescription完了');
 
-    // 15秒待機してから候補ペア確認
-    await new Promise(resolve => setTimeout(resolve, 15000));
-    const stats = await pc.getStats();
-    stats.forEach(report => {
-      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-        statsLog.push(
-          `✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} ` +
-          `[writable=${report.writable}, nominated=${report.nominated}]`
-        );
+    setTimeout(async () => {
+      const stats = await pc.getStats();
+      stats.forEach((report) => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          statsLog.push(`✅ 成功候補: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
+        }
+      });
+
+      if (statsLog.length === 0) {
+        logs.push('⚠ 成功状態の候補ペアが見つかりませんでした');
+      } else {
+        logs.push(...statsLog);
       }
-    });
-
-    if (statsLog.length === 0) {
-      logs.push('⚠ 候補ペアがsucceeded状態に到達していません');
-    } else {
-      logs.push(...statsLog);
-    }
+    }, 5000);
 
   } catch (err) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) {
-      logs.push(`❗詳細: ${err.message}`);
-    } else {
-      logs.push(`❗詳細(unknown): ${JSON.stringify(err)}`);
+      logs.push('❗詳細: ' + err.message);
     }
-  } finally {
     pc.close();
-    logs.push('🔚 RTCPeerConnectionを明示的にcloseしました');
+    logs.push('🔚 異常終了によりRTCPeerConnectionをcloseしました');
   }
 
   return logs;
