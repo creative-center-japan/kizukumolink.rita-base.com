@@ -1,4 +1,4 @@
-// final_webrtc_diagnose.ts - 最終診断ツールコード（ping/pong + nominated検出 + POST追加）
+// final_webrtc_diagnose.ts - 最終診断ツールコード（ping/pong + nominated検出 + 15秒待機）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -84,20 +84,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
     await pc.setLocalDescription(answer);
     logs.push('✅ setLocalDescription 完了');
-
-    // ✅ 追加: POST /offer に SDP answer を送信
-    const postRes = await fetch('https://webrtc-answer.rita-base.com/offer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        sdp: pc.localDescription?.sdp,
-        type: pc.localDescription?.type
-      })
-    });
-    if (!postRes.ok) throw new Error(`POST /offer failed: ${postRes.status}`);
-    logs.push('✅ POST /offer 送信成功');
 
     // ICE候補ペアの状況確認（少し待つ）
     setTimeout(async () => {
