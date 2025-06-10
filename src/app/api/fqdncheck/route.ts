@@ -1,7 +1,5 @@
 // src/app/api/fqdncheck/route.ts
 
-// route.ts (API Route)
-
 export async function GET() {
   const targets = [
     "https://www.alarm.com/favicon.ico"
@@ -18,7 +16,9 @@ export async function GET() {
       });
 
       if (res.status === 200) {
-        results.push(`✅ ${url} → OK (200)`);
+        const msg = `✅ ${url} → OK (${res.status})`;
+        console.log("[LOG]", msg);  // ← デバッグ用にログ出力しよう！
+        results.push(msg);
         isAny200 = true;
       } else {
         results.push(`⚠️ ${url} → NG (${res.status})`);
