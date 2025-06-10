@@ -100,7 +100,7 @@ export default function Home() {
                 <span className="block text-xs sm:text-sm text-gray-500 font-bold mt-2">
                   ※現在、本診断内 WebRTC（映像通信）に関する詳細チェックは一時停止中です。<br />
                   NATの構成／UDPセッション保持／セキュリティ機器による制御など<br />
-                  <span className="underline">実際のご利用可否はお客様ご利用環境にて弊社デモ機のご利用を実施いただくことををおすすめします。</span>
+                  <span className="underline">実際のご利用可否はお客様ご利用環境にて弊社デモ機を利用して動作確認いただくことをおすすめします。</span>
                 </span>
 
               </p>
