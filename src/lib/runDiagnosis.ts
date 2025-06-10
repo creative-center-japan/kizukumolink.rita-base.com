@@ -25,6 +25,8 @@ export const runDiagnosis = async (
   setPhase(1);
 
   // --- Phase 1：IP + FQDN ---
+  phase1Logs.push("🔹フェーズ1：サービス接続確認");
+
   let ip = "取得失敗";
   try {
     const res = await fetch("https://api.ipify.org?format=json");
@@ -44,7 +46,7 @@ export const runDiagnosis = async (
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
-  phase1Logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+  phase1Logs.push(`🔸実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   phase1Logs.push(`🔸外部IP: ${ip}`);
   phase1Logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
   phase1Logs.push(...fqdnLogs);
@@ -52,6 +54,8 @@ export const runDiagnosis = async (
   setPhase(2);
 
   // --- Phase 2：ポート確認 ---
+  phase2Logs.push("🔹フェーズ2：ポート通信確認");
+
   try {
     const res = await fetch("https://check-api.rita-base.com/check-json");
     const data = await res.json();
@@ -78,12 +82,13 @@ export const runDiagnosis = async (
 
   setPhase(3);
 
-  // --- Phase 3：WebRTC ---
-  phase3Logs.push("🔸 WebRTCログ");
+  // --- Phase 3：WebRTC診断 ---
+  phase3Logs.push("🔹【診断ツール停止中】フェーズ3：映像通信（WebRTC）確認");
+
   const webrtcLogs = await runWebRTCCheck();
   phase3Logs.push(...webrtcLogs);
 
-  // ✅ 最後に一括ログ出力（順番崩れない！）
+  // ✅ 最終ログ表示（順序整ってキレイ）
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
   setDiagnosed(true);
 };
