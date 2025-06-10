@@ -45,10 +45,10 @@ export const runDiagnosis = async (
   }
 
   // ✅ 表示順：サービス判定 → URLログ（見やすさ重視）
-  logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+  logs.push(`🔸実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   logs.push(`🔸外部IP: ${ip}`);
   logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
-  logs.push(...fqdnLogs); // ← ここで即出力！
+  logs.push(...fqdnLogs);
 
   setStatus([...logs]);
   setPhase(2);
@@ -74,7 +74,7 @@ export const runDiagnosis = async (
     }
   } catch (err) {
     logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-    setStatus([...logs]);
+    setStatus([...logs]);  // ← ここも全ログで status 更新
     return;
   }
 
