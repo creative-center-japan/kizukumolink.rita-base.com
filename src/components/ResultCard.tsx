@@ -7,6 +7,7 @@
 // - CHECK_ITEMS から受け取った定義に基づき出力
 // -------------------------
 
+// rita-base\components\ResultCard.tsx
 
 import React from "react";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
@@ -20,8 +21,8 @@ interface ResultCardProps {
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, checkIsOK, setShowDetail }) => {
-  const logsForItem = status.filter(log => log.includes(item.keyword));
-  const isOK = checkIsOK(item, logsForItem);
+  // ✅ フィルタせず全ログをそのまま checkIsOK に渡す
+  const isOK = checkIsOK(item, status);
 
   const ipLog = status.find(log =>
     log.startsWith("外部IP:") ||
@@ -67,3 +68,4 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
     </div>
   );
 };
+
