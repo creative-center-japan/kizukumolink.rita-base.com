@@ -25,7 +25,7 @@ export const runDiagnosis = async (
   setPhase(1);
 
   // --- Phase 1：IP + FQDN ---
-  phase1Logs.push("🔹フェーズ1：サービス接続確認");
+  phase1Logs.push("--- フェーズ1：サービス接続確認 ---");
 
   let ip = "取得失敗";
   try {
@@ -54,7 +54,7 @@ export const runDiagnosis = async (
   setPhase(2);
 
   // --- Phase 2：ポート確認 ---
-  phase2Logs.push("🔹フェーズ2：ポート通信確認");
+  phase2Logs.push("--- フェーズ2：ポート通信確認 ---");
 
   try {
     const res = await fetch("https://check-api.rita-base.com/check-json");
@@ -83,7 +83,7 @@ export const runDiagnosis = async (
   setPhase(3);
 
   // --- Phase 3：WebRTC診断 ---
-  phase3Logs.push("🔹【診断ツール停止中】フェーズ3：映像通信（WebRTC）確認");
+  phase3Logs.push("--- 【診断ツール停止中】フェーズ3：映像通信（WebRTC）確認 ---");
 
   const webrtcLogs = await runWebRTCCheck();
   phase3Logs.push(...webrtcLogs);

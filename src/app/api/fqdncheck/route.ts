@@ -16,7 +16,7 @@ export async function GET() {
       });
 
       if (res.status === 200) {
-        const msg = `✅ ${url} → OK (${res.status})`;
+        const msg = ` ${url} → OK (${res.status})`;
         console.log("[LOG]", msg);  // ← デバッグ用にログ出力しよう！
         results.push(msg);
         isAny200 = true;
@@ -25,7 +25,7 @@ export async function GET() {
       }
 
     } catch (err) {
-      results.push(`❌ ${url} → エラー: ${(err as Error).message}`);
+      results.push(` ${url} → エラー: ${(err as Error).message}`);
     }
   }
 
