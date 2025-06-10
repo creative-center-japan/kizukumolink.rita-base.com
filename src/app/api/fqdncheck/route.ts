@@ -1,12 +1,13 @@
-// src\app\api\fqdncheck\route.ts
-
-// src\app\api\fqdncheck\route.ts
+// src/app/api/fqdncheck/route.ts
 
 export async function GET() {
   const targets = [
     "https://www.alarm.com/favicon.ico",
+    "https://devicetask.com/favicon.ico",
     "https://www.devicetask.com/favicon.ico",
-    "https://api.devicetask.com/",
+    "https://api.devicetask.com/favicon.ico",
+    "https://status.devicetask.com/health",
+    "https://monitor.devicetask.com/",
   ];
 
   const results: string[] = [];
@@ -16,23 +17,18 @@ export async function GET() {
       const res = await fetch(url, {
         method: "GET",
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+          "User-Agent": "Mozilla/5.0"
         }
       });
 
-      const resultText = `${url} → ${res.status}`;
-      console.log(resultText);
-
-      if (res.status >= 200 && res.status < 500) {
-        results.push(`✅ ${url} → OK (${res.status})`);
+      if (res.status === 200) {
+        results.push(`✅ ${url} → OK (200)`);
       } else {
         results.push(`⚠️ ${url} → NG (${res.status})`);
       }
 
     } catch (err) {
-      const errMsg = `❌ ${url} → エラー: ${(err as Error).message}`;
-      console.error(errMsg);
-      results.push(errMsg);
+      results.push(`❌ ${url} → エラー: ${(err as Error).message}`);
     }
   }
 
