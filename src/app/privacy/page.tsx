@@ -3,10 +3,42 @@
 export default function PrivacyPage() {
   return (
     <main className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4 text-blue-900">プライバシーポリシー</h1>
-      <p className="text-sm text-slate-700 leading-relaxed">
-        当サイトでは、ユーザーの個人情報保護に最大限配慮しています。Cookieの使用やアクセスログの取得についても透明性を持って対応します。
-      </p>
+      <h1 className="text-2xl font-bold mb-6 text-blue-900">プライバシーポリシー</h1>
+      <div className="text-sm text-slate-700 leading-relaxed space-y-4">
+        <p>
+          当サイトでは、ユーザーのプライバシー保護に最大限配慮し、「キヅクモサービス接続診断ツール」の提供にあたり、以下の情報を取得・利用します。
+        </p>
+
+        <h2 className="text-base font-semibold text-blue-800">■ 取得する情報</h2>
+        <p>
+          本ツールは以下の情報を一時的に取得しますが、サーバー等に保存されることはありません。
+          <ul className="list-disc list-inside ml-4">
+            <li>ご利用のインターネット接続環境（外部IPアドレス、ポート応答状況など）</li>
+            <li>診断実行日時</li>
+            <li>WebRTC通信の接続状態（成功・失敗に関する技術的ログ）</li>
+          </ul>
+        </p>
+
+        <h2 className="text-base font-semibold text-blue-800">■ Cookieの使用</h2>
+        <p>
+          当サイトでは、サービスの改善や統計分析を目的として Cookie を利用する場合があります。Cookie は個人を特定する情報を含まず、ユーザーのブラウザ設定で無効にすることが可能です。
+        </p>
+
+        <h2 className="text-base font-semibold text-blue-800">■ アクセスログ</h2>
+        <p>
+          診断ツールの安定運用のため、アクセスログ（アクセス日時・リクエストURL等）を一時的に収集する場合がありますが、これらは個人を特定する目的では利用されません。
+        </p>
+
+        <h2 className="text-base font-semibold text-blue-800">■ 個人情報の取り扱い</h2>
+        <p>
+          氏名・メールアドレス等の個人情報は、本ツールを通じて収集しておらず、外部サーバー等への送信も行いません。
+        </p>
+
+        <h2 className="text-base font-semibold text-blue-800">■ 免責事項</h2>
+        <p>
+          本ツールはネットワーク診断の簡易補助を目的としたものであり、診断結果の正確性・完全性を保証するものではありません。通信環境やセキュリティ設定により結果が異なる場合があります。
+        </p>
+      </div>
     </main>
   );
 }
