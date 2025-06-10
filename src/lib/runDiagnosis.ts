@@ -6,7 +6,6 @@
 // - 各状態変更(setter)を外部から受け取り実行
 // - runWebRTCCheckを内包して総合診断を完成
 // -------------------------
-// rita-base\lib\runDiagnosis.ts
 
 import runWebRTCCheck from "@/lib/runWebRTCCheck";
 
@@ -18,16 +17,20 @@ export const runDiagnosis = async (
 ): Promise<void> => {
   setLoading(true);
   setDiagnosed(false);
-  setPhase(1);
-  const logs: string[] = [];
 
-  // --- Phase 1 ---
+  const phase1Logs: string[] = [];
+  const phase2Logs: string[] = [];
+  const phase3Logs: string[] = [];
+
+  setPhase(1);
+
+  // --- Phase 1：IP + FQDN ---
   let ip = "取得失敗";
   try {
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
     ip = data.ip;
-  } catch { }
+  } catch {}
 
   let fqdnStatus = "NG";
   let fqdnLogs: string[] = [];
@@ -41,46 +44,46 @@ export const runDiagnosis = async (
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
-  logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
-  logs.push(`🔸外部IP: ${ip}`);
-  logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
-  logs.push(...fqdnLogs);
+  phase1Logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+  phase1Logs.push(`🔸外部IP: ${ip}`);
+  phase1Logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
+  phase1Logs.push(...fqdnLogs);
 
   setPhase(2);
 
-  // --- Phase 2 ---
+  // --- Phase 2：ポート確認 ---
   try {
     const res = await fetch("https://check-api.rita-base.com/check-json");
     const data = await res.json();
 
-    logs.push("🔸 TCPポート確認:");
+    phase2Logs.push("🔸 TCPポート確認:");
     for (const [port, result] of Object.entries(data.tcp)) {
-      logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "OK" : "NG"}`);
+      phase2Logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "OK" : "NG"}`);
     }
 
-    logs.push("🔸 UDPポート確認:");
+    phase2Logs.push("🔸 UDPポート確認:");
     for (const [port, result] of Object.entries(data.udp)) {
-      logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "OK" : "NG"}`);
+      phase2Logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "OK" : "NG"}`);
     }
 
     if (data.failed_ports.length > 0) {
-      logs.push("❌ NGとなったポート一覧:");
-      logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
+      phase2Logs.push("❌ NGとなったポート一覧:");
+      phase2Logs.push(...(data.failed_ports as string[]).map((p: string) => ` - ${p}`));
     }
   } catch (err) {
-    logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-    setStatus(logs); // ← エラーパスのときだけ早期 return
+    phase2Logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
+    setStatus([...phase1Logs, ...phase2Logs]);
     return;
   }
 
   setPhase(3);
 
-  // --- Phase 3 ---
-  logs.push("🔸 WebRTCログ");
+  // --- Phase 3：WebRTC ---
+  phase3Logs.push("🔸 WebRTCログ");
   const webrtcLogs = await runWebRTCCheck();
-  logs.push(...webrtcLogs);
+  phase3Logs.push(...webrtcLogs);
 
-  // ✅ 最後に1回だけ setStatus（←順番崩れない！）
-  setStatus([...logs]);
+  // ✅ 最後に一括ログ出力（順番崩れない！）
+  setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
   setDiagnosed(true);
 };
