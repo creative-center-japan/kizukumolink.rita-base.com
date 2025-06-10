@@ -30,20 +30,24 @@ export const runDiagnosis = async (
     ip = "取得失敗";
   }
 
-  let fqdnResult = "NG";
+  let fqdnStatus = "NG";
+  let fqdnLogs: string[] = [];
+
   try {
     const res = await fetch("/api/fqdncheck");
-    const result = await res.text();
-    fqdnResult = result.startsWith("OK")
-      ? `OK (Alarm.com 接続成功 - status: 200)`
-      : `NG (${result})`;
+    const result = await res.json(); // ← JSONで受け取る！
+
+    fqdnStatus = result.status;     // "OK" or "NG"
+    fqdnLogs = result.details ?? []; // ログ一覧
   } catch (err) {
-    fqdnResult = `NG (エラー: ${(err as Error).message})`;
+    fqdnStatus = "NG";
+    fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
   logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   logs.push(`🔸外部IP: ${ip}`);
-  logs.push(`🔸サービスへの通信確認: ${fqdnResult}`);
+  logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
+  logs.push(...fqdnLogs);
 
   setStatus([...logs]);
   setPhase(2);
