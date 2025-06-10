@@ -96,9 +96,13 @@ export default function Home() {
               <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
                 このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
                 カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
-                <span className="text-xs sm:text-sm text-gray-500 font-bold">
-                  ※当Web診断はサービスの品質を保証するものではございません。
+
+                <span className="block text-xs sm:text-sm text-gray-500 font-bold mt-2">
+                  ※現在、本診断内 WebRTC（映像通信）に関する詳細チェックは一時停止中です。<br />
+                  NATの構成／UDPセッション保持／セキュリティ機器による制御など<br />
+                  <span className="underline">実際のご利用可否はお客様ご利用環境にて弊社デモ機のご利用を実施いただくことををおすすめします。</span>
                 </span>
+
               </p>
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
