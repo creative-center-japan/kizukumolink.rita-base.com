@@ -60,12 +60,12 @@ export const runDiagnosis = async (
 
     logs.push("🔸 TCPポート確認:");
     for (const [port, result] of Object.entries(data.tcp)) {
-      logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "成功" : "失敗"}`);
+      logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "OK" : "NG"}`);
     }
 
     logs.push("🔸 UDPポート確認:");
     for (const [port, result] of Object.entries(data.udp)) {
-      logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "応答あり" : "応答なし"}`);
+      logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "OK" : "NG"}`);
     }
 
     if (data.failed_ports.length > 0) {
