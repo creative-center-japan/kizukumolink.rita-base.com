@@ -45,10 +45,13 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     ? status
     : status.filter(log => log.includes(item.keyword));
 
+  // 🔧 開発用ログは削除またはコメントアウト
+  /*
   console.log(`🧪 [checkIsOK] 判定対象: ${item.label}`);
   logsForItem.forEach((line, idx) => {
     console.log(`  ${idx + 1}: ${line}`);
   });
+  */
 
   if (item.label === 'WebRTC接続成功' || item.label === 'リレーサーバの利用') {
     return ENABLE_WEBRTC && false;
@@ -70,7 +73,10 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   }
 
   if (item.label === 'サービスへの通信確認') {
-    return logsForItem.some(log => log.includes("サービスへの通信確認: OK"));
+    return logsForItem.some(log =>
+      log.includes("サービスへの通信確認: OK") ||
+      log.includes("favicon.ico → OK") // ✅ これを追加して判定できるようにする！
+    );
   }
 
   return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
