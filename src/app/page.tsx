@@ -1,5 +1,3 @@
-// rita-base\src\app\page.tsx
-
 // -------------------------
 // page.tsx
 // - メイン画面：診断UIの表示・ボタン操作・ステータス管理を行う
@@ -15,10 +13,14 @@ import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS, CheckItem } from "@/constants/CHECK_ITEMS";
 
-// スケール計算関数
+// ✅ WebRTC診断を一時的に非表示にする設定（後で true に戻せば復活）
+const ENABLE_WEBRTC = false;
+const filteredCheckItems = ENABLE_WEBRTC
+  ? CHECK_ITEMS
+  : CHECK_ITEMS.filter(item => item.label !== "WebRTC接続成功" && item.label !== "リレーサーバの利用");
+
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
-
   useEffect(() => {
     const updateScale = () => {
       const width = window.innerWidth;
@@ -31,7 +33,6 @@ function useScaleFactor() {
         setScale(1);
       }
     };
-
     updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
@@ -49,6 +50,10 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     console.log(`  ${idx + 1}: ${line}`);
   });
 
+  if (item.label === 'WebRTC接続成功' || item.label === 'リレーサーバの利用') {
+    return ENABLE_WEBRTC && false;
+  }
+
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
       log.startsWith("外部IP:") ||
@@ -56,9 +61,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
       log.startsWith("🔸外部IP:")
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
-
-    return !!ip &&
-      /^[0-9.]+$/.test(ip) &&
+    return !!ip && /^[0-9.]+$/.test(ip) &&
       !/^0\.0\.0\.0$/.test(ip) &&
       !/^127\./.test(ip) &&
       !/^10\./.test(ip) &&
@@ -70,28 +73,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     return logsForItem.some(log => log.includes("サービスへの通信確認: OK"));
   }
 
-  if (item.label === 'WebRTC接続成功') {
-    const hasSuccessLog = logsForItem.some(log => log.includes("✅ DataChannel 接続＋応答確認 成功"));
-    const hasOKTag = logsForItem.some(log => log.includes("【判定】OK"));
-    const hasConnected = logsForItem.some(log => log.includes("全体接続状態: connected"));
-    const hasICEConnected = logsForItem.some(log => log.includes("ICE接続状態: connected"));
-    const hasCandidatePair = logsForItem.some(log =>
-      /candidate-pair state=(succeeded|in-progress), nominated=true/.test(log)
-    );
-
-    return hasSuccessLog && hasOKTag && hasConnected && hasICEConnected && hasCandidatePair;
-  }
-
-  if (item.label === 'リレーサーバの利用') {
-    return logsForItem.some(log =>
-      log.includes("✅ relay候補を検出") ||
-      log.includes("TURN中継通信に成功")
-    );
-  }
-
-  return logsForItem.some(log =>
-    log.includes("OK") || log.includes("成功") || log.includes("応答あり")
-  );
+  return logsForItem.some(log => log.includes("OK") || log.includes("成功") || log.includes("応答あり"));
 };
 
 export default function Home() {
@@ -105,17 +87,12 @@ export default function Home() {
   return (
     <div>
       <main className="min-h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100 text-gray-900 px-4 sm:px-6 pt-4 sm:pt-8 pb-12 sm:pb-16 text-base sm:text-lg">
-
         <div className="overflow-hidden w-full">
-          <div
-            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
-            className="transition-transform duration-300 w-full"
-          >
+          <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-300 w-full">
             <div className="max-w-[96%] mx-auto">
               <h1 className="text-3xl sm:text-4xl font-bold text-blue-800 text-center mb-6 tracking-wide">
                 キヅクモサービス接続診断ツール
               </h1>
-
               <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
                 このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
                 カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
@@ -123,11 +100,9 @@ export default function Home() {
                   ※当Web診断はサービスの品質を保証するものではございません。
                 </span>
               </p>
-
-              {/* ▼ 診断結果タイル（診断完了後のみ表示） */}
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
-                  {CHECK_ITEMS.map((item: CheckItem, idx: number) => (
+                  {filteredCheckItems.map((item: CheckItem, idx: number) => (
                     <ResultCard
                       key={idx}
                       item={item}
@@ -139,18 +114,13 @@ export default function Home() {
                   ))}
                 </div>
               )}
-
-              {/* ▼ ボタン表示エリア（常時表示） */}
               <div className="flex flex-wrap justify-center gap-2 mb-4">
                 {!loading && !diagnosed && (
                   <button
                     onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                  >
-                    診断開始
-                  </button>
+                  >診断開始</button>
                 )}
-
                 {loading && !diagnosed && (
                   <button
                     onClick={() => {
@@ -158,20 +128,15 @@ export default function Home() {
                       setStatus([]);
                     }}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                  >
-                    キャンセル
-                  </button>
+                  >キャンセル</button>
                 )}
               </div>
-
               {diagnosed && (
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
                   <button
                     onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                  >
-                    再診断
-                  </button>
+                  >再診断</button>
                   <button
                     onClick={() => {
                       const text = generateReportText(status);
@@ -184,12 +149,9 @@ export default function Home() {
                       URL.revokeObjectURL(url);
                     }}
                     className="w-full sm:w-auto max-w-[200px] h-[44px] px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-full font-semibold shadow text-base sm:text-lg text-center whitespace-nowrap"
-                  >
-                    結果をダウンロード
-                  </button>
+                  >結果をダウンロード</button>
                 </div>
               )}
-
               {loading && !diagnosed && (
                 <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
                   <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
@@ -206,8 +168,6 @@ export default function Home() {
                   </ul>
                 </div>
               )}
-
-              {/* NG項目の総括 */}
               {diagnosed && (
                 <NgSummary status={status} checkIsOK={checkIsOK} />
               )}
@@ -215,8 +175,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-      </main >
-    </div >
+      </main>
+    </div>
   );
 }
