@@ -35,19 +35,20 @@ export const runDiagnosis = async (
 
   try {
     const res = await fetch("/api/fqdncheck");
-    const result = await res.json(); // ← JSONで受け取る！
+    const result = await res.json(); // JSONで受け取る
 
-    fqdnStatus = result.status;     // "OK" or "NG"
-    fqdnLogs = result.details ?? []; // ログ一覧
+    fqdnStatus = result.status;           // "OK" or "NG"
+    fqdnLogs = result.details ?? [];      // 実際のfetch結果ログ
   } catch (err) {
     fqdnStatus = "NG";
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
+  // ✅ 表示順：サービス判定 → URLログ（見やすさ重視）
   logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   logs.push(`🔸外部IP: ${ip}`);
   logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
-  logs.push(...fqdnLogs);
+  logs.push(...fqdnLogs); // ← ここで即出力！
 
   setStatus([...logs]);
   setPhase(2);
