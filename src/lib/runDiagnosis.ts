@@ -21,15 +21,13 @@ export const runDiagnosis = async (
   setPhase(1);
   const logs: string[] = [];
 
-  // フェーズ1：IPとFQDNチェック
+  // --- Phase 1 ---
   let ip = "取得失敗";
   try {
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
     ip = data.ip;
-  } catch {
-    ip = "取得失敗";
-  }
+  } catch { }
 
   let fqdnStatus = "NG";
   let fqdnLogs: string[] = [];
@@ -37,24 +35,20 @@ export const runDiagnosis = async (
   try {
     const res = await fetch("/api/fqdncheck");
     const result = await res.json();
-
     fqdnStatus = result.status;
     fqdnLogs = result.details ?? [];
   } catch (err) {
-    fqdnStatus = "NG";
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
-  // ✅ 表示順を確実に制御！
-  logs.push(`🔸実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+  logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   logs.push(`🔸外部IP: ${ip}`);
   logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
-  logs.push(...fqdnLogs); // ← ★ favicon ログがここに来る！
+  logs.push(...fqdnLogs);
 
-  setStatus([...logs]);  // ✅ Phase 1ログ確定表示
   setPhase(2);
 
-  // フェーズ2：ポート確認
+  // --- Phase 2 ---
   try {
     const res = await fetch("https://check-api.rita-base.com/check-json");
     const data = await res.json();
@@ -75,18 +69,18 @@ export const runDiagnosis = async (
     }
   } catch (err) {
     logs.push(`ポート確認取得失敗: ${(err as Error).message}`);
-    setStatus([...logs]);
+    setStatus(logs); // ← エラーパスのときだけ早期 return
     return;
   }
 
-  setStatus([...logs]);
   setPhase(3);
 
-  // フェーズ3：WebRTC診断
+  // --- Phase 3 ---
   logs.push("🔸 WebRTCログ");
   const webrtcLogs = await runWebRTCCheck();
   logs.push(...webrtcLogs);
 
+  // ✅ 最後に1回だけ setStatus（←順番崩れない！）
   setStatus([...logs]);
   setDiagnosed(true);
 };
