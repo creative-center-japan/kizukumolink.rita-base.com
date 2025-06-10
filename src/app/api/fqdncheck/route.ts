@@ -2,12 +2,7 @@
 
 export async function GET() {
   const targets = [
-    "https://www.alarm.com/favicon.ico",
-    "https://devicetask.com/favicon.ico",
-    "https://www.devicetask.com/favicon.ico",
-    "https://api.devicetask.com/favicon.ico",
-    "https://status.devicetask.com/health",
-    "https://monitor.devicetask.com/",
+    "https://www.alarm.com/favicon.ico"
   ];
 
   const results: string[] = [];
