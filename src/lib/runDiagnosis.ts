@@ -6,6 +6,7 @@
 // - 各状態変更(setter)を外部から受け取り実行
 // - runWebRTCCheckを内包して総合診断を完成
 // -------------------------
+// rita-base\lib\runDiagnosis.ts
 
 import runWebRTCCheck from "@/lib/runWebRTCCheck";
 
@@ -37,23 +38,20 @@ export const runDiagnosis = async (
     const res = await fetch("/api/fqdncheck");
     const result = await res.json();
 
-    fqdnStatus = result.status;              // "OK" or "NG"
-    fqdnLogs = result.details ?? [];         // 期待する ✅ favicon ログがここに入る
+    fqdnStatus = result.status;
+    fqdnLogs = result.details ?? [];
   } catch (err) {
     fqdnStatus = "NG";
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
 
-  // ✅ デバッグログ出力！
-  console.log("🔥 fqdnLogs (API結果):", fqdnLogs);
-
-  // ログ出力順：サービスステータス → 詳細ログ（faviconなど）
-  logs.push(`📅 実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
+  // ✅ 表示順を確実に制御！
+  logs.push(`🔸実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   logs.push(`🔸外部IP: ${ip}`);
   logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
-  logs.push(...fqdnLogs);  // ← ここで favicon ログが入るはず
+  logs.push(...fqdnLogs); // ← ★ favicon ログがここに来る！
 
-  setStatus([...logs]);
+  setStatus([...logs]);  // ✅ Phase 1ログ確定表示
   setPhase(2);
 
   // フェーズ2：ポート確認
@@ -88,6 +86,7 @@ export const runDiagnosis = async (
   logs.push("🔸 WebRTCログ");
   const webrtcLogs = await runWebRTCCheck();
   logs.push(...webrtcLogs);
+
   setStatus([...logs]);
   setDiagnosed(true);
 };
