@@ -1,22 +1,45 @@
 // src\app\api\fqdncheck\route.ts
 
-export async function GET() {
-  try {
-    const res = await fetch("https://www.alarm.com/favicon.ico", {
-      method: "GET",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-      }
-    });
+// src\app\api\fqdncheck\route.ts
 
-    
-    if (res.status >= 200 && res.status < 500) {
-      // 明示的に成功判定用ログを返す！
-      return new Response("OK (Alarm.com 接続成功 - status: " + res.status + ")", { status: 200 });
-    } else {
-      return new Response(`NG (HTTP ${res.status})`, { status: res.status });
+export async function GET() {
+  const targets = [
+    "https://www.alarm.com/favicon.ico",
+    "https://www.devicetask.com/favicon.ico",
+    "https://api.devicetask.com/",
+  ];
+
+  const results: string[] = [];
+
+  for (const url of targets) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+      });
+
+      const resultText = `${url} → ${res.status}`;
+      console.log(resultText);
+
+      if (res.status >= 200 && res.status < 500) {
+        results.push(`✅ ${url} → OK (${res.status})`);
+      } else {
+        results.push(`⚠️ ${url} → NG (${res.status})`);
+      }
+
+    } catch (err) {
+      const errMsg = `❌ ${url} → エラー: ${(err as Error).message}`;
+      console.error(errMsg);
+      results.push(errMsg);
     }
-  } catch (err) {
-    return new Response(`NG (エラー: ${(err as Error).message})`, { status: 500 });
   }
+
+  return new Response(results.join("\n"), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain"
+    }
+  });
 }
