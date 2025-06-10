@@ -2,7 +2,7 @@
 
 export async function GET() {
   try {
-    const res = await fetch("https://www.alarm.com/web/system/home", {
+    const res = await fetch("https://www.alarm.com/favicon.ico", {
       method: "GET",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
