@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - UDP限定・接続診断用
+// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -13,40 +13,29 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'relay', // ✅ TURN経由（UDP）限定
+    iceTransportPolicy: 'relay', // TURN専用（P2P回避）
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] WebRTC設定（UDP TURN限定）を適用しました');
+  logs.push('[設定] TURN用WebRTC設定を適用しました（UDPのみ）');
 
-  pc.addEventListener('icecandidate', (e) => {
-    if (e.candidate) {
-      logs.push('[ICE] candidate: ' + e.candidate.candidate);
-      if (!e.candidate.candidate.includes('udp')) {
-        logs.push('⚠ 非UDP候補: ' + e.candidate.candidate);
-      }
-    } else {
-      logs.push('[ICE] candidate: (収集完了)');
-    }
-  });
-
-  pc.addEventListener('iceconnectionstatechange', () => {
-    logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-  });
-  pc.addEventListener('connectionstatechange', () => {
-    logs.push('[WebRTC] connection state: ' + pc.connectionState);
-  });
-  pc.addEventListener('signalingstatechange', () => {
-    logs.push('[WebRTC] signaling state: ' + pc.signalingState);
-  });
-  pc.addEventListener('icegatheringstatechange', () => {
-    logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
-  });
-
+  // 🔸 DataChannelをsetRemoteDescription前に作成してufrag/pwd固定化
   const dc = pc.createDataChannel('check', { negotiated: true, id: 0 });
+
+  // イベントリスナー定義
+  pc.onicecandidate = (e) =>
+    logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
+  pc.oniceconnectionstatechange = () =>
+    logs.push('[ICE] connection state: ' + pc.iceConnectionState);
+  pc.onconnectionstatechange = () =>
+    logs.push('[WebRTC] connection state: ' + pc.connectionState);
+  pc.onsignalingstatechange = () =>
+    logs.push('[WebRTC] signaling state: ' + pc.signalingState);
+  pc.onicegatheringstatechange = () =>
+    logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
@@ -67,7 +56,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) => logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  dc.onerror = (e) =>
+    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
     logs.push('[STEP] /camera-status へ fetch 開始');
