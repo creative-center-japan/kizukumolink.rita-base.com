@@ -42,8 +42,8 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   // ★★疑似NGモード：すべての項目をNGにする（開発・デモ用）★★
-  // const FORCE_ALL_NG = true;
-  // if (FORCE_ALL_NG) return false;
+  const FORCE_ALL_NG = true;
+  if (FORCE_ALL_NG) return false;
 
   const logsForItem = item.label === 'WebRTC接続成功'
     ? status
