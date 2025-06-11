@@ -21,7 +21,7 @@ export default function PrivacyPage() {
 
         <h2 className="text-base font-semibold text-blue-800">■ Cookieの使用</h2>
         <p>
-          当サイトでは、サービスの改善や統計分析を目的として Cookie を利用する場合があります。Cookie は個人を特定する情報を含まず、ユーザーのブラウザ設定で無効にすることが可能です。
+          当サイトでは、Cookie を利用した情報収取を行いません。
         </p>
 
         <h2 className="text-base font-semibold text-blue-800">■ アクセスログ</h2>
