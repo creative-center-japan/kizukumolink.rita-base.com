@@ -23,7 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="mb-1">© 2025 RitaBase. All rights reserved.</p>
             <div className="space-x-4">
               <a href="/privacy" className="underline hover:text-gray-300">プライバシーポリシー</a>
-              <a href="/contact" className="underline hover:text-gray-300">お問い合わせ</a>
             </div>
           </footer>
         </div>
