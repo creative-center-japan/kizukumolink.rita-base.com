@@ -2,7 +2,7 @@
 
 'use client';
 import React, { useState } from 'react';
-import runWebRTCCheck from '@/utils/runWebRTCCheck';
+import runWebRTCCheck from '@/lib/runWebRTCCheck';
 
 export default function WebRTCCheckRunner() {
   const [logs, setLogs] = useState<string[]>([]);
