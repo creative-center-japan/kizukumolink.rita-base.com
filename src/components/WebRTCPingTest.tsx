@@ -1,6 +1,4 @@
-// \src\components\WebRTCPingTest.tsx
-
-// rita-base/src/components/WebRTCPingTest.tsx
+//rita-base/src/components/WebRTCPingTest.tsx
 
 'use client';
 import React, { useEffect, useState } from 'react';
