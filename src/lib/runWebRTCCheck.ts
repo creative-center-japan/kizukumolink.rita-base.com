@@ -1,35 +1,32 @@
-// rita-base\src\lib\runWebRTCCheck.ts
+// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（TURNのみ構成）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   const statsLog: string[] = [];
 
-  // P2P優先 → TURNフォールバック
+  // TURN専用構成
   const config: RTCConfiguration = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
       {
         urls: 'turn:50.16.103.67:3478?transport=udp',
         username: 'test',
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'all', // ← relay から all に変更
+    iceTransportPolicy: 'relay', // TURNのみに限定
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] P2P優先 + TURNフォールバック構成を適用しました');
+  logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
 
-  // 🔸 DataChannel: negotiated 明示的に固定
   const dc = pc.createDataChannel('check', {
     negotiated: true,
     id: 0,
   });
 
-  // イベントリスナー
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   pc.oniceconnectionstatechange = () =>
