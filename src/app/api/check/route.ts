@@ -2,8 +2,8 @@
 export async function GET() {
   try {
     const [checkRes, ipRes] = await Promise.all([
-      fetch("http://3.80.218.25:5050/check"),
-      fetch("http://3.80.218.25:5050/external-ip")
+      fetch("http://50.16.103.67:5050/check"),
+      fetch("http://50.16.103.67:5050/external-ip")
     ]);
 
     const checkText = await checkRes.text();

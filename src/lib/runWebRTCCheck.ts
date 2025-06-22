@@ -6,9 +6,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   const config: RTCConfiguration = {
     iceServers: [
-      { urls: 'stun:3.80.218.25:3478' },
+      { urls: 'stun:50.16.103.67:3478' },
       {
-        urls: 'turn:3.80.218.25:3478?transport=udp',
+        urls: 'turn:50.16.103.67:3478?transport=udp',
         username: 'test',
         credential: 'testpass',
       },
@@ -24,7 +24,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
 
   // 🔸 DataChannelをsetRemoteDescription前に作成してufrag/pwd固定化
   const dc = pc.createDataChannel('check');
-  
+
   // イベントリスナー定義
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
