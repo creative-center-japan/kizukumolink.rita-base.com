@@ -23,8 +23,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   logs.push('[設定] TURN用WebRTC設定を適用しました（UDPのみ）');
 
   // 🔸 DataChannelをsetRemoteDescription前に作成してufrag/pwd固定化
-  const dc = pc.createDataChannel('check', { negotiated: true, id: 0 });
-
+  const dc = pc.createDataChannel('check');
+  
   // イベントリスナー定義
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
