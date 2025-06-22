@@ -1,40 +1,45 @@
-// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用
+// rita-base\src\lib\runWebRTCCheck.ts
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   const statsLog: string[] = [];
 
+  // P2P優先 → TURNフォールバック
   const config: RTCConfiguration = {
     iceServers: [
-      { urls: 'stun:50.16.103.67:3478' },
+      { urls: 'stun:stun.l.google.com:19302' },
       {
         urls: 'turn:50.16.103.67:3478?transport=udp',
         username: 'test',
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'relay', // TURN専用（P2P回避）
+    iceTransportPolicy: 'all', // ← relay から all に変更
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] TURN用WebRTC設定を適用しました（UDPのみ）');
+  logs.push('[設定] P2P優先 + TURNフォールバック構成を適用しました');
 
-  // 🔸 DataChannelをsetRemoteDescription前に作成してufrag/pwd固定化
+  // 🔸 DataChannel: negotiated 明示的に固定
   const dc = pc.createDataChannel('check', {
     negotiated: true,
     id: 0,
   });
 
-  // イベントリスナー定義
+  // イベントリスナー
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   pc.oniceconnectionstatechange = () =>
     logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-  pc.onconnectionstatechange = () =>
+  pc.onconnectionstatechange = () => {
     logs.push('[WebRTC] connection state: ' + pc.connectionState);
+    if (pc.connectionState === 'closed') {
+      logs.push('❌ RTCPeerConnection が切断されました');
+    }
+  };
   pc.onsignalingstatechange = () =>
     logs.push('[WebRTC] signaling state: ' + pc.signalingState);
   pc.onicegatheringstatechange = () =>
@@ -94,7 +99,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       const stats = await pc.getStats();
       stats.forEach((report) => {
         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          statsLog.push(`✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
+          statsLog.push(
+            `✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
+          );
         }
       });
       if (statsLog.length === 0) {
