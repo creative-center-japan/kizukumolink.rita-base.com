@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - TURN認証 + UDP専用 + DataChannel(negotiated=false)で max-bundle対策済み
+// runWebRTCCheck.ts - negotiated: false 版（DataChannel open 期待）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -13,7 +13,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       },
     ],
     iceTransportPolicy: 'relay',
-    bundlePolicy: 'max-bundle',
+    bundlePolicy: 'balanced',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
@@ -21,10 +21,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
 
-  // 必須：negotiated=false の DataChannel を createOffer 前に作る（max-bundle対策）
-  const dc = pc.createDataChannel('check', {
-    negotiated: false, // これで offer SDP に m=行が含まれる
-  });
+  // DataChannel: negotiated=false モード
+  const dc = pc.createDataChannel('check');
   logs.push('✅ DataChannel を negotiated=false で作成しました');
 
   pc.onicecandidate = (e) =>
