@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - negotiated: false 版（DataChannel open 期待）
+// runWebRTCCheck.ts - TURN UDP+TCP対応 + negotiated=false + DataChannel応答ログ付き
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -7,7 +7,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const config: RTCConfiguration = {
     iceServers: [
       {
-        urls: 'turn:50.16.103.67:3478?transport=udp',
+        urls: [
+          'turn:50.16.103.67:3478?transport=udp',
+          'turn:50.16.103.67:3478?transport=tcp',
+        ],
         username: 'test',
         credential: 'testpass',
       },
@@ -19,9 +22,8 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   };
 
   const pc = new RTCPeerConnection(config);
-  logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
+  logs.push('[設定] TURN専用構成を適用しました（UDP+TCP）');
 
-  // DataChannel: negotiated=false モード
   const dc = pc.createDataChannel('check');
   logs.push('✅ DataChannel を negotiated=false で作成しました');
 
