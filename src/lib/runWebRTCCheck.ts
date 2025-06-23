@@ -1,10 +1,9 @@
-// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（TURNのみ構成）
+// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（offer送信版）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   const statsLog: string[] = [];
 
-  // TURN専用構成
   const config: RTCConfiguration = {
     iceServers: [
       {
@@ -13,7 +12,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         credential: 'testpass',
       },
     ],
-    iceTransportPolicy: 'relay', // TURNのみに限定
+    iceTransportPolicy: 'relay',
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
@@ -65,31 +64,21 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
-    logs.push('[STEP] /camera-status へ fetch 開始');
-    const res = await fetch('https://webrtc-answer.rita-base.com/camera-status');
-    if (!res.ok) throw new Error(`status=${res.status}`);
-    const offer = await res.json();
-    logs.push('✅ /camera-status から SDP offer を受信');
-
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    logs.push('✅ setRemoteDescription 完了');
-
-    const answer = await pc.createAnswer();
-    logs.push('✅ createAnswer 完了');
-
-    await pc.setLocalDescription(answer);
-    logs.push('✅ setLocalDescription 完了');
+    logs.push('[STEP] offer 生成 開始');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    logs.push('✅ createOffer & setLocalDescription 完了');
 
     logs.push('[STEP] /offer へ POST 実行');
-    const res2 = await fetch('https://webrtc-answer.rita-base.com/offer', {
+    const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sdp: answer.sdp,
-        type: answer.type,
+        sdp: offer.sdp,
+        type: offer.type,
       }),
     });
-    if (!res2.ok) throw new Error(`POST /offer failed: status=${res2.status}`);
+    if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
     logs.push('✅ POST /offer 応答あり');
 
     setTimeout(async () => {
