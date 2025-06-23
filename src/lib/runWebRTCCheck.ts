@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - negotiated: false 版 + candidate詳細出力付き
+// runWebRTCCheck.ts - negotiated: false 版（DataChannel open 期待）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -21,6 +21,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
 
+  // DataChannel: negotiated=false モード
   const dc = pc.createDataChannel('check');
   logs.push('✅ DataChannel を negotiated=false で作成しました');
 
@@ -82,24 +83,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     setTimeout(async () => {
       const stats = await pc.getStats();
       stats.forEach((report) => {
-        if (report.type === 'candidate-pair') {
-          logs.push(
-            `[候補ペア] ${report.localCandidateId} ⇄ ${report.remoteCandidateId} | state=${report.state} | nominated=${report.nominated}`
-          );
-          if (report.state === 'succeeded') {
-            statsLog.push(
-              `✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
-            );
-          }
-        }
-        if (report.type === 'remote-candidate') {
-          logs.push(
-            `[Remote候補] ID=${report.id} | IP=${report.address} | port=${report.port} | type=${report.candidateType}`
-          );
-        }
-        if (report.type === 'local-candidate') {
-          logs.push(
-            `[Local候補] ID=${report.id} | IP=${report.address} | port=${report.port} | type=${report.candidateType}`
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          statsLog.push(
+            `✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
           );
         }
       });
