@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（DataChannel非negotiated）
+""// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（negotiated: false対応）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -13,7 +13,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       },
     ],
     iceTransportPolicy: 'relay',
-    bundlePolicy: 'max-bundle',
+    bundlePolicy: 'balanced', // ← max-bundle から balanced に変更（BUNDLEエラー回避）
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
@@ -36,9 +36,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.onicegatheringstatechange = () =>
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
+  let dc: RTCDataChannel;
   pc.ondatachannel = (event) => {
-    const dc = event.channel;
-    logs.push(`[DataChannel] 🛬 received: ${dc.label}`);
+    dc = event.channel;
 
     dc.onopen = () => {
       logs.push('✅ DataChannel open');
@@ -107,4 +107,4 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   return logs;
 };
 
-export default runWebRTCCheck;
+export default runWebRTCCheck;""
