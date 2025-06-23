@@ -1,4 +1,4 @@
-""// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（negotiated: false対応）
+// runWebRTCCheck.ts - TURN認証 + UDP専用 + DataChannel(negotiated=false)で max-bundle対策済み
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -13,13 +13,19 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       },
     ],
     iceTransportPolicy: 'relay',
-    bundlePolicy: 'balanced', // ← max-bundle から balanced に変更（BUNDLEエラー回避）
+    bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 0,
   };
 
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
+
+  // 必須：negotiated=false の DataChannel を createOffer 前に作る（max-bundle対策）
+  const dc = pc.createDataChannel('check', {
+    negotiated: false, // これで offer SDP に m=行が含まれる
+  });
+  logs.push('✅ DataChannel を negotiated=false で作成しました');
 
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
@@ -36,32 +42,27 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.onicegatheringstatechange = () =>
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
-  let dc: RTCDataChannel;
-  pc.ondatachannel = (event) => {
-    dc = event.channel;
-
-    dc.onopen = () => {
-      logs.push('✅ DataChannel open');
-      dc.send('ping');
-      logs.push('📤 送信: ping');
-    };
-
-    dc.onmessage = (event) => {
-      logs.push(`📨 受信: ${event.data}`);
-      logs.push('✅ DataChannel 応答確認完了');
-      setTimeout(() => {
-        logs.push('⏱ DataChannel を維持後に close 実行');
-        if (pc.connectionState !== 'closed') {
-          pc.close();
-          logs.push('✅ RTCPeerConnection を close しました');
-        }
-      }, 10000);
-    };
-
-    dc.onclose = () => logs.push('❌ DataChannel closed');
-    dc.onerror = (e) =>
-      logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  dc.onopen = () => {
+    logs.push('✅ DataChannel open');
+    dc.send('ping');
+    logs.push('📤 送信: ping');
   };
+
+  dc.onmessage = (event) => {
+    logs.push(`📨 受信: ${event.data}`);
+    logs.push('✅ DataChannel 応答確認完了');
+    setTimeout(() => {
+      logs.push('⏱ DataChannel を維持後に close 実行');
+      if (pc.connectionState !== 'closed') {
+        pc.close();
+        logs.push('✅ RTCPeerConnection を close しました');
+      }
+    }, 10000);
+  };
+
+  dc.onclose = () => logs.push('❌ DataChannel closed');
+  dc.onerror = (e) =>
+    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
   try {
     logs.push('[STEP] offer 生成 開始');
@@ -107,4 +108,4 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   return logs;
 };
 
-export default runWebRTCCheck;""
+export default runWebRTCCheck;
