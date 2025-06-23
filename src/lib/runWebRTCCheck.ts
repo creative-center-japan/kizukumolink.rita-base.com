@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（offer送信版）
+// runWebRTCCheck.ts - TURN認証用ufrag/pwd固定対応 + UDP専用（DataChannel非negotiated）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -21,11 +21,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const pc = new RTCPeerConnection(config);
   logs.push('[設定] TURN専用構成を適用しました（UDP限定）');
 
-  const dc = pc.createDataChannel('check', {
-    negotiated: true,
-    id: 0,
-  });
-
   pc.onicecandidate = (e) =>
     logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
   pc.oniceconnectionstatechange = () =>
@@ -41,27 +36,32 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.onicegatheringstatechange = () =>
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
-  dc.onopen = () => {
-    logs.push('✅ DataChannel open');
-    dc.send('ping');
-    logs.push('📤 送信: ping');
-  };
+  pc.ondatachannel = (event) => {
+    const dc = event.channel;
+    logs.push(`[DataChannel] 🛬 received: ${dc.label}`);
 
-  dc.onmessage = (event) => {
-    logs.push(`📨 受信: ${event.data}`);
-    logs.push('✅ DataChannel 応答確認完了');
-    setTimeout(() => {
-      logs.push('⏱ DataChannel を維持後に close 実行');
-      if (pc.connectionState !== 'closed') {
-        pc.close();
-        logs.push('✅ RTCPeerConnection を close しました');
-      }
-    }, 10000);
-  };
+    dc.onopen = () => {
+      logs.push('✅ DataChannel open');
+      dc.send('ping');
+      logs.push('📤 送信: ping');
+    };
 
-  dc.onclose = () => logs.push('❌ DataChannel closed');
-  dc.onerror = (e) =>
-    logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+    dc.onmessage = (event) => {
+      logs.push(`📨 受信: ${event.data}`);
+      logs.push('✅ DataChannel 応答確認完了');
+      setTimeout(() => {
+        logs.push('⏱ DataChannel を維持後に close 実行');
+        if (pc.connectionState !== 'closed') {
+          pc.close();
+          logs.push('✅ RTCPeerConnection を close しました');
+        }
+      }, 10000);
+    };
+
+    dc.onclose = () => logs.push('❌ DataChannel closed');
+    dc.onerror = (e) =>
+      logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
+  };
 
   try {
     logs.push('[STEP] offer 生成 開始');
