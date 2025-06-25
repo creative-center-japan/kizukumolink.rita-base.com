@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - TURN UDP+TCP対応 + negotiated=false + DataChannel応答ログ付き
+// runWebRTCCheck.ts - 再確認版（fetchタイムアウト検出付き、DataChannel open期待）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -7,10 +7,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   const config: RTCConfiguration = {
     iceServers: [
       {
-        urls: [
-          'turn:50.16.103.67:3478?transport=udp',
-          'turn:50.16.103.67:3478?transport=tcp',
-        ],
+        urls: 'turn:50.16.103.67:3478?transport=udp',
+        username: 'test',
+        credential: 'testpass',
+      },
+      {
+        urls: 'turn:50.16.103.67:3478?transport=tcp',
         username: 'test',
         credential: 'testpass',
       },
@@ -71,14 +73,16 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('✅ createOffer & setLocalDescription 完了');
 
     logs.push('[STEP] /offer へ POST 実行');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sdp: offer.sdp,
-        type: offer.type,
-      }),
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
     if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
     logs.push('✅ POST /offer 応答あり');
 
