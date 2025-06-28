@@ -14,7 +14,7 @@ import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS, CheckItem } from "@/constants/CHECK_ITEMS";
 
 // ✅ WebRTC診断を一時的に非表示にする設定（後で true に戻せば復活）
-const ENABLE_WEBRTC = false;
+const ENABLE_WEBRTC = true;
 const filteredCheckItems = ENABLE_WEBRTC
   ? CHECK_ITEMS
   : CHECK_ITEMS.filter(item => item.label !== "WebRTC接続成功" && item.label !== "リレーサーバの利用");
@@ -103,9 +103,10 @@ export default function Home() {
                 カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
 
                 <span className="block text-xs sm:text-sm text-gray-500 font-bold mt-2">
-                  ※現在、本診断内 WebRTC（映像通信）に関する詳細チェックは一時停止中です。<br />
-                  NATの構成確認／UDP NATセッション時間の確認／セキュリティ機器による制御の確認 等の確認が行えない<br />
-                  <span className="underline">実際のご利用可否はお客様ご利用環境にて弊社デモ機を利用して動作確認いただくことをおすすめします。</span>
+                  本ツールはWebRTC等の接続方式を含むネットワーク診断の簡易補助を目的としています。<br />
+                  診断結果は通信環境・NAT構成・セキュリティ機器設定などにより異なる可能性があり、<br />
+                  結果の正確性・完全性を保証するものではありません。<br />
+                  <span className="underline">最終的なご利用可否は、実機を用いた環境テストを推奨いたします。</span>
                 </span>
 
               </p>
