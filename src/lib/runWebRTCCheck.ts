@@ -2,7 +2,6 @@
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
-  const statsLog: string[] = [];
   let pingInterval: ReturnType<typeof setInterval>;
 
   const config: RTCConfiguration = {
@@ -64,14 +63,15 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     setTimeout(async () => {
       logs.push('⏱ DataChannel を 30秒維持後に close 実行');
 
-      // ✅ WebRTC統計ログ取得
       const stats = await pc.getStats();
       stats.forEach((report) => {
         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
           const local = stats.get(report.localCandidateId);
           const remote = stats.get(report.remoteCandidateId);
 
-          logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
+          logs.push(
+            `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
+          );
 
           if (local && remote) {
             logs.push(`【接続方式】${local.candidateType} → ${remote.candidateType}`);
