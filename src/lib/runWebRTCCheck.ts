@@ -1,7 +1,9 @@
+// rita-base\src\lib\runWebRTCCheck.ts
+
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   const statsLog: string[] = [];
-  let pingInterval: ReturnType<typeof setInterval>; // ✅ ブラウザ対応の型指定
+  let pingInterval: ReturnType<typeof setInterval>;
 
   const config: RTCConfiguration = {
     iceServers: [
@@ -48,7 +50,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     dc.send('ping');
     logs.push('📤 送信: ping');
 
-    // 🔁 5秒おきにpingを送信
+    // 🔁 5秒おきにping送信
     pingInterval = setInterval(() => {
       dc.send('ping');
       logs.push('📤 定期送信: ping');
@@ -62,9 +64,20 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     setTimeout(async () => {
       logs.push('⏱ DataChannel を 30秒維持後に close 実行');
 
-      // 📊 DataChannel統計ログ出力
+      // ✅ WebRTC統計ログ取得
       const stats = await pc.getStats();
       stats.forEach((report) => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          const local = stats.get(report.localCandidateId);
+          const remote = stats.get(report.remoteCandidateId);
+
+          logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
+
+          if (local && remote) {
+            logs.push(`【接続方式】${local.candidateType} → ${remote.candidateType}`);
+          }
+        }
+
         if (report.type === 'data-channel') {
           logs.push(`📊 DataChannel統計:
   messagesSent: ${report.messagesSent}
@@ -75,7 +88,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       });
 
       clearInterval(pingInterval);
-
       if (pc.connectionState !== 'closed') {
         pc.close();
         logs.push('✅ RTCPeerConnection を close しました');
@@ -114,22 +126,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
     logs.push('✅ setRemoteDescription 完了');
-
-    setTimeout(async () => {
-      const stats = await pc.getStats();
-      stats.forEach((report) => {
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          statsLog.push(
-            `✅ 候補成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
-          );
-        }
-      });
-      if (statsLog.length === 0) {
-        logs.push('⚠ 候補ペアが接続成功状態に至っていません');
-      } else {
-        logs.push(...statsLog);
-      }
-    }, 3000);
   } catch (err) {
     logs.push('❌ WebRTC接続に失敗しました');
     if (err instanceof Error) logs.push(`❗詳細: ${err.message}`);
