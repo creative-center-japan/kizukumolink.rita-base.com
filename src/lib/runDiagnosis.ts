@@ -83,7 +83,7 @@ export const runDiagnosis = async (
   setPhase(3);
 
   // --- Phase 3：WebRTC診断 ---
-  phase3Logs.push("--- 【診断ツール停止中】フェーズ3：映像通信（WebRTC）確認 ---");
+  phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認 ---");
 
   const webrtcLogs = await runWebRTCCheck();
   phase3Logs.push(...webrtcLogs);
