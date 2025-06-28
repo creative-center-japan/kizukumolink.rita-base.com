@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts - 再確認版（fetchタイムアウト検出付き、DataChannel open期待）
+// runWebRTCCheck.ts - 修正版（SDP Answer対応 + fetchタイムアウト + DataChannel確認）
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -86,6 +86,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
     logs.push('✅ POST /offer 応答あり');
 
+    // 🔧 追加: SDP Answer を受け取って RemoteDescription 設定
+    const answer = await res.json();
+    await pc.setRemoteDescription(answer);
+    logs.push('✅ setRemoteDescription 完了');
+
+    // 候補ペア確認（3秒後）
     setTimeout(async () => {
       const stats = await pc.getStats();
       stats.forEach((report) => {
