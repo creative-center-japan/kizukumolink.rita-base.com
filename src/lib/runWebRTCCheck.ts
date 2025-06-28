@@ -61,7 +61,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('✅ DataChannel 応答確認完了');
 
     setTimeout(async () => {
-      logs.push('⏱ DataChannel を 8秒維持後に close 実行');
+      logs.push('⏱ DataChannel を 10秒維持後に close 実行');
 
       const stats = await pc.getStats();
       stats.forEach((report) => {
@@ -92,8 +92,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         pc.close();
         logs.push('✅ RTCPeerConnection を close しました');
       }
-    }, 8000); // ← wait時間を8秒に変更
-
+    }, 10000); // ← 実際に10秒待機
   };
 
   dc.onclose = () => {
