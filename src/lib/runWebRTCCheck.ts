@@ -1,8 +1,7 @@
-// runWebRTCCheck.ts - 修正版（SDP Answer対応 + fetchタイムアウト + DataChannel確認）
-
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
   const statsLog: string[] = [];
+  let pingInterval: ReturnType<typeof setInterval>; // ✅ ブラウザ対応の型指定
 
   const config: RTCConfiguration = {
     iceServers: [
@@ -48,21 +47,47 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('✅ DataChannel open');
     dc.send('ping');
     logs.push('📤 送信: ping');
+
+    // 🔁 5秒おきにpingを送信
+    pingInterval = setInterval(() => {
+      dc.send('ping');
+      logs.push('📤 定期送信: ping');
+    }, 5000);
   };
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
     logs.push('✅ DataChannel 応答確認完了');
-    setTimeout(() => {
-      logs.push('⏱ DataChannel を維持後に close 実行');
+
+    setTimeout(async () => {
+      logs.push('⏱ DataChannel を 30秒維持後に close 実行');
+
+      // 📊 DataChannel統計ログ出力
+      const stats = await pc.getStats();
+      stats.forEach((report) => {
+        if (report.type === 'data-channel') {
+          logs.push(`📊 DataChannel統計:
+  messagesSent: ${report.messagesSent}
+  messagesReceived: ${report.messagesReceived}
+  bytesSent: ${report.bytesSent}
+  bytesReceived: ${report.bytesReceived}`);
+        }
+      });
+
+      clearInterval(pingInterval);
+
       if (pc.connectionState !== 'closed') {
         pc.close();
         logs.push('✅ RTCPeerConnection を close しました');
       }
-    }, 10000);
+    }, 30000);
   };
 
-  dc.onclose = () => logs.push('❌ DataChannel closed');
+  dc.onclose = () => {
+    clearInterval(pingInterval);
+    logs.push('❌ DataChannel closed');
+  };
+
   dc.onerror = (e) =>
     logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
@@ -86,12 +111,10 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
     logs.push('✅ POST /offer 応答あり');
 
-    // 🔧 追加: SDP Answer を受け取って RemoteDescription 設定
     const answer = await res.json();
     await pc.setRemoteDescription(answer);
     logs.push('✅ setRemoteDescription 完了');
 
-    // 候補ペア確認（3秒後）
     setTimeout(async () => {
       const stats = await pc.getStats();
       stats.forEach((report) => {
