@@ -49,8 +49,11 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     ? status
     : status.filter(log => log.includes(item.keyword));
 
-  if (item.label === 'WebRTC接続成功' || item.label === 'リレーサーバの利用') {
-    return ENABLE_WEBRTC && false;
+  if (item.label === 'WebRTC接続成功') {
+    // ✅ 成功した candidate-pair のログがあるか
+    return logsForItem.some(log =>
+      log.includes('candidate-pair') && log.includes('succeeded')
+    );
   }
 
   if (item.label === 'ご利用IPアドレス') {
