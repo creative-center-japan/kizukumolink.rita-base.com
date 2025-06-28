@@ -50,11 +50,11 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     : status.filter(log => log.includes(item.keyword));
 
   if (item.label === 'WebRTC接続成功') {
-    // ✅ 成功した candidate-pair のログがあるか
     return logsForItem.some(log =>
-      log.includes('candidate-pair') && log.includes('succeeded')
+      log.includes('✅ WebRTC接続成功')
     );
   }
+
 
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
