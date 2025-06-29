@@ -50,7 +50,6 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
         for (const report of stats.values()) {
           if (report.type === 'candidate-pair' && report.state === 'succeeded') {
             const local = stats.get(report.localCandidateId);
-            const remote = stats.get(report.remoteCandidateId);
             logs.push(
               `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
             );
