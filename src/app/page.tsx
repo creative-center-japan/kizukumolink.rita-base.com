@@ -14,8 +14,8 @@ const reordered = [
   CHECK_ITEMS.find(i => i.label === 'ご利用IPアドレス'),
   CHECK_ITEMS.find(i => i.label === 'サービスへの通信確認'),
   CHECK_ITEMS.find(i => i.label === '通信ポート確認'),
-  CHECK_ITEMS.find(i => i.label === '接続方式'),
-  CHECK_ITEMS.find(i => i.label === 'WebRTC接続成功'),
+  CHECK_ITEMS.find(i => i.label === 'TURN接続確認'),
+  CHECK_ITEMS.find(i => i.label === 'P2P接続確認'),
 ].filter(Boolean) as typeof CHECK_ITEMS;
 
 const filteredCheckItems = ENABLE_WEBRTC
@@ -46,12 +46,12 @@ function useScaleFactor() {
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   const logsForItem = status.filter(log => log.includes(item.keyword));
 
-  if (item.label === 'WebRTC接続成功') {
-    return logsForItem.some(log => log.startsWith('✅ WebRTC接続成功'));
+  if (item.label === 'TURN接続確認') {
+    return logsForItem.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
-  if (item.label === '接続方式') {
-    return logsForItem.some(log => log.includes('【 接続方式候補 】'));
+  if (item.label === 'P2P接続確認') {
+    return logsForItem.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
   if (item.label === 'ご利用IPアドレス') {
