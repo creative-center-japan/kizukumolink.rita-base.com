@@ -45,7 +45,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   // const FORCE_ALL_NG = true;
   // if (FORCE_ALL_NG) return false;
 
-  const logsForItem = item.label === 'WebRTC接続成功'
+  const logsForItem = item.label === 'WebRTC接続成功' || item.label === '接続方式'
     ? status
     : status.filter(log => log.includes(item.keyword));
 
@@ -55,6 +55,12 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     );
   }
 
+  if (item.label === '接続方式') {
+    return logsForItem.some(log =>
+      log.includes('【 接続方式候補 】') &&
+      (log.includes('relay') || log.includes('srflx') || log.includes('host'))
+    );
+  }
 
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
@@ -83,7 +89,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   );
 };
 
-
 export default function Home() {
   const scale = useScaleFactor();
   const [status, setStatus] = useState<string[]>([]);
@@ -104,14 +109,12 @@ export default function Home() {
               <p className="text-center text-sm sm:text-base md:text-lg text-gray-700 mb-6 font-semibold leading-relaxed">
                 このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
                 カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
-
                 <span className="block text-xs sm:text-sm text-gray-500 font-bold mt-2">
                   本ツールはWebRTC等の接続方式を含むネットワーク診断の簡易補助を目的としています。<br />
                   診断結果は通信環境・NAT構成・セキュリティ機器設定などにより異なる可能性があり、<br />
                   結果の正確性・完全性を保証するものではありません。<br />
                   <span className="underline">最終的なご利用可否は、実機を用いた環境テストを推奨いたします。</span>
                 </span>
-
               </p>
               {diagnosed && (
                 <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 px-2 sm:px-4 mx-auto max-w-[96%] mb-4">
