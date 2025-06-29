@@ -1,12 +1,3 @@
-// rita-base\components\ResultCard.tsx
-
-// -------------------------
-// ResultCard.tsx
-// - 各診断項目の「カードUIコンポーネント」
-// - 判定状態やNG理由の表示を担当
-// - CHECK_ITEMS から受け取った定義に基づき出力
-// -------------------------
-
 import React from "react";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
@@ -64,7 +55,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
             {
               status.find(log =>
                 log.includes("フェーズ3") &&
-                log.includes("P2P") &&
+                log.includes("P2P含む") &&
+                log.includes("接続形態") &&
                 log.includes("P2P（直接）")
               )
                 ?.replace("【 接続形態 】", "【接続形態】")
@@ -81,7 +73,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
             {
               status.find(log =>
                 log.includes("フェーズ3") &&
-                log.includes("relay") &&
+                log.includes("relay限定") &&
+                log.includes("接続形態") &&
                 log.includes("TURNリレー")
               )
                 ?.replace("【 接続形態 】", "【接続形態】")
