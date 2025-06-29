@@ -24,7 +24,7 @@ export const NgSummary: React.FC<NgSummaryProps> = ({ status, checkIsOK }) => {
       <h2 className="text-xl font-bold text-gray-800 mb-4">NG項目の要約</h2>
       {ngItems.map((item, idx) => (
         <div key={idx} className="bg-white border border-blue-300 p-4 rounded shadow">
-          <p className="font-bold text-gray-800 mb-2">【NG項目】{item.label}</p>
+          <p className="font-bold text-gray-800 mb-2">【NG項目】{item.displayName ?? item.label}</p>
           <p><span className="font-semibold text-red-600">NG理由:</span> {item.ngReason}</p>
           {item.action && (
             <p className="mt-2"><span className="font-semibold text-blue-600">今後の対応:</span> {item.action}</p>

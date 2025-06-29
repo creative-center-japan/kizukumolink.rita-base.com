@@ -44,7 +44,8 @@ export const CHECK_ITEMS = [
     action: 'ご利用のネットワークでUDP/TCPの中継用ポートが制限されている可能性があります。ネットワーク管理者にご相談いただき、必要に応じて弊社営業へ中継用ポートをご確認ください。'
   },
   {
-    label: '【参考】P2P接続確認',
+    label: 'P2P接続確認',
+    displayName: '【参考】P2P接続確認',
     description: '直接通信（P2P）でWebRTC接続できるか',
     keyword: '--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---',
     tooltip: 'srflx/host候補による直接通信が可能か',

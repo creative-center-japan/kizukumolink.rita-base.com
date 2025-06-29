@@ -27,7 +27,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
       className="relative bg-white text-gray-800 border border-gray-200 shadow-md w-full max-w-[360px] p-4 rounded-xl"
     >
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold">{item.label}</h3>
+        <h3 className="text-lg font-semibold">{item.displayName ?? item.label}</h3>
         <button
           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200"
           title={item.tooltip}
