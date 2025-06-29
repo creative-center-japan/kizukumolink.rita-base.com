@@ -114,20 +114,20 @@ export default function Home() {
             {!loading && !diagnosed && (
               <button
                 onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
-                className="bg-blue-800 text-white px-6 py-2 rounded-full text-lg"
+                className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
               >診断開始</button>
             )}
-            {loading && (
+            {loading && !diagnosed && (
               <button
                 onClick={() => setLoading(false)}
-                className="bg-blue-800 text-white px-6 py-2 rounded-full text-lg"
+                className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
               >キャンセル</button>
             )}
             {diagnosed && (
               <>
                 <button
                   onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
-                  className="bg-blue-800 text-white px-6 py-2 rounded-full text-lg"
+                  className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
                 >再診断</button>
                 <button
                   onClick={() => {
@@ -140,7 +140,7 @@ export default function Home() {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="bg-blue-800 text-white px-6 py-2 rounded-full text-lg"
+                  className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
                 >結果をダウンロード</button>
               </>
             )}
@@ -165,7 +165,6 @@ export default function Home() {
 
           {diagnosed && <NgSummary status={status} checkIsOK={checkIsOK} />}
           <DetailModal showDetail={showDetail} setShowDetail={setShowDetail} />
-
         </div>
       </div>
     </main>

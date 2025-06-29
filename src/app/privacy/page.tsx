@@ -42,14 +42,9 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      {/* ✅ 戻るボタン（footer風） */}
-      <div className="bg-blue-800 mt-12 py-6 text-center">
-        <Link href="/">
-          <span className="text-white text-sm underline hover:text-blue-200">
-            ← トップページへ戻る
-          </span>
-        </Link>
-      </div>
+      <Link href="/" className="inline-block bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg text-center">
+        トップページへ戻る
+      </Link>
     </main>
   );
 }
