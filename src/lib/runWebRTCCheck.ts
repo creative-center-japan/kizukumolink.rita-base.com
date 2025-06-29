@@ -4,6 +4,7 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
+    let alreadyResolved = false;
 
     const config: RTCConfiguration = {
       iceServers: [
@@ -18,7 +19,7 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
           credential: 'testpass',
         },
       ],
-      iceTransportPolicy: policy, // ← ポリシーを切り替え
+      iceTransportPolicy: policy,
       bundlePolicy: 'balanced',
       rtcpMuxPolicy: 'require',
       iceCandidatePoolSize: 0,
@@ -32,45 +33,58 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
 
     pc.onicecandidate = (e) =>
       logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
-    pc.oniceconnectionstatechange = () =>
-      logs.push('[ICE] connection state: ' + pc.iceConnectionState);
+
+    const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
+      const local = await pc.getStats().then(stats => stats.get(report.localCandidateId));
+      logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
+      if (local) {
+        logs.push(`【 接続方式候補 】${local.candidateType}`);
+        if (local.candidateType === 'relay') {
+          logs.push('【 接続形態 】TURNリレー（中継）');
+        } else {
+          logs.push('【 接続形態 】P2P（直接）');
+        }
+      }
+
+      if (!alreadyResolved) {
+        alreadyResolved = true;
+        clearInterval(pingInterval);
+        if (pc.connectionState !== 'closed') {
+          pc.close();
+          logs.push('✅ RTCPeerConnection を close しました（早期）');
+        }
+        resolve(logs);
+      }
+    };
+
+    const checkCandidateLoop = async () => {
+      const start = Date.now();
+      while (!alreadyResolved && Date.now() - start < 30000) {
+        const stats = await pc.getStats();
+        for (const report of stats.values()) {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            await handleSuccessAndExit(report);
+            return;
+          }
+        }
+        await new Promise(res => setTimeout(res, 1000));
+      }
+      if (!alreadyResolved) logs.push('⚠ 30秒以内に candidate-pair: succeeded が見つかりませんでした');
+    };
+
     pc.onconnectionstatechange = () => {
       logs.push('[WebRTC] connection state: ' + pc.connectionState);
       if (pc.connectionState === 'closed') {
         logs.push('❌ RTCPeerConnection が切断されました');
       }
     };
+
     pc.onsignalingstatechange = () =>
       logs.push('[WebRTC] signaling state: ' + pc.signalingState);
+    pc.oniceconnectionstatechange = () =>
+      logs.push('[ICE] connection state: ' + pc.iceConnectionState);
     pc.onicegatheringstatechange = () =>
       logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
-
-    const waitForCandidateSuccess = async (timeoutMs: number = 45000): Promise<boolean> => {
-      const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
-        const stats = await pc.getStats();
-        for (const report of stats.values()) {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            const local = stats.get(report.localCandidateId);
-            logs.push(
-              `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
-            );
-            if (local) {
-              logs.push(`【 接続方式候補 】${local.candidateType}`);
-              if (local.candidateType === 'relay') {
-                logs.push('【 接続形態 】TURNリレー（中継）');
-              } else {
-                logs.push('【 接続形態 】P2P（直接）');
-              }
-            }
-            return true;
-          }
-        }
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-      logs.push('⚠ 45秒以内に candidate-pair: succeeded が見つかりませんでした');
-      return false;
-    };
 
     dc.onopen = () => {
       logs.push('✅ DataChannel open');
@@ -78,14 +92,18 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
       logs.push('📤 送信: ping');
 
       pingInterval = setInterval(() => {
-        dc.send('ping');
-        logs.push('📤 定期送信: ping');
+        if (dc.readyState === 'open') {
+          dc.send('ping');
+          logs.push('📤 定期送信: ping');
+        }
       }, 5000);
 
-      setTimeout(async () => {
-        logs.push('⏱ DataChannel を 30秒維持後に close 実行');
+      checkCandidateLoop();
 
-        await waitForCandidateSuccess(30000);
+      // タイムアウトバックアップ（30秒後に強制resolve）
+      setTimeout(async () => {
+        if (alreadyResolved) return;
+        logs.push('⏱ DataChannel を 30秒維持後に強制close（ICE未検出）');
 
         const stats = await pc.getStats();
         stats.forEach((report) => {
@@ -97,9 +115,8 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
         clearInterval(pingInterval);
         if (pc.connectionState !== 'closed') {
           pc.close();
-          logs.push('✅ RTCPeerConnection を close しました');
+          logs.push('✅ RTCPeerConnection を close しました（timeout）');
         }
-
         resolve(logs);
       }, 30000);
     };

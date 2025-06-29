@@ -51,7 +51,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         )}
       </p>
 
-      {/* ✅ P2P専用パネル */}
       {item.label === 'P2P接続確認' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
           <p>
@@ -69,7 +68,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         </div>
       )}
 
-      {/* ✅ TURN専用パネル */}
       {item.label === 'TURN接続確認' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
           <p>
