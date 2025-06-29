@@ -2,8 +2,7 @@
 
 'use client';
 
-//NGテストフラグ ↓ を true にして実行する
-const FORCE_ALL_NG = false;
+const FORCE_ALL_NG = false; // ← NGテストしたいとき true に
 
 import React, { useState, useEffect } from 'react';
 import { runDiagnosis } from "@/lib/runDiagnosis";
@@ -50,19 +49,20 @@ function useScaleFactor() {
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
-  const logsForItem = status.filter(log => log.includes(item.keyword));
 
   if (item.label === 'TURN接続確認') {
-    return logsForItem.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+    return status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
   if (item.label === 'P2P接続確認') {
-    return logsForItem.some(log => log.includes('【 接続形態 】P2P（直接）'));
+    return status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
   if (item.label === 'ご利用IPアドレス') {
-    const ipLog = logsForItem.find(log =>
-      log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:") || log.startsWith("🔸外部IP:")
+    const ipLog = status.find(log =>
+      log.startsWith("外部IP:") ||
+      log.startsWith("🌐 外部IP（補完）:") ||
+      log.startsWith("🔸外部IP:")
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
     return !!ip && /^[0-9.]+$/.test(ip) &&
@@ -74,13 +74,13 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   }
 
   if (item.label === 'サービスへの通信確認') {
-    return logsForItem.some(log =>
+    return status.some(log =>
       log.includes("サービスへの通信確認: OK") ||
       log.includes("favicon.ico → OK")
     );
   }
 
-  return logsForItem.some(log =>
+  return status.some(log =>
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
 };
