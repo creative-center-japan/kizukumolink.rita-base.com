@@ -15,7 +15,6 @@ import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 import Link from "next/link";
 
-
 const ENABLE_WEBRTC = true;
 const filteredCheckItems = ENABLE_WEBRTC
   ? CHECK_ITEMS
@@ -144,6 +143,23 @@ export default function Home() {
               </>
             )}
           </div>
+
+          {loading && !diagnosed && (
+            <div className="bg-[#1b2a3a] text-blue-100 rounded-xl p-4 sm:p-6 text-sm sm:text-base space-y-4 mb-10 font-semibold">
+              <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
+              <ul className="space-y-1">
+                <li className={`${phase === 1 ? "text-blue-300 animate-pulse" : phase! > 1 ? "text-green-300" : "text-gray-300"}`}>
+                  フェーズ 1：キヅクモサービス疎通確認
+                </li>
+                <li className={`${phase === 2 ? "text-blue-300 animate-pulse" : phase! > 2 ? "text-green-300" : "text-gray-300"}`}>
+                  フェーズ 2：ポート疎通確認
+                </li>
+                <li className={`${phase === 3 ? "text-blue-300 animate-pulse" : diagnosed ? "text-green-300" : "text-gray-300"}`}>
+                  フェーズ 3：映像通信確認
+                </li>
+              </ul>
+            </div>
+          )}
 
           {diagnosed && <NgSummary status={status} checkIsOK={checkIsOK} />}
           <DetailModal showDetail={showDetail} setShowDetail={setShowDetail} />
