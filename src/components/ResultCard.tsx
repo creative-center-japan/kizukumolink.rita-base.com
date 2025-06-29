@@ -39,7 +39,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
       <p className="text-sm text-gray-600 mb-1">{item.description}</p>
 
       <p className="text-3xl font-bold text-center">
-        {item.label === 'ご利用IPアドレス' ? (
+        {item.label === 'ip_check' ? (
           <span className={isOK ? 'text-emerald-500' : 'text-rose-500'}>
             {ipAddress || '取得失敗'}
           </span>
