@@ -12,15 +12,6 @@ import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
-
-const reordered = [
-  CHECK_ITEMS.find(i => i.label === 'ご利用IPアドレス'),
-  CHECK_ITEMS.find(i => i.label === 'サービスへの通信確認'),
-  CHECK_ITEMS.find(i => i.label === '通信ポート確認'),
-  CHECK_ITEMS.find(i => i.label === 'TURN接続確認'),
-  CHECK_ITEMS.find(i => i.label === 'P2P接続確認'),
-].filter(Boolean) as typeof CHECK_ITEMS;
-
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
   useEffect(() => {
