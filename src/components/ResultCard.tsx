@@ -60,7 +60,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
       {/* ✅ WebRTC接続成功：接続方式候補は非表示にして、接続形態だけ表示 */}
       {item.label === 'WebRTC接続成功' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
-          <p>{status.find(log => log.includes("【接続形態】")) || "【接続形態】不明"}</p>
+          <p>
+            {
+              status.find(log => log.includes("接続形態"))
+                ?.replace(/【\s*接続形態\s*】/, "【接続形態】")
+                .trim() || "【接続形態】不明"
+            }
+          </p>
         </div>
       )}
 
@@ -69,16 +75,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
           <p>
             {
-              (status.find(log => log.includes("【 接続方式候補 】")) || "")
-                .replace("【 接続方式候補 】　", "【接続方式候補】")
-                .replace("お客様側：", "")
+              (status.find(log => log.includes("接続方式候補")) || "")
+                .replace(/【\s*接続方式候補\s*】\s*お客様側：/, "【接続方式候補】")
                 .replace("/  サーバー側：", " / ")
+                .trim() || "【接続方式候補】不明"
             }
           </p>
           <p>
             {
-              status.find(log => log.includes("【接続形態】"))
-                ?.replace("接続形態", "最終接続方式") || "【最終接続方式】不明"
+              status.find(log => log.includes("接続形態"))
+                ?.replace(/【\s*接続形態\s*】/, "【最終接続方式】")
+                .replace("接続形態", "最終接続方式")
+                .trim() || "【最終接続方式】不明"
             }
           </p>
         </div>
@@ -86,4 +94,5 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
     </div>
   );
 };
+
 
