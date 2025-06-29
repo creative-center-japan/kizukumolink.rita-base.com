@@ -1,3 +1,8 @@
+// rita-base\src\app\page.tsx
+
+//NGテストフラグ
+const FORCE_ALL_NG = false;
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -44,6 +49,7 @@ function useScaleFactor() {
 }
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
+  if (FORCE_ALL_NG) return false;
   const logsForItem = status.filter(log => log.includes(item.keyword));
 
   if (item.label === 'TURN接続確認') {

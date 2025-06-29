@@ -1,6 +1,5 @@
 // rita-base\src\components\ResultCard.tsx
 
-
 import React from "react";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
@@ -51,15 +50,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         )}
       </p>
 
+      {/* ✅ P2P専用パネル */}
       {item.label === 'P2P接続確認' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
           <p>
             {
               status.find(log =>
-                log.includes("フェーズ3") &&
-                log.includes("P2P含む") &&
-                log.includes("接続形態") &&
-                log.includes("P2P（直接）")
+                log.includes("【 接続形態 】P2P（直接）")
               )
                 ?.replace("【 接続形態 】", "【接続形態】")
                 .trim() || "【接続形態】不明"
@@ -68,15 +65,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         </div>
       )}
 
+      {/* ✅ TURN専用パネル */}
       {item.label === 'TURN接続確認' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
           <p>
             {
               status.find(log =>
-                log.includes("フェーズ3") &&
-                log.includes("relay限定") &&
-                log.includes("接続形態") &&
-                log.includes("TURNリレー")
+                log.includes("【 接続形態 】TURNリレー（中継）")
               )
                 ?.replace("【 接続形態 】", "【接続形態】")
                 .trim() || "【接続形態】不明"
