@@ -1,9 +1,9 @@
 // rita-base\src\app\page.tsx
 
-//NGテストフラグ
-const FORCE_ALL_NG = false;
-
 'use client';
+
+//NGテストフラグ ↓ を true にして実行する
+const FORCE_ALL_NG = false;
 
 import React, { useState, useEffect } from 'react';
 import { runDiagnosis } from "@/lib/runDiagnosis";
