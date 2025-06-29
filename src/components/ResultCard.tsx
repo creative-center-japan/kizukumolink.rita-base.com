@@ -7,8 +7,6 @@
 // - CHECK_ITEMS から受け取った定義に基づき出力
 // -------------------------
 
-// rita-base\components\ResultCard.tsx
-
 import React from "react";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
