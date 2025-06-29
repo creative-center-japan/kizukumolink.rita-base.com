@@ -12,7 +12,6 @@ import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
-const ENABLE_WEBRTC = true;
 
 const reordered = [
   CHECK_ITEMS.find(i => i.label === 'ご利用IPアドレス'),
