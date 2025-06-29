@@ -107,7 +107,7 @@ export default function Home() {
 
           {diagnosed && (
             <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 mb-6">
-              {reordered.map((item, idx) => (
+              {CHECK_ITEMS.map((item, idx) => (
                 <ResultCard
                   key={idx}
                   item={item}
@@ -119,6 +119,7 @@ export default function Home() {
               ))}
             </div>
           )}
+
 
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             {!loading && !diagnosed && (
