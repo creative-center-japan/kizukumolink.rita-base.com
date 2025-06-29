@@ -1,6 +1,4 @@
-// rita-base/src/lib/runWebRTCCheck.ts
-
-const runWebRTCCheck = (): Promise<string[]> => {
+const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {}): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
@@ -18,15 +16,15 @@ const runWebRTCCheck = (): Promise<string[]> => {
           credential: 'testpass',
         },
       ],
-      iceTransportPolicy: 'relay',
+      iceTransportPolicy: policy, // ← ポリシーを切り替え
       bundlePolicy: 'balanced',
       rtcpMuxPolicy: 'require',
       iceCandidatePoolSize: 0,
     };
 
-    const pc = new RTCPeerConnection(config);
-    logs.push('[設定] TURN専用構成を適用しました（UDP+TCP）');
+    logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
 
+    const pc = new RTCPeerConnection(config);
     const dc = pc.createDataChannel('check');
     logs.push('✅ DataChannel を negotiated=false で作成しました');
 
@@ -56,9 +54,9 @@ const runWebRTCCheck = (): Promise<string[]> => {
             logs.push(
               `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
             );
-            if (local && remote) {
-              logs.push(`【 接続方式候補 】　お客様側：${local.candidateType} /  サーバー側：${remote.candidateType}`);
-              if (local.candidateType === 'relay' || remote.candidateType === 'relay') {
+            if (local) {
+              logs.push(`【 接続方式候補 】${local.candidateType}`);
+              if (local.candidateType === 'relay') {
                 logs.push('【 接続形態 】TURNリレー（中継）');
               } else {
                 logs.push('【 接続形態 】P2P（直接）');
@@ -127,7 +125,7 @@ const runWebRTCCheck = (): Promise<string[]> => {
 
         logs.push('[STEP] /offer へ POST 実行');
         const controller = new AbortController();
-        const timeoutTimer = setTimeout(() => controller.abort(), 5000); // ✅ ← ここを const に修正
+        const timeoutTimer = setTimeout(() => controller.abort(), 5000);
         const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

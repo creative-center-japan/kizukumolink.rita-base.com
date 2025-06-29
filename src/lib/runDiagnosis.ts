@@ -82,13 +82,15 @@ export const runDiagnosis = async (
 
   setPhase(3);
 
-  // --- Phase 3：WebRTC診断 ---
-  phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認 ---");
+  // --- Phase 3：WebRTC診断（relay限定→all） ---
+  phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---");
+  const relayLogs = await runWebRTCCheck({ policy: 'relay' });
+  phase3Logs.push(...relayLogs);
 
-  const webrtcLogs = await runWebRTCCheck();
-  phase3Logs.push(...webrtcLogs);
+  phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---");
+  const allLogs = await runWebRTCCheck({ policy: 'all' });
+  phase3Logs.push(...allLogs);
 
-  // ✅ 最終ログ表示（順序整ってキレイ）
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
   setDiagnosed(true);
 };
