@@ -63,8 +63,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
       {item.label === 'WebRTC接続成功' && (
         <p className="text-sm text-blue-700 text-center mt-1">
           {status.find(log => log.includes("【接続方式】")) || "【接続方式】不明"}
+          <br />
+          {status.find(log => log.includes("接続形態:"))}
         </p>
       )}
+
     </div>
   );
 };

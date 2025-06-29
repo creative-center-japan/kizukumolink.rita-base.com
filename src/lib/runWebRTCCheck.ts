@@ -44,7 +44,6 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.onicegatheringstatechange = () =>
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
-  // 成功候補を最大45秒まで待つ
   const waitForCandidateSuccess = async (timeoutMs: number = 45000): Promise<boolean> => {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -59,9 +58,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
           if (local && remote) {
             logs.push(`【接続方式】${local.candidateType} → ${remote.candidateType}`);
             if (local.candidateType === 'relay' || remote.candidateType === 'relay') {
-              logs.push(' 接続形態: TURNリレー（中継）');
+              logs.push('📡 接続形態: TURNリレー（中継）');
             } else {
-              logs.push(' 接続形態: P2P（直接）');
+              logs.push('🔗 接続形態: P2P（直接）');
             }
           }
           return true;
