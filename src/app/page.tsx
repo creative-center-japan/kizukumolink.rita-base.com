@@ -13,7 +13,6 @@ import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS, CheckItem } from "@/constants/CHECK_ITEMS";
 
-// ✅ WebRTC診断を一時的に非表示にする設定（後で true に戻せば復活）
 const ENABLE_WEBRTC = true;
 const filteredCheckItems = ENABLE_WEBRTC
   ? CHECK_ITEMS
@@ -41,26 +40,15 @@ function useScaleFactor() {
 }
 
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
-  // ★★疑似NGモード：すべての項目をNGにする（開発・デモ用）★★
-  // const FORCE_ALL_NG = true;
-  // if (FORCE_ALL_NG) return false;
-
-  const logsForItem = item.label === 'WebRTC接続成功' || item.label === '接続方式'
-    ? status
-    : status.filter(log => log.includes(item.keyword));
-
   if (item.label === 'WebRTC接続成功') {
-    return logsForItem.some(log =>
-      log.includes('✅ WebRTC接続成功')
-    );
+    return status.some(log => log.startsWith('✅ WebRTC接続成功'));
   }
 
   if (item.label === '接続方式') {
-    return logsForItem.some(log =>
-      log.includes('【 接続方式候補 】') &&
-      (log.includes('relay') || log.includes('srflx') || log.includes('host'))
-    );
+    return status.some(log => log.startsWith('【 接続方式候補 】'));
   }
+
+  const logsForItem = status.filter(log => log.includes(item.keyword));
 
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
