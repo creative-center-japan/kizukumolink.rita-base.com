@@ -45,7 +45,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
   // 🔄 candidate-pair の succeeded を見つけるまで最大30秒間繰り返し取得
-  const waitForCandidateSuccess = async (timeoutMs: number = 30000): Promise<boolean> => {
+  const waitForCandidateSuccess = async (timeoutMs: number = 60000): Promise<boolean> => {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const stats = await pc.getStats();
@@ -64,7 +64,7 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
-    logs.push('⚠ 30秒以内に candidate-pair: succeeded が見つかりませんでした');
+    logs.push('⚠ 60秒以内に candidate-pair: succeeded が見つかりませんでした');
     return false;
   };
 
@@ -80,9 +80,9 @@ const runWebRTCCheck = async (): Promise<string[]> => {
     }, 5000);
 
     setTimeout(async () => {
-      logs.push('⏱ DataChannel を 30秒維持後に close 実行');
+      logs.push('⏱ DataChannel を 60秒維持後に close 実行');
 
-      await waitForCandidateSuccess();
+      await waitForCandidateSuccess(60000);
 
       const stats = await pc.getStats();
       stats.forEach((report) => {
@@ -96,11 +96,15 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         pc.close();
         logs.push('✅ RTCPeerConnection を close しました');
       }
-    }, 30000);
+    }, 60000);
   };
 
   dc.onmessage = (event) => {
     logs.push(`📨 受信: ${event.data}`);
+    if (event.data === 'ping') {
+      dc.send('pong');
+      logs.push('📤 pong を返信しました');
+    }
     logs.push('✅ DataChannel 応答確認完了');
   };
 
