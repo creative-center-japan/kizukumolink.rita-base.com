@@ -2,7 +2,7 @@
 
 'use client';
 
-const FORCE_ALL_NG = true; // ← NGテストしたいとき true に 戻すときは false
+const FORCE_ALL_NG = false; // ← NGテストしたいとき true に 戻すときは false
 
 import React, { useState, useEffect } from 'react';
 import { runDiagnosis } from "@/lib/runDiagnosis";

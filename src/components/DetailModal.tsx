@@ -22,7 +22,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({ showDetail, setShowDet
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 shadow-xl text-gray-900 max-w-lg w-full">
-        <h2 className="text-xl font-bold text-blue-700 mb-4">{item.label}</h2>
+        <h2 className="text-xl font-bold text-blue-700 mb-4">
+          {item.displayName ?? item.label}
+        </h2>
 
         <p className="text-base text-gray-700 whitespace-pre-wrap mb-4">
           {item.detail}
