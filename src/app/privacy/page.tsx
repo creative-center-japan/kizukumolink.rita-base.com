@@ -1,3 +1,7 @@
+//rita-base\src\app\privacy\page.tsx
+
+'use client';
+
 import Link from "next/link";
 
 export default function PrivacyPage() {
@@ -20,9 +24,7 @@ export default function PrivacyPage() {
         </ul>
 
         <h2 className="text-base font-semibold text-blue-800">■ Cookieの使用</h2>
-        <p>
-          当サイトでは、Cookie を利用した情報収取を行いません。
-        </p>
+        <p>当サイトでは、Cookie を利用した情報収取を行いません。</p>
 
         <h2 className="text-base font-semibold text-blue-800">■ アクセスログ</h2>
         <p>
@@ -40,7 +42,7 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      {/* ✅ フッター型の戻るボタン */}
+      {/* ✅ 戻るボタン（footer風） */}
       <div className="bg-blue-800 mt-12 py-6 text-center">
         <Link href="/">
           <span className="text-white text-sm underline hover:text-blue-200">
