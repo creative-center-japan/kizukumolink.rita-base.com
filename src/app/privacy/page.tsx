@@ -1,4 +1,4 @@
-//src/app/privacy/page.tsx
+import Link from "next/link";
 
 export default function PrivacyPage() {
   return (
@@ -12,12 +12,12 @@ export default function PrivacyPage() {
         <h2 className="text-base font-semibold text-blue-800">■ 取得する情報</h2>
         <p>
           本ツールは以下の情報を一時的に取得しますが、サーバー等に保存されることはありません。
-          <ul className="list-disc list-inside ml-4">
-            <li>ご利用のインターネット接続環境（外部IPアドレス、ポート応答状況など）</li>
-            <li>診断実行日時</li>
-            <li>WebRTC通信の接続状態（成功・失敗に関する技術的ログ）</li>
-          </ul>
         </p>
+        <ul className="list-disc list-inside ml-4">
+          <li>ご利用のインターネット接続環境（外部IPアドレス、ポート応答状況など）</li>
+          <li>診断実行日時</li>
+          <li>WebRTC通信の接続状態（成功・失敗に関する技術的ログ）</li>
+        </ul>
 
         <h2 className="text-base font-semibold text-blue-800">■ Cookieの使用</h2>
         <p>
@@ -38,6 +38,15 @@ export default function PrivacyPage() {
         <p>
           本ツールはネットワーク診断の簡易補助を目的としたものであり、診断結果の正確性・完全性を保証するものではありません。通信環境やセキュリティ設定により結果が異なる場合があります。
         </p>
+      </div>
+
+      {/* 🔽 戻るリンク付きの青背景ボタン風エリア */}
+      <div className="bg-blue-800 mt-12 py-6 text-center">
+        <Link href="/">
+          <span className="text-white text-sm underline hover:text-blue-200">
+            ← トップページへ戻る
+          </span>
+        </Link>
       </div>
     </main>
   );
