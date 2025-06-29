@@ -1,9 +1,3 @@
-// -------------------------
-// rita-base\src\app\page.tsx
-// - メイン画面：診断UIの表示・ボタン操作・ステータス管理を行う
-// - useStateで各状態を制御し、lib/components/constants から機能分離したモジュールを呼び出す
-// -------------------------
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +7,6 @@ import { generateReportText } from "@/lib/utils";
 import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
-import Link from "next/link";
 
 const ENABLE_WEBRTC = true;
 const filteredCheckItems = ENABLE_WEBRTC
@@ -54,9 +47,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
 
   if (item.label === 'ご利用IPアドレス') {
     const ipLog = logsForItem.find(log =>
-      log.startsWith("外部IP:") ||
-      log.startsWith("🌐 外部IP（補完）:") ||
-      log.startsWith("🔸外部IP:")
+      log.startsWith("外部IP:") || log.startsWith("🌐 外部IP（補完）:") || log.startsWith("🔸外部IP:")
     );
     const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
     return !!ip && /^[0-9.]+$/.test(ip) &&
@@ -92,6 +83,17 @@ export default function Home() {
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-300">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold text-blue-800 text-center mb-6">キヅクモサービス接続診断ツール</h1>
+
+          <p className="text-center text-sm sm:text-base text-gray-700 mb-6 font-semibold leading-relaxed">
+            このWeb診断ではお客様ご利用のネットワーク環境がキヅクモカメラと通信できるかを確認します。<br />
+            カメラを設置する場所と映像を見る場所の両方で実施してください。<br />
+            <span className="block text-xs text-gray-500 font-bold mt-2">
+              本ツールはWebRTC等の接続方式を含むネットワーク診断の簡易補助を目的としています。<br />
+              診断結果は通信環境・NAT構成・セキュリティ機器設定などにより異なる可能性があり、<br />
+              結果の正確性・完全性を保証するものではありません。<br />
+              <span className="underline">最終的なご利用可否は、実機を用いた環境テストを推奨いたします。</span>
+            </span>
+          </p>
 
           {diagnosed && (
             <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 mb-6">
@@ -164,11 +166,6 @@ export default function Home() {
           {diagnosed && <NgSummary status={status} checkIsOK={checkIsOK} />}
           <DetailModal showDetail={showDetail} setShowDetail={setShowDetail} />
 
-          <div className="text-center mt-8">
-            <Link href="/privacy">
-              <span className="text-sm text-blue-700 underline hover:text-blue-500">プライバシーポリシー</span>
-            </Link>
-          </div>
         </div>
       </div>
     </main>
