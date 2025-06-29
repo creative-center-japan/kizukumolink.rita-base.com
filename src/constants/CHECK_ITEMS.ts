@@ -20,7 +20,7 @@ export const CHECK_ITEMS = [
   {
     label: 'service_access',
     displayName: 'サービスへの通信確認',
-    description: 'キヅクモサービスへの接続（TCP 443）が可能か',
+    description: 'キヅクモサービスへの接続（TCP 443）確認',
     keyword: 'サービスへの通信確認',
     tooltip: 'alarm.com等へのHTTPS接続確認',
     detail: 'キズクモポータルへの接続確認をします。',
@@ -30,7 +30,7 @@ export const CHECK_ITEMS = [
   {
     label: 'port_check',
     displayName: '通信ポート確認',
-    description: '管理・映像用のTCP/UDPポートが開いているか',
+    description: '管理・映像用のTCP/UDPポート疎通確認',
     keyword: 'ポート確認:',
     tooltip: 'TCP/UDPポートの疎通確認',
     detail: '映像配信・制御系に使われる複数ポートの開放状態を確認します。',
@@ -43,7 +43,7 @@ export const CHECK_ITEMS = [
     description: '中継（relay）でWebRTC接続できるか',
     keyword: '--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---',
     tooltip: 'relay候補での接続ができたか',
-    detail: 'TURN中継を用いた接続が成功すればOKです。ご利用のネットワークから弊社キヅクモサーバへのアクセスができたことを意味します。',
+    detail: 'TURN中継を用いてご利用のネットワークからカメラサービスサーバへアクセスができたことを意味します。',
     ngReason: 'インターネット経由の中継接続（TURN）ができませんでした。',
     action: '使いのネットワーク環境の管理者やご利用ネットワークサービスプロバイダー様へ「キヅクモカメラサービスで利用する特定ポートの通信許可」についてご確認ください。具体的なポート番号は弊社営業までお問い合わせください。'
   },
@@ -55,7 +55,7 @@ export const CHECK_ITEMS = [
     tooltip: 'srflx/host候補による直接通信が可能か',
     detail: '当機能は必須ではありませんが、P2P接続が成功すれば中継を介さずスムーズな映像通信が可能になります。',
     ngReason: 'P2Pによる直接通信が確立できず、中継（TURN）接続にフォールバックしました。ルーターやNAT構成の影響が考えられます。',
-    action: 'STUN/TURNによるNAT超えが制限されている可能性があります。ただしP2P接続は必須条件ではないため、通信そのものには問題ありません。通信品質の最適化をご希望の場合はネットワーク構成の見直しをご検討ください。'
+    action: 'NAT超えが制限されている可能性があります。ただしP2P接続は必須条件ではないため、『TURN接続確認』が 『OK』 なら問題ありません。通信品質の最適化をご希望の場合はネットワーク構成の見直しをご検討ください。'
   }
 ];
 
