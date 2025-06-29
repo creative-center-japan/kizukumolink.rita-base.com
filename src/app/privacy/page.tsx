@@ -40,7 +40,7 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      {/* 🔽 戻るリンク付きの青背景ボタン風エリア */}
+      {/* ✅ フッター型の戻るボタン */}
       <div className="bg-blue-800 mt-12 py-6 text-center">
         <Link href="/">
           <span className="text-white text-sm underline hover:text-blue-200">
