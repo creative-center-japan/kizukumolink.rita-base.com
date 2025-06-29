@@ -4,17 +4,6 @@ const runWebRTCCheck = (): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
-    let timeoutTimer: ReturnType<typeof setTimeout>;
-    let finished = false;
-
-    const safeResolve = () => {
-      if (!finished) {
-        finished = true;
-        clearInterval(pingInterval);
-        clearTimeout(timeoutTimer);
-        resolve(logs);
-      }
-    };
 
     const config: RTCConfiguration = {
       iceServers: [
@@ -106,12 +95,13 @@ const runWebRTCCheck = (): Promise<string[]> => {
           }
         });
 
+        clearInterval(pingInterval);
         if (pc.connectionState !== 'closed') {
           pc.close();
           logs.push('✅ RTCPeerConnection を close しました');
         }
 
-        safeResolve();
+        resolve(logs);
       }, 45000);
     };
 
@@ -121,20 +111,12 @@ const runWebRTCCheck = (): Promise<string[]> => {
     };
 
     dc.onclose = () => {
+      clearInterval(pingInterval);
       logs.push('❌ DataChannel closed');
-      safeResolve();
     };
 
-    dc.onerror = (e) => {
+    dc.onerror = (e) =>
       logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
-      safeResolve();
-    };
-
-    timeoutTimer = setTimeout(() => {
-      logs.push('⏱ タイムアウトにより診断強制終了');
-      pc.close();
-      safeResolve();
-    }, 60000);
 
     (async () => {
       try {
@@ -145,14 +127,14 @@ const runWebRTCCheck = (): Promise<string[]> => {
 
         logs.push('[STEP] /offer へ POST 実行');
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeoutTimer = setTimeout(() => controller.abort(), 5000); // ✅ ← ここを const に修正
         const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
           signal: controller.signal,
         });
-        clearTimeout(timeout);
+        clearTimeout(timeoutTimer);
 
         if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
         logs.push('✅ POST /offer 応答あり');
@@ -166,7 +148,7 @@ const runWebRTCCheck = (): Promise<string[]> => {
         else logs.push(`❗詳細(unknown): ${JSON.stringify(err)}`);
         pc.close();
         logs.push('🔚 異常終了のため RTCPeerConnection を明示的に close');
-        safeResolve();
+        resolve(logs);
       }
     })();
   });
