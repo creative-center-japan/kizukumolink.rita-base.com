@@ -22,10 +22,6 @@ const reordered = [
   CHECK_ITEMS.find(i => i.label === 'P2P接続確認'),
 ].filter(Boolean) as typeof CHECK_ITEMS;
 
-const filteredCheckItems = ENABLE_WEBRTC
-  ? reordered
-  : reordered.filter(i => i.label !== 'WebRTC接続成功' && i.label !== '接続方式');
-
 function useScaleFactor() {
   const [scale, setScale] = useState(1);
   useEffect(() => {
