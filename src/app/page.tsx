@@ -12,8 +12,9 @@ import { ResultCard } from "@/components/ResultCard";
 import { generateReportText } from "@/lib/utils";
 import { NgSummary } from "@/components/NgSummary";
 import { DetailModal } from "@/components/DetailModal";
-import { CHECK_ITEMS, CheckItem } from "@/constants/CHECK_ITEMS";
+import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 import Link from "next/link";
+
 
 const ENABLE_WEBRTC = true;
 const filteredCheckItems = ENABLE_WEBRTC
