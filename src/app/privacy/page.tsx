@@ -42,9 +42,12 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      <Link href="/" className="inline-block bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg text-center">
-        トップページへ戻る
-      </Link>
+      <div className="text-center mt-10">
+        <Link href="/" className="inline-block bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg">
+          トップページへ戻る
+        </Link>
+      </div>
+
     </main>
   );
 }

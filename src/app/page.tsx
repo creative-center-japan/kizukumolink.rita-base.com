@@ -9,9 +9,18 @@ import { DetailModal } from "@/components/DetailModal";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 
 const ENABLE_WEBRTC = true;
+
+const reordered = [
+  CHECK_ITEMS.find(i => i.label === 'ご利用IPアドレス'),
+  CHECK_ITEMS.find(i => i.label === 'サービスへの通信確認'),
+  CHECK_ITEMS.find(i => i.label === '通信ポート確認'),
+  CHECK_ITEMS.find(i => i.label === '接続方式'),
+  CHECK_ITEMS.find(i => i.label === 'WebRTC接続成功'),
+].filter(Boolean) as typeof CHECK_ITEMS;
+
 const filteredCheckItems = ENABLE_WEBRTC
-  ? CHECK_ITEMS
-  : CHECK_ITEMS.filter(item => item.label !== "WebRTC接続成功" && item.label !== "接続方式");
+  ? reordered
+  : reordered.filter(i => i.label !== 'WebRTC接続成功' && i.label !== '接続方式');
 
 function useScaleFactor() {
   const [scale, setScale] = useState(1);

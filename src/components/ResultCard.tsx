@@ -19,7 +19,6 @@ interface ResultCardProps {
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, checkIsOK, setShowDetail }) => {
-  // ✅ フィルタせず全ログをそのまま checkIsOK に渡す
   const isOK = checkIsOK(item, status);
 
   const ipLog = status.find(log =>
@@ -58,14 +57,32 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, idx, status, check
         )}
       </p>
 
+      {/* ✅ WebRTC接続成功：接続方式候補は非表示にして、接続形態だけ表示 */}
       {item.label === 'WebRTC接続成功' && (
         <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
-          <p>{status.find(log => log.includes("【 接続方式候補 】")) || "【接続方式候補】不明"}</p>
-          <p>{status.find(log => log.includes("【 接続形態 】")) || "【接続形態】不明"}</p>
+          <p>{status.find(log => log.includes("【接続形態】")) || "【接続形態】不明"}</p>
         </div>
       )}
 
-
+      {/* ✅ 接続方式：候補と最終接続方式を表示 */}
+      {item.label === '接続方式' && (
+        <div className="text-sm text-blue-700 text-center mt-1 space-y-1">
+          <p>
+            {
+              (status.find(log => log.includes("【 接続方式候補 】")) || "")
+                .replace("【 接続方式候補 】　", "【接続方式候補】")
+                .replace("お客様側：", "")
+                .replace("/  サーバー側：", " / ")
+            }
+          </p>
+          <p>
+            {
+              status.find(log => log.includes("【接続形態】"))
+                ?.replace("接続形態", "最終接続方式") || "【最終接続方式】不明"
+            }
+          </p>
+        </div>
+      )}
     </div>
   );
 };
