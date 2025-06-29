@@ -2,7 +2,7 @@
 
 'use client';
 
-const FORCE_ALL_NG = true; // ← NGテストしたいとき true に 戻すときは false
+const FORCE_ALL_NG = false; // ← NGテストしたいとき true に 戻すときは false
 
 import React, { useState, useEffect } from 'react';
 import { runDiagnosis } from "@/lib/runDiagnosis";
@@ -112,7 +112,7 @@ export default function Home() {
 
           {diagnosed && (
             <div className="grid grid-cols-[repeat(auto-fit,_minmax(280px,_1fr))] gap-4 mb-6">
-              {filteredCheckItems.map((item, idx) => (
+              {reordered.map((item, idx) => (
                 <ResultCard
                   key={idx}
                   item={item}
