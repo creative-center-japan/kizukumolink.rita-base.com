@@ -91,6 +91,7 @@ export const runDiagnosis = async (
   const allLogs = await runWebRTCCheck({ policy: 'all' });
   phase3Logs.push(...allLogs);
 
+  // ✅ 完全なログ統合
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
   setDiagnosed(true);
 };

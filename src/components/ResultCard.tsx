@@ -1,3 +1,6 @@
+// rita-base\src\components\ResultCard.tsx
+
+
 import React from "react";
 import { CHECK_ITEMS } from "@/constants/CHECK_ITEMS";
 

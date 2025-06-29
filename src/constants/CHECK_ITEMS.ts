@@ -1,3 +1,5 @@
+// rita-base\src\constants\CHECK_ITEMS.ts
+
 // -------------------------
 // CHECK_ITEMS.ts
 // - 各診断項目の定義と表示内容（説明・NG理由・対応アドバイス）を格納

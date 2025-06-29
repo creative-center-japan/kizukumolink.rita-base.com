@@ -1,3 +1,5 @@
+// rita-base\src\lib\runWebRTCCheck.ts
+
 const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {}): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
@@ -81,9 +83,9 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
       }, 5000);
 
       setTimeout(async () => {
-        logs.push('⏱ DataChannel を 45秒維持後に close 実行');
+        logs.push('⏱ DataChannel を 30秒維持後に close 実行');
 
-        await waitForCandidateSuccess(45000);
+        await waitForCandidateSuccess(30000);
 
         const stats = await pc.getStats();
         stats.forEach((report) => {
@@ -99,7 +101,7 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
         }
 
         resolve(logs);
-      }, 45000);
+      }, 30000);
     };
 
     dc.onmessage = (event) => {
