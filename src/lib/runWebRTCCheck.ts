@@ -1,4 +1,4 @@
-// rita-base\src\lib\runWebRTCCheck.ts
+// rita-base/src/lib/runWebRTCCheck.ts
 
 const runWebRTCCheck = async (): Promise<string[]> => {
   const logs: string[] = [];
@@ -44,6 +44,30 @@ const runWebRTCCheck = async (): Promise<string[]> => {
   pc.onicegatheringstatechange = () =>
     logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
+  // 🔄 candidate-pair の succeeded を見つけるまで最大30秒間繰り返し取得
+  const waitForCandidateSuccess = async (timeoutMs: number = 30000): Promise<boolean> => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const stats = await pc.getStats();
+      for (const report of stats.values()) {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          const local = stats.get(report.localCandidateId);
+          const remote = stats.get(report.remoteCandidateId);
+          logs.push(
+            `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
+          );
+          if (local && remote) {
+            logs.push(`【接続方式】${local.candidateType} → ${remote.candidateType}`);
+          }
+          return true;
+        }
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    logs.push('⚠ 30秒以内に candidate-pair: succeeded が見つかりませんでした');
+    return false;
+  };
+
   dc.onopen = () => {
     logs.push('✅ DataChannel open');
     dc.send('ping');
@@ -54,36 +78,16 @@ const runWebRTCCheck = async (): Promise<string[]> => {
       dc.send('ping');
       logs.push('📤 定期送信: ping');
     }, 5000);
-  };
-
-  dc.onmessage = (event) => {
-    logs.push(`📨 受信: ${event.data}`);
-    logs.push('✅ DataChannel 応答確認完了');
 
     setTimeout(async () => {
-      logs.push('⏱ DataChannel を 10秒維持後に close 実行');
+      logs.push('⏱ DataChannel を 30秒維持後に close 実行');
+
+      await waitForCandidateSuccess();
 
       const stats = await pc.getStats();
       stats.forEach((report) => {
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          const local = stats.get(report.localCandidateId);
-          const remote = stats.get(report.remoteCandidateId);
-
-          logs.push(
-            `✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`
-          );
-
-          if (local && remote) {
-            logs.push(`【接続方式】${local.candidateType} → ${remote.candidateType}`);
-          }
-        }
-
         if (report.type === 'data-channel') {
-          logs.push(`📊 DataChannel統計:
-  messagesSent: ${report.messagesSent}
-  messagesReceived: ${report.messagesReceived}
-  bytesSent: ${report.bytesSent}
-  bytesReceived: ${report.bytesReceived}`);
+          logs.push(`📊 DataChannel統計:\n  messagesSent: ${report.messagesSent}\n  messagesReceived: ${report.messagesReceived}\n  bytesSent: ${report.bytesSent}\n  bytesReceived: ${report.bytesReceived}`);
         }
       });
 
@@ -92,7 +96,12 @@ const runWebRTCCheck = async (): Promise<string[]> => {
         pc.close();
         logs.push('✅ RTCPeerConnection を close しました');
       }
-    }, 10000); // ← 実際に10秒待機
+    }, 30000);
+  };
+
+  dc.onmessage = (event) => {
+    logs.push(`📨 受信: ${event.data}`);
+    logs.push('✅ DataChannel 応答確認完了');
   };
 
   dc.onclose = () => {
