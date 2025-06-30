@@ -51,7 +51,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   const candidateTypeLine = status.find(log => log.includes('【 接続方式候補 】'));
   const candidateType = candidateTypeLine?.split('】')[1]?.trim() ?? "";
   const isHostType = candidateType === 'host';
-  const globalHostDetected = isHostType && !!ip && /^[0-9.]+$/.test(ip) && !isPrivateIP(ip);
 
   if (item.label === 'TURN接続確認') {
     const relayOK = status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
