@@ -48,28 +48,24 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
+  // 🔍 VPNチェック（host候補の中にグローバルIPが存在したら NG）
+  const hostLines = status.filter(log => log.includes('typ host'));
+  const suspiciousGlobalHosts = hostLines.filter(line =>
+    /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
+    !/\.local/.test(line) &&
+    !isPrivateIP(RegExp.$1) &&
+    !/^127\./.test(RegExp.$1)
+  );
+
+  // VPN経由の可能性があるなら TURN / P2P どちらも NG にする
+  const isVPN = suspiciousGlobalHosts.length > 0;
+
   if (item.label === 'TURN接続確認') {
-    const relayOK = status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
-    const hostLines = status.filter(log => log.includes('typ host'));
-    const suspiciousGlobalHosts = hostLines.filter(line =>
-      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
-      !/\.local/.test(line) &&
-      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
-    );
-    if (suspiciousGlobalHosts.length > 0) return false;
-    return relayOK;
+    return !isVPN && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
   if (item.label === 'P2P接続確認') {
-    const srflxOK = status.some(log => log.includes('【 接続形態 】P2P（直接）'));
-    const hostLines = status.filter(log => log.includes('typ host'));
-    const suspiciousGlobalHosts = hostLines.filter(line =>
-      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
-      !/\.local/.test(line) &&
-      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
-    );
-    if (suspiciousGlobalHosts.length > 0) return false;
-    return srflxOK;
+    return !isVPN && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
   if (item.label === 'ip_check') {
@@ -90,6 +86,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
 };
+
 
 export default function Home() {
   const scale = useScaleFactor();
