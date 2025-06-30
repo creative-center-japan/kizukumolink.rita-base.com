@@ -33,6 +33,7 @@ function useScaleFactor() {
   return scale;
 }
 
+
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
 
@@ -48,19 +49,30 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
+  // host候補の中に「グローバルIP」が含まれている（.local でもなく、private IP でもない）
   const hostLines = status.filter(log => log.includes('typ host'));
+  const suspiciousGlobalHosts = hostLines.filter(line => {
+    const match = line.match(/candidate:.*? ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/);
+    if (!match) return false;
+    const ipCandidate = match[1];
+    return !/\.local/.test(line) &&
+      !isPrivateIP(ipCandidate) &&
+      !/^127\./.test(ipCandidate);
+  });
+
+  // srflx候補に「自分の外部IP」が含まれている
   const srflxLines = status.filter(log => log.includes('typ srflx'));
+  const hasSelfIPinSrflx = srflxLines.some(line => line.includes(ip));
 
-  const onlyLocalHost = hostLines.length > 0 && hostLines.every(line => /\.local/.test(line));
-  const srflxSelfIP = srflxLines.some(line => ip && line.includes(ip));
-  const isFakeP2P = onlyLocalHost && srflxSelfIP;
+  const isVPN = suspiciousGlobalHosts.length > 0 || hasSelfIPinSrflx;
 
+  // 各診断項目に応じたOK判定
   if (item.label === 'TURN接続確認') {
-    return !isFakeP2P && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+    return !isVPN && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
   if (item.label === 'P2P接続確認') {
-    return !isFakeP2P && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
+    return !isVPN && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
   if (item.label === 'ip_check') {
@@ -81,6 +93,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
 };
+
 
 export default function Home() {
   const scale = useScaleFactor();
