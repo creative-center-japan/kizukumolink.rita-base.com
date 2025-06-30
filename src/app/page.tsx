@@ -54,18 +54,33 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   const globalHostDetected = isHostType && !!ip && /^[0-9.]+$/.test(ip) && !isPrivateIP(ip);
 
   if (item.label === 'TURN接続確認') {
-    return candidateType === 'relay' && !globalHostDetected;
+    const relayOK = status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+
+    // 🔍 host候補にグローバルIPが含まれていたらVPNの可能性あり → NG
+    const hostLines = status.filter(log => log.includes('typ host'));
+    const suspiciousGlobalHosts = hostLines.filter(line =>
+      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
+      !/\.local/.test(line) &&
+      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
+    );
+    if (suspiciousGlobalHosts.length > 0) return false;
+
+    return relayOK;
   }
 
   if (item.label === 'P2P接続確認') {
-    return candidateType === 'srflx' && !globalHostDetected;
-  }
+    const srflxOK = status.some(log => log.includes('【 接続形態 】P2P（直接）'));
 
-  if (item.label === 'ip_check') {
-    return !!ip && /^[0-9.]+$/.test(ip) &&
-      !/^0\.0\.0\.0$/.test(ip) &&
-      !/^127\./.test(ip) &&
-      !isPrivateIP(ip);
+    // 🔍 host候補にグローバルIPが含まれていたらVPNの可能性あり → NG
+    const hostLines = status.filter(log => log.includes('typ host'));
+    const suspiciousGlobalHosts = hostLines.filter(line =>
+      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
+      !/\.local/.test(line) &&
+      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
+    );
+    if (suspiciousGlobalHosts.length > 0) return false;
+
+    return srflxOK;
   }
 
   if (item.label === 'サービスへの通信確認') {
