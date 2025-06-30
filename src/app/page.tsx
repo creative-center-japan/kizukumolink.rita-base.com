@@ -36,6 +36,7 @@ function useScaleFactor() {
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
 
+  // 🔍 IPログ抽出
   const ipLog = status.find(log =>
     log.startsWith("外部IP:") ||
     log.startsWith("🌐 外部IP（補完）:") ||
@@ -48,29 +49,27 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
-  // 🔍 VPNチェック（host候補の中にグローバルIPが存在したら NG）
-  const hostLines = status.filter(log => log.includes('typ host'));
-  const suspiciousGlobalHosts = hostLines.filter(line => {
-    const match = line.match(/candidate:.*? ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/);
-    if (!match) return false;
-    const hostIP = match[1];
-    return (
-      !/\.local/.test(line) &&
-      !isPrivateIP(hostIP) &&
-      !/^127\./.test(hostIP)
-    );
-  });
+  // ✅ VPN判定条件: host-host候補が nominated = true のペアとして選ばれている
+  const hostHostNominated = status.some(log =>
+    log.includes("candidate-pair") &&
+    log.includes("typ host") &&
+    log.includes("nominated") &&
+    log.includes("true")
+  );
 
-  const isVPN = suspiciousGlobalHosts.length > 0;
+  const isVPN = hostHostNominated;
 
+  // TURN
   if (item.label === 'TURN接続確認') {
     return !isVPN && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
+  // P2P
   if (item.label === 'P2P接続確認') {
     return !isVPN && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
+  // IPチェック
   if (item.label === 'ip_check') {
     return !!ip && /^[0-9.]+$/.test(ip) &&
       !/^0\.0\.0\.0$/.test(ip) &&
@@ -78,6 +77,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
       !isPrivateIP(ip);
   }
 
+  // サービス接続確認
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>
       log.includes("サービスへの通信確認: OK") ||
@@ -85,6 +85,7 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     );
   }
 
+  // その他
   return status.some(log =>
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
