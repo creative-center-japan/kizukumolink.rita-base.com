@@ -115,7 +115,7 @@ export default function Home() {
               本ツールはWebRTC等の接続方式を含むネットワーク診断の簡易補助を目的としています。<br />
               診断結果は通信環境・NAT構成・セキュリティ機器設定などにより異なる可能性があり、<br />
               結果の正確性・完全性を保証するものではありません。<br />
-              <span className="underline">最終的なご利用可否は、実機を用いた場程テストを推奨いたします。</span>
+              <span className="underline">最終的なご利用可否は、実機を用いた環境テストを推奨いたします。</span>
             </span>
           </p>
 
