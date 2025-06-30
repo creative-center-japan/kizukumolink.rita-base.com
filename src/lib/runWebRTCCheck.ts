@@ -31,17 +31,18 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?:
     const dc = pc.createDataChannel('check');
     logs.push('✅ DataChannel を negotiated=false で作成しました');
 
-    const candidateMap: Record<string, any> = {};
+    const candidateMap: Record<string, RTCIceCandidate> = {};
 
     pc.onicecandidate = (e) => {
       logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
-      if (e.candidate && 'foundation' in e.candidate) {
-        const foundation = (e.candidate as any).foundation;
+      if (e.candidate) {
+        const foundation = (e.candidate as RTCIceCandidate).foundation;
         if (foundation) {
-          candidateMap[foundation] = e.candidate;
+          candidateMap[foundation] = e.candidate as RTCIceCandidate;
         }
       }
     };
+
 
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
