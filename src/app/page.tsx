@@ -36,7 +36,6 @@ function useScaleFactor() {
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
 
-  // 🔍 IPログ抽出
   const ipLog = status.find(log =>
     log.startsWith("外部IP:") ||
     log.startsWith("🌐 外部IP（補完）:") ||
@@ -49,27 +48,21 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
-  // ✅ VPN判定条件: host-host候補が nominated = true のペアとして選ばれている
-  const hostHostNominated = status.some(log =>
-    log.includes("candidate-pair") &&
-    log.includes("typ host") &&
-    log.includes("nominated") &&
-    log.includes("true")
-  );
+  const hostLines = status.filter(log => log.includes('typ host'));
+  const srflxLines = status.filter(log => log.includes('typ srflx'));
 
-  const isVPN = hostHostNominated;
+  const onlyLocalHost = hostLines.length > 0 && hostLines.every(line => /\.local/.test(line));
+  const srflxSelfIP = srflxLines.some(line => ip && line.includes(ip));
+  const isFakeP2P = onlyLocalHost && srflxSelfIP;
 
-  // TURN
   if (item.label === 'TURN接続確認') {
-    return !isVPN && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+    return !isFakeP2P && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
 
-  // P2P
   if (item.label === 'P2P接続確認') {
-    return !isVPN && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
+    return !isFakeP2P && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
-  // IPチェック
   if (item.label === 'ip_check') {
     return !!ip && /^[0-9.]+$/.test(ip) &&
       !/^0\.0\.0\.0$/.test(ip) &&
@@ -77,7 +70,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
       !isPrivateIP(ip);
   }
 
-  // サービス接続確認
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>
       log.includes("サービスへの通信確認: OK") ||
@@ -85,7 +77,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     );
   }
 
-  // その他
   return status.some(log =>
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
@@ -134,7 +125,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             {!loading && !diagnosed && (
               <button
-                onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
+                onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase, 3000)}
                 className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
               >診断開始</button>
             )}
@@ -147,7 +138,7 @@ export default function Home() {
             {diagnosed && (
               <>
                 <button
-                  onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase)}
+                  onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase, 3000)}
                   className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
                 >再診断</button>
                 <button
@@ -172,10 +163,10 @@ export default function Home() {
               <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
               <ul className="space-y-1">
                 <li className={`${phase === 1 ? "text-blue-300 animate-pulse" : phase! > 1 ? "text-green-300" : "text-gray-300"}`}>
-                  フェーズ 1：キヅクモサービス疏通確認
+                  フェーズ 1：キヅクモサービス疎通確認
                 </li>
                 <li className={`${phase === 2 ? "text-blue-300 animate-pulse" : phase! > 2 ? "text-green-300" : "text-gray-300"}`}>
-                  フェーズ 2：ポート疏通確認
+                  フェーズ 2：ポート疎通確認
                 </li>
                 <li className={`${phase === 3 ? "text-blue-300 animate-pulse" : diagnosed ? "text-green-300" : "text-gray-300"}`}>
                   フェーズ 3：映像通信確認

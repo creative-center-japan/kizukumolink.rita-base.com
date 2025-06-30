@@ -1,6 +1,6 @@
-// rita-base\src\lib\runWebRTCCheck.ts
+// rita-base\lib\runWebRTCCheck.ts
 
-const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {}): Promise<string[]> => {
+const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?: 'relay' | 'all'; timeoutMillisec?: number } = {}): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
@@ -100,10 +100,9 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
 
       checkCandidateLoop();
 
-      // タイムアウトバックアップ（30秒後に強制resolve）
       setTimeout(async () => {
         if (alreadyResolved) return;
-        logs.push('⏱ DataChannel を 30秒維持後に強制close（ICE未検出）');
+        logs.push(`⏱ DataChannel を ${timeoutMillisec}ミリ秒維持後に強制close（ICE未検出）`);
 
         const stats = await pc.getStats();
         stats.forEach((report) => {
@@ -118,7 +117,7 @@ const runWebRTCCheck = ({ policy = 'relay' }: { policy?: 'relay' | 'all' } = {})
           logs.push('✅ RTCPeerConnection を close しました（timeout）');
         }
         resolve(logs);
-      }, 30000);
+      }, timeoutMillisec);
     };
 
     dc.onmessage = (event) => {
