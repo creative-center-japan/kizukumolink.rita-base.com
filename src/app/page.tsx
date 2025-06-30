@@ -44,20 +44,24 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     return status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
 
-  if (item.label === 'ご利用IPアドレス') {
-    const ipLog = status.find(log =>
-      log.startsWith("外部IP:") ||
-      log.startsWith("🌐 外部IP（補完）:") ||
-      log.startsWith("🔸外部IP:")
-    );
-    const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
-    return !!ip && /^[0-9.]+$/.test(ip) &&
-      !/^0\.0\.0\.0$/.test(ip) &&
-      !/^127\./.test(ip) &&
-      !/^10\./.test(ip) &&
-      !/^192\.168\./.test(ip) &&
-      !/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
-  }
+if (item.label === 'ip_check') {
+  const ipLog = status.find(log =>
+    log.startsWith("外部IP:") ||
+    log.startsWith("🌐 外部IP（補完）:") ||
+    log.startsWith("🔸外部IP:")
+  );
+  const ip = ipLog?.split(/[:：]\s*/)[1]?.trim() ?? "";
+
+  const isPrivateIP = (ip: string) =>
+    /^10\./.test(ip) ||
+    /^192\.168\./.test(ip) ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+
+  return !!ip && /^[0-9.]+$/.test(ip) &&
+    !/^0\.0\.0\.0$/.test(ip) &&
+    !/^127\./.test(ip) &&
+    !isPrivateIP(ip);
+}
 
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>

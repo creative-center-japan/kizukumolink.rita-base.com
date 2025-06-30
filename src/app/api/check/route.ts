@@ -1,4 +1,3 @@
-// src/app/api/check/route.ts
 export async function GET() {
   try {
     const [checkRes, ipRes] = await Promise.all([
@@ -9,10 +8,13 @@ export async function GET() {
     const checkText = await checkRes.text();
     const ipText = await ipRes.text();
 
-    const checkLines = checkText.split('\n');
-    checkLines.push(`🌐 外部IP（補完）: ${ipText}`);
+    const checkLines = checkText.split('\n').filter(line => line.trim() !== "");
+    const ipLine = `🔸外部IP: ${ipText.trim()}`;
 
-    return Response.json(checkLines);
+    // 外部IPをログの先頭に追加
+    const mergedLines = [ipLine, ...checkLines];
+
+    return Response.json(mergedLines);
   } catch (error: unknown) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Internal error' },
