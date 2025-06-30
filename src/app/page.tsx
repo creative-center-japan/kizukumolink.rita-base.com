@@ -101,7 +101,7 @@ export default function Home() {
               本ツールはWebRTC等の接続方式を含むネットワーク診断の簡易補助を目的としています。<br />
               診断結果は通信環境・NAT構成・セキュリティ機器設定などにより異なる可能性があり、<br />
               結果の正確性・完全性を保証するものではありません。<br />
-              <span className="underline">最終的なご利用可否は、実機を用いた環境テストを推奨いたします。</span>
+              <span className="underline">最終的なご利用可否は、実機を用いた場程テストを推奨いたします。</span>
             </span>
           </p>
 
@@ -119,7 +119,6 @@ export default function Home() {
               ))}
             </div>
           )}
-
 
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             {!loading && !diagnosed && (
@@ -162,10 +161,10 @@ export default function Home() {
               <p>診断は1分ほどかかります。以下のステップで進行中です：</p>
               <ul className="space-y-1">
                 <li className={`${phase === 1 ? "text-blue-300 animate-pulse" : phase! > 1 ? "text-green-300" : "text-gray-300"}`}>
-                  フェーズ 1：キヅクモサービス疎通確認
+                  フェーズ 1：キヅクモサービス疏通確認
                 </li>
                 <li className={`${phase === 2 ? "text-blue-300 animate-pulse" : phase! > 2 ? "text-green-300" : "text-gray-300"}`}>
-                  フェーズ 2：ポート疎通確認
+                  フェーズ 2：ポート疏通確認
                 </li>
                 <li className={`${phase === 3 ? "text-blue-300 animate-pulse" : diagnosed ? "text-green-300" : "text-gray-300"}`}>
                   フェーズ 3：映像通信確認
