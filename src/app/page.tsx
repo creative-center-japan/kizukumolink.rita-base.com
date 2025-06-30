@@ -50,14 +50,17 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
 
   // 🔍 VPNチェック（host候補の中にグローバルIPが存在したら NG）
   const hostLines = status.filter(log => log.includes('typ host'));
-  const suspiciousGlobalHosts = hostLines.filter(line =>
-    /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
-    !/\.local/.test(line) &&
-    !isPrivateIP(RegExp.$1) &&
-    !/^127\./.test(RegExp.$1)
-  );
+  const suspiciousGlobalHosts = hostLines.filter(line => {
+    const match = line.match(/candidate:.*? ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/);
+    if (!match) return false;
+    const hostIP = match[1];
+    return (
+      !/\.local/.test(line) &&
+      !isPrivateIP(hostIP) &&
+      !/^127\./.test(hostIP)
+    );
+  });
 
-  // VPN経由の可能性があるなら TURN / P2P どちらも NG にする
   const isVPN = suspiciousGlobalHosts.length > 0;
 
   if (item.label === 'TURN接続確認') {
