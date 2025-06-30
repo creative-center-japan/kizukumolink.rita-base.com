@@ -52,35 +52,47 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   const candidateType = candidateTypeLine?.split('】')[1]?.trim() ?? "";
   const isHostType = candidateType === 'host';
 
-  if (item.label === 'TURN接続確認') {
-    const relayOK = status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+  const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
+    if (FORCE_ALL_NG) return false;
 
-    // 🔍 host候補にグローバルIPが含まれていたらVPNの可能性あり → NG
-    const hostLines = status.filter(log => log.includes('typ host'));
-    const suspiciousGlobalHosts = hostLines.filter(line =>
-      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
-      !/\.local/.test(line) &&
-      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
+    const candidateTypeLine = status.find(log => log.includes('【 接続方式候補 】'));
+    const candidateType = candidateTypeLine?.split('】')[1]?.trim() ?? "";
+
+    if (item.label === 'TURN接続確認') {
+      const relayOK = status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
+      const hostLines = status.filter(log => log.includes('typ host'));
+      const suspiciousGlobalHosts = hostLines.filter(line =>
+        /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
+        !/\.local/.test(line) &&
+        !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
+      );
+      if (suspiciousGlobalHosts.length > 0) return false;
+      return relayOK;
+    }
+
+    if (item.label === 'P2P接続確認') {
+      const srflxOK = status.some(log => log.includes('【 接続形態 】P2P（直接）'));
+      const hostLines = status.filter(log => log.includes('typ host'));
+      const suspiciousGlobalHosts = hostLines.filter(line =>
+        /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
+        !/\.local/.test(line) &&
+        !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
+      );
+      if (suspiciousGlobalHosts.length > 0) return false;
+      return srflxOK;
+    }
+
+    if (item.label === 'サービスへの通信確認') {
+      return status.some(log =>
+        log.includes("サービスへの通信確認: OK") ||
+        log.includes("favicon.ico → OK")
+      );
+    }
+
+    return status.some(log =>
+      log.includes("OK") || log.includes("成功") || log.includes("応答あり")
     );
-    if (suspiciousGlobalHosts.length > 0) return false;
-
-    return relayOK;
-  }
-
-  if (item.label === 'P2P接続確認') {
-    const srflxOK = status.some(log => log.includes('【 接続形態 】P2P（直接）'));
-
-    // 🔍 host候補にグローバルIPが含まれていたらVPNの可能性あり → NG
-    const hostLines = status.filter(log => log.includes('typ host'));
-    const suspiciousGlobalHosts = hostLines.filter(line =>
-      /candidate:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/.test(line) &&
-      !/\.local/.test(line) &&
-      !/192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1])/.test(line)
-    );
-    if (suspiciousGlobalHosts.length > 0) return false;
-
-    return srflxOK;
-  }
+  };
 
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>
