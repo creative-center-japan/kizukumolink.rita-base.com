@@ -47,7 +47,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?:
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
       const local = stats.get(report.localCandidateId);
-      const remote = stats.get(report.remoteCandidateId);
 
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
       if (local) {
