@@ -90,7 +90,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   );
 };
 
-
 export default function Home() {
   const scale = useScaleFactor();
   const [status, setStatus] = useState<string[]>([]);
