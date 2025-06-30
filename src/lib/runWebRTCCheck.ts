@@ -1,8 +1,6 @@
 // rita-base\lib\runWebRTCCheck.ts
 
-const runWebRTCCheck = (
-  { policy = 'relay', timeoutMillisec = 3000 }: { policy?: 'relay' | 'all'; timeoutMillisec?: number } = {}
-): Promise<string[]> => {
+const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?: 'relay' | 'all'; timeoutMillisec?: number } = {}): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
@@ -33,11 +31,23 @@ const runWebRTCCheck = (
     const dc = pc.createDataChannel('check');
     logs.push('✅ DataChannel を negotiated=false で作成しました');
 
-    pc.onicecandidate = (e) =>
+    const candidateMap: Record<string, any> = {};
+
+    pc.onicecandidate = (e) => {
       logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
+      if (e.candidate && 'foundation' in e.candidate) {
+        const foundation = (e.candidate as any).foundation;
+        if (foundation) {
+          candidateMap[foundation] = e.candidate;
+        }
+      }
+    };
 
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
-      const local = await pc.getStats().then(stats => stats.get(report.localCandidateId));
+      const stats = await pc.getStats();
+      const local = stats.get(report.localCandidateId);
+      const remote = stats.get(report.remoteCandidateId);
+
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
       if (local) {
         logs.push(`【 接続方式候補 】${local.candidateType}`);
@@ -45,6 +55,17 @@ const runWebRTCCheck = (
           logs.push('【 接続形態 】TURNリレー（中継）');
         } else {
           logs.push('【 接続形態 】P2P（直接）');
+        }
+      }
+
+      // すべての candidate-pair の状態を出力
+      for (const report of stats.values()) {
+        if (report.type === 'candidate-pair') {
+          const local = stats.get(report.localCandidateId);
+          const remote = stats.get(report.remoteCandidateId);
+          const localType = local?.candidateType ?? 'unknown';
+          const remoteType = remote?.candidateType ?? 'unknown';
+          logs.push(`🔍 candidate-pair: ${localType} ⇄ ${remoteType} = ${report.state}`);
         }
       }
 
