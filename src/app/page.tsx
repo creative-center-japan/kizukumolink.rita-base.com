@@ -36,15 +36,6 @@ function useScaleFactor() {
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
 
-  if (item.label === 'TURN接続確認') {
-    return status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
-  }
-
-  if (item.label === 'P2P接続確認') {
-    return status.some(log => log.includes('【 接続形態 】P2P（直接）'));
-  }
-
-if (item.label === 'ip_check') {
   const ipLog = status.find(log =>
     log.startsWith("外部IP:") ||
     log.startsWith("🌐 外部IP（補完）:") ||
@@ -57,11 +48,25 @@ if (item.label === 'ip_check') {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
-  return !!ip && /^[0-9.]+$/.test(ip) &&
-    !/^0\.0\.0\.0$/.test(ip) &&
-    !/^127\./.test(ip) &&
-    !isPrivateIP(ip);
-}
+  const candidateTypeLine = status.find(log => log.includes('【 接続方式候補 】'));
+  const candidateType = candidateTypeLine?.split('】')[1]?.trim() ?? "";
+  const isHostType = candidateType === 'host';
+  const globalHostDetected = isHostType && !!ip && /^[0-9.]+$/.test(ip) && !isPrivateIP(ip);
+
+  if (item.label === 'TURN接続確認') {
+    return candidateType === 'relay' && !globalHostDetected;
+  }
+
+  if (item.label === 'P2P接続確認') {
+    return candidateType === 'srflx' && !globalHostDetected;
+  }
+
+  if (item.label === 'ip_check') {
+    return !!ip && /^[0-9.]+$/.test(ip) &&
+      !/^0\.0\.0\.0$/.test(ip) &&
+      !/^127\./.test(ip) &&
+      !isPrivateIP(ip);
+  }
 
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>
