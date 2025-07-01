@@ -32,6 +32,14 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
     const dc = pc.createDataChannel('check');
     logs.push('✅ DataChannel を negotiated=false で作成しました');
 
+    const extractIP = (c: any): string => {
+      if (!c) return '';
+      return c.address || c.ip || (() => {
+        const match = c.candidate?.match(/candidate:\d+ \d+ [a-zA-Z]+ \d+ ([0-9.]+) \d+ typ/);
+        return match ? match[1] : '';
+      })();
+    };
+
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
 
@@ -47,15 +55,14 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         logs.push(`【 接続方式候補 】${local.candidateType}`);
         logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const localIP = (local as any).address || (local as any).ip || '';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const remoteIP = (remote as any).address || (remote as any).ip || '';
+        const localIP = extractIP(local);
+        const remoteIP = extractIP(remote);
+        logs.push(`🧪 判定用: localIP=${localIP}, remoteIP=${remoteIP}, myGlobalIP=${myGlobalIP}`);
 
-        // srflx ⇄ srflx かつ 同一IP（VPN出口） → NG
         if (
           local.candidateType === 'srflx' &&
           remote.candidateType === 'srflx' &&
+          localIP && remoteIP && myGlobalIP &&
           localIP === remoteIP &&
           localIP === myGlobalIP
         ) {
@@ -63,7 +70,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
           isNg = true;
         }
 
-        // host ⇄ host → NG
         if (
           local.candidateType === 'host' &&
           remote.candidateType === 'host'
