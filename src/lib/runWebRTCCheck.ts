@@ -94,7 +94,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
       }
     };
 
-
     const checkCandidateLoop = async () => {
       const start = Date.now();
       while (!alreadyResolved && Date.now() - start < 30000) {
