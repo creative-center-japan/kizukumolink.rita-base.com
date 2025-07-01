@@ -45,39 +45,61 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
 
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
-      const local = stats.get(report.localCandidateId);
+      const local = stats.get(report.localCandidateId) as any;
+      const remote = stats.get(report.remoteCandidateId) as any;
 
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
-      if (local) {
+      let isNg = false;
+
+      if (local && remote) {
         logs.push(`【 接続方式候補 】${local.candidateType}`);
-        if (local.candidateType === 'relay') {
-          logs.push('【 接続形態 】TURNリレー（中継）');
-        } else {
-          logs.push('【 接続形態 】P2P（直接）');
+        logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
+
+        const localIP = (local as any).address || (local as any).ip || '';
+        const remoteIP = (remote as any).address || (remote as any).ip || '';
+
+        if (
+          local.candidateType === 'srflx' &&
+          remote.candidateType === 'srflx' &&
+          localIP === remoteIP &&
+          localIP === myGlobalIP
+        ) {
+          logs.push(`⚠ srflx同士かつ同一IP（${localIP}） → VPN疑い → NG判定`);
+          isNg = true;
+        }
+
+        if (
+          local.candidateType === 'host' &&
+          remote.candidateType === 'host'
+        ) {
+          logs.push('⚠ host同士の接続 → NG判定');
+          isNg = true;
         }
       }
 
-      // すべての candidate-pair の状態を出力
-      for (const report of stats.values()) {
-        if (report.type === 'candidate-pair') {
-          const local = stats.get(report.localCandidateId);
-          const remote = stats.get(report.remoteCandidateId);
-          const localType = local?.candidateType ?? 'unknown';
-          const remoteType = remote?.candidateType ?? 'unknown';
-          logs.push(`🔍 candidate-pair: ${localType} ⇄ ${remoteType} = ${report.state}`);
+      for (const r of stats.values()) {
+        if (r.type === 'candidate-pair') {
+          const l = stats.get(r.localCandidateId) as any;
+          const rm = stats.get(r.remoteCandidateId) as any;
+          const lt = l?.candidateType ?? 'unknown';
+          const rt = rm?.candidateType ?? 'unknown';
+          logs.push(`🔍 candidate-pair: ${lt} ⇄ ${rt} = ${r.state}`);
         }
       }
 
       if (!alreadyResolved) {
         alreadyResolved = true;
         clearInterval(pingInterval);
-        if (pc.connectionState !== 'closed') {
-          pc.close();
-          logs.push('✅ RTCPeerConnection を close しました（早期）');
-        }
+        if (pc.connectionState !== 'closed') pc.close();
+        logs.push(isNg ? '❌ この接続は実際にはNGと判定されました' : '✅ この接続は有効です');
         resolve(logs);
       }
     };
+
+
+
+
+
 
     const checkCandidateLoop = async () => {
       const start = Date.now();
