@@ -45,6 +45,37 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
 
 
 
+const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
+  return new Promise((resolve) => {
+    const logs: string[] = [];
+    let pingInterval: ReturnType<typeof setInterval>;
+    let alreadyResolved = false;
+
+    const config: RTCConfiguration = {
+      iceServers: [
+        {
+          urls: 'turn:50.16.103.67:3478?transport=udp',
+          username: 'test',
+          credential: 'testpass',
+        },
+        {
+          urls: 'turn:50.16.103.67:3478?transport=tcp',
+          username: 'test',
+          credential: 'testpass',
+        },
+      ],
+      iceTransportPolicy: policy,
+      bundlePolicy: 'balanced',
+      rtcpMuxPolicy: 'require',
+      iceCandidatePoolSize: 0,
+    };
+
+    logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
+
+    const pc = new RTCPeerConnection(config);
+    const dc = pc.createDataChannel('check');
+    logs.push('✅ DataChannel を negotiated=false で作成しました');
+
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
 
@@ -61,10 +92,11 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const localIP = (local as any)?.address || (local as any)?.ip || '';
+        const localIP = (local as any).address || (local as any).ip || '';
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const remoteIP = (remote as any)?.address || (remote as any)?.ip || '';
+        const remoteIP = (remote as any).address || (remote as any).ip || '';
 
+        // srflx ⇄ srflx かつ 同一IP（VPN出口） → NG
         if (
           local.candidateType === 'srflx' &&
           remote.candidateType === 'srflx' &&
@@ -75,6 +107,7 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
           isNg = true;
         }
 
+        // host ⇄ host → NG
         if (
           local.candidateType === 'host' &&
           remote.candidateType === 'host'
