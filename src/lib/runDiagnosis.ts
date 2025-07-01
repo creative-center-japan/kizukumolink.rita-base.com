@@ -85,11 +85,11 @@ export const runDiagnosis = async (
 
   // --- Phase 3：WebRTC診断（relay限定→all） ---
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---");
-  const relayLogs = await runWebRTCCheck({ policy: 'relay', timeoutMillisec });
+  const relayLogs = await runWebRTCCheck({ policy: 'relay', timeoutMillisec, myGlobalIP: ip });
   phase3Logs.push(...relayLogs);
 
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---");
-  const allLogs = await runWebRTCCheck({ policy: 'all', timeoutMillisec });
+  const allLogs = await runWebRTCCheck({ policy: 'all', timeoutMillisec, myGlobalIP: ip });
   phase3Logs.push(...allLogs);
 
   // ✅ 完全なログ統合
