@@ -1,5 +1,6 @@
 // rita-base\lib\runWebRTCCheck.ts
 
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
