@@ -43,9 +43,14 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
       }
     };
 
+
+
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const local = stats.get(report.localCandidateId) as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const remote = stats.get(report.remoteCandidateId) as any;
 
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
@@ -55,8 +60,10 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         logs.push(`【 接続方式候補 】${local.candidateType}`);
         logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
 
-        const localIP = (local as any).address || (local as any).ip || '';
-        const remoteIP = (remote as any).address || (remote as any).ip || '';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const localIP = (local as any)?.address || (local as any)?.ip || '';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const remoteIP = (remote as any)?.address || (remote as any)?.ip || '';
 
         if (
           local.candidateType === 'srflx' &&
@@ -79,7 +86,9 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
 
       for (const r of stats.values()) {
         if (r.type === 'candidate-pair') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const l = stats.get(r.localCandidateId) as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const rm = stats.get(r.remoteCandidateId) as any;
           const lt = l?.candidateType ?? 'unknown';
           const rt = rm?.candidateType ?? 'unknown';
@@ -95,10 +104,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         resolve(logs);
       }
     };
-
-
-
-
 
 
     const checkCandidateLoop = async () => {
