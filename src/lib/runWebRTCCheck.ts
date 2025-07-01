@@ -1,6 +1,6 @@
 // rita-base\lib\runWebRTCCheck.ts
 
-const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?: 'relay' | 'all'; timeoutMillisec?: number } = {}): Promise<string[]> => {
+const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let pingInterval: ReturnType<typeof setInterval>;
