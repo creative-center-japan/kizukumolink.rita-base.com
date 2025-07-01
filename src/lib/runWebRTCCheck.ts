@@ -43,7 +43,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000 }: { policy?:
       }
     };
 
-
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
       const local = stats.get(report.localCandidateId);
