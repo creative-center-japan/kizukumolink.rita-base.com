@@ -1,49 +1,5 @@
 // rita-base\lib\runWebRTCCheck.ts
 
-const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
-  return new Promise((resolve) => {
-    const logs: string[] = [];
-    let pingInterval: ReturnType<typeof setInterval>;
-    let alreadyResolved = false;
-
-    const config: RTCConfiguration = {
-      iceServers: [
-        {
-          urls: 'turn:50.16.103.67:3478?transport=udp',
-          username: 'test',
-          credential: 'testpass',
-        },
-        {
-          urls: 'turn:50.16.103.67:3478?transport=tcp',
-          username: 'test',
-          credential: 'testpass',
-        },
-      ],
-      iceTransportPolicy: policy,
-      bundlePolicy: 'balanced',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 0,
-    };
-
-    logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
-
-    const pc = new RTCPeerConnection(config);
-    const dc = pc.createDataChannel('check');
-    logs.push('✅ DataChannel を negotiated=false で作成しました');
-
-    const candidateMap: Record<string, RTCIceCandidate> = {};
-
-    pc.onicecandidate = (e) => {
-      logs.push('[ICE] candidate: ' + (e.candidate?.candidate ?? '(収集完了)'));
-      if (e.candidate) {
-        const foundation = (e.candidate as RTCIceCandidate).foundation;
-        if (foundation) {
-          candidateMap[foundation] = e.candidate as RTCIceCandidate;
-        }
-      }
-    };
-
-
 
 const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
