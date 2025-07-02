@@ -1,6 +1,7 @@
-// rita-base\lib\runWebRTCCheck.ts
+// rita-base\lib\runWebRTCCheck.ts// runWebRTCCheck.ts（VPN判定強化・完全版）
 
- /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
@@ -41,9 +42,12 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
       })();
     };
 
+    const isPrivateIP = (ip: string): boolean => {
+      return /^10\./.test(ip) || /^192\.168\./.test(ip) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+    };
+
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
-
       const local = stats.get(report.localCandidateId) as any;
       const remote = stats.get(report.remoteCandidateId) as any;
 
@@ -58,23 +62,33 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         const remoteIP = extractIP(remote);
         logs.push(`🧪 判定用: localIP=${localIP}, remoteIP=${remoteIP}, myGlobalIP=${myGlobalIP}`);
 
-        if (
-          local.candidateType === 'srflx' &&
-          remote.candidateType === 'srflx' &&
-          localIP && remoteIP && myGlobalIP &&
-          localIP === remoteIP &&
-          localIP === myGlobalIP
-        ) {
-          logs.push(`⚠ srflx同士かつ同一IP（${localIP}） → VPN疑い → NG判定`);
+        // 1. host ⇄ host → NG
+        if (local.candidateType === 'host' && remote.candidateType === 'host') {
+          logs.push('❌ nominatedペアが host ⇄ host → ローカル通信判定 → NG');
           isNg = true;
         }
 
-        if (
-          local.candidateType === 'host' &&
-          remote.candidateType === 'host'
-        ) {
-          logs.push('⚠ host同士の接続 → NG判定');
+        // 2. remote srflx === myGlobalIP → NG
+        if (remote.candidateType === 'srflx' && remoteIP === myGlobalIP) {
+          logs.push('❌ remote候補にVPN出口IPが出現 → 自己ループ/NAT崩壊疑い → NG');
           isNg = true;
+        }
+
+        // 3. srflxに private IP が含まれる → NG
+        if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) || (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
+          logs.push('❌ srflx候補に private IP が含まれる → 異常なSTUN応答 → NG');
+          isNg = true;
+        }
+
+        // 4. host にグローバルIP → NG
+        if (local.candidateType === 'host' && localIP && !isPrivateIP(localIP) && !/^127\./.test(localIP)) {
+          logs.push(`❌ host候補にグローバルIP（${localIP}）→ 異常構成/VPN疑い → NG`);
+          isNg = true;
+        }
+
+        // 5. local srflx !== myGlobalIP → VPN疑い（ログのみ）
+        if (local.candidateType === 'srflx' && localIP !== myGlobalIP) {
+          logs.push(`🟡 local srflx IP が VPN出口と異なる → VPN疑い（ログのみ）`);
         }
       }
 
