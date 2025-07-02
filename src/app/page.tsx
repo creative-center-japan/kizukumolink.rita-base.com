@@ -1,8 +1,7 @@
-// rita-base\src\app\page.tsx
-
+// page.tsx
 'use client';
 
-const FORCE_ALL_NG = false; // ← NGテストしたいとき true に 戻すときは false
+const FORCE_ALL_NG = false;
 
 import React, { useState, useEffect } from 'react';
 import { runDiagnosis } from "@/lib/runDiagnosis";
@@ -33,7 +32,6 @@ function useScaleFactor() {
   return scale;
 }
 
-
 const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
   if (FORCE_ALL_NG) return false;
 
@@ -49,7 +47,6 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
     /^192\.168\./.test(ip) ||
     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
 
-  // host候補の中に「グローバルIP」が含まれている（.local でもなく、private IP でもない）
   const hostLines = status.filter(log => log.includes('typ host'));
   const suspiciousGlobalHosts = hostLines.filter(line => {
     const match = line.match(/candidate:.*? ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) \d+ typ host/);
@@ -60,40 +57,33 @@ const checkIsOK = (item: (typeof CHECK_ITEMS)[number], status: string[]) => {
       !/^127\./.test(ipCandidate);
   });
 
-  // srflx候補に「自分の外部IP」が含まれている
   const srflxLines = status.filter(log => log.includes('typ srflx'));
   const hasSelfIPinSrflx = srflxLines.some(line => line.includes(ip));
 
   const isVPN = suspiciousGlobalHosts.length > 0 || hasSelfIPinSrflx;
 
-  // 各診断項目に応じたOK判定
   if (item.label === 'TURN接続確認') {
     return !isVPN && status.some(log => log.includes('【 接続形態 】TURNリレー（中継）'));
   }
-
   if (item.label === 'P2P接続確認') {
     return !isVPN && status.some(log => log.includes('【 接続形態 】P2P（直接）'));
   }
-
   if (item.label === 'ip_check') {
     return !!ip && /^[0-9.]+$/.test(ip) &&
       !/^0\.0\.0\.0$/.test(ip) &&
       !/^127\./.test(ip) &&
       !isPrivateIP(ip);
   }
-
   if (item.label === 'サービスへの通信確認') {
     return status.some(log =>
       log.includes("サービスへの通信確認: OK") ||
       log.includes("favicon.ico → OK")
     );
   }
-
   return status.some(log =>
     log.includes("OK") || log.includes("成功") || log.includes("応答あり")
   );
 };
-
 
 export default function Home() {
   const scale = useScaleFactor();
@@ -102,6 +92,7 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
+  const timeoutMillisec = 3000;
 
   return (
     <main className="min-h-screen bg-blue-50 text-gray-900 px-4 pt-6 pb-20">
@@ -138,7 +129,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             {!loading && !diagnosed && (
               <button
-                onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase, 3000)}
+                onClick={() => runDiagnosis({ setStatus, setLoading, setDiagnosed, setPhase, timeoutMillisec })}
                 className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
               >診断開始</button>
             )}
@@ -151,7 +142,7 @@ export default function Home() {
             {diagnosed && (
               <>
                 <button
-                  onClick={() => runDiagnosis(setStatus, setLoading, setDiagnosed, setPhase, 3000)}
+                  onClick={() => runDiagnosis({ setStatus, setLoading, setDiagnosed, setPhase, timeoutMillisec })}
                   className="bg-blue-800 hover:bg-blue-900 transition text-white px-6 py-2 rounded-full text-lg"
                 >再診断</button>
                 <button
