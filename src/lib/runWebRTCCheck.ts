@@ -1,12 +1,12 @@
-// rita-base\lib\runWebRTCCheck.ts// runWebRTCCheck.ts（VPN判定強化・完全版）
+// runWebRTCCheck.ts（VPN判定強化・映像受信診断付き完全版）
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 
 const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
-    let pingInterval: ReturnType<typeof setInterval>;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let pingInterval: ReturnType<typeof setInterval> | null = null;
     let alreadyResolved = false;
 
     const config: RTCConfiguration = {
@@ -31,8 +31,21 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
     logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
 
     const pc = new RTCPeerConnection(config);
-    const dc = pc.createDataChannel('check');
-    logs.push('✅ DataChannel を negotiated=false で作成しました');
+    logs.push('✅ PeerConnection を作成しました');
+
+    // 🎥 映像用の video タグ（診断用）
+    const videoElement = document.createElement('video');
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    videoElement.autoplay = true;
+    videoElement.style.display = 'none';
+    document.body.appendChild(videoElement);
+
+    pc.ontrack = (event) => {
+      logs.push('🎥 映像トラックを受信しました（ontrack 発火）');
+      const stream = event.streams[0];
+      videoElement.srcObject = stream;
+    };
 
     const extractIP = (c: any): string => {
       if (!c) return '';
@@ -62,31 +75,26 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
         const remoteIP = extractIP(remote);
         logs.push(`🧪 判定用: localIP=${localIP}, remoteIP=${remoteIP}, myGlobalIP=${myGlobalIP}`);
 
-        // 1. host ⇄ host → NG
         if (local.candidateType === 'host' && remote.candidateType === 'host') {
           logs.push('❌ nominatedペアが host ⇄ host → ローカル通信判定 → NG');
           isNg = true;
         }
 
-        // 2. remote srflx === myGlobalIP → NG
         if (remote.candidateType === 'srflx' && remoteIP === myGlobalIP) {
           logs.push('❌ remote候補にVPN出口IPが出現 → 自己ループ/NAT崩壊疑い → NG');
           isNg = true;
         }
 
-        // 3. srflxに private IP が含まれる → NG
         if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) || (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
           logs.push('❌ srflx候補に private IP が含まれる → 異常なSTUN応答 → NG');
           isNg = true;
         }
 
-        // 4. host にグローバルIP → NG
         if (local.candidateType === 'host' && localIP && !isPrivateIP(localIP) && !/^127\./.test(localIP)) {
           logs.push(`❌ host候補にグローバルIP（${localIP}）→ 異常構成/VPN疑い → NG`);
           isNg = true;
         }
 
-        // 5. local srflx !== myGlobalIP → VPN疑い（ログのみ）
         if (local.candidateType === 'srflx' && localIP !== myGlobalIP) {
           logs.push(`🟡 local srflx IP が VPN出口と異なる → VPN疑い（ログのみ）`);
         }
@@ -104,14 +112,12 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
 
       if (!alreadyResolved) {
         alreadyResolved = true;
-        clearInterval(pingInterval);
+        if (pingInterval) clearInterval(pingInterval);
         if (pc.connectionState !== 'closed') pc.close();
         logs.push(isNg ? '❌ この接続は実際にはNGと判定されました' : '✅ この接続は有効です');
         resolve(logs);
       }
     };
-
-
 
     const checkCandidateLoop = async () => {
       const start = Date.now();
@@ -141,53 +147,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
       logs.push('[ICE] connection state: ' + pc.iceConnectionState);
     pc.onicegatheringstatechange = () =>
       logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
-
-    dc.onopen = () => {
-      logs.push('✅ DataChannel open');
-      dc.send('ping');
-      logs.push('📤 送信: ping');
-
-      pingInterval = setInterval(() => {
-        if (dc.readyState === 'open') {
-          dc.send('ping');
-          logs.push('📤 定期送信: ping');
-        }
-      }, 5000);
-
-      checkCandidateLoop();
-
-      setTimeout(async () => {
-        if (alreadyResolved) return;
-        logs.push(`⏱ DataChannel を ${timeoutMillisec}ミリ秒維持後に強制close（ICE未検出）`);
-
-        const stats = await pc.getStats();
-        stats.forEach((report) => {
-          if (report.type === 'data-channel') {
-            logs.push(`📊 DataChannel統計:\n  messagesSent: ${report.messagesSent}\n  messagesReceived: ${report.messagesReceived}\n  bytesSent: ${report.bytesSent}\n  bytesReceived: ${report.bytesReceived}`);
-          }
-        });
-
-        clearInterval(pingInterval);
-        if (pc.connectionState !== 'closed') {
-          pc.close();
-          logs.push('✅ RTCPeerConnection を close しました（timeout）');
-        }
-        resolve(logs);
-      }, timeoutMillisec);
-    };
-
-    dc.onmessage = (event) => {
-      logs.push(`📨 受信: ${event.data}`);
-      logs.push('✅ DataChannel 応答確認完了');
-    };
-
-    dc.onclose = () => {
-      clearInterval(pingInterval);
-      logs.push('❌ DataChannel closed');
-    };
-
-    dc.onerror = (e) =>
-      logs.push(`⚠ DataChannel error: ${(e as ErrorEvent).message}`);
 
     (async () => {
       try {
