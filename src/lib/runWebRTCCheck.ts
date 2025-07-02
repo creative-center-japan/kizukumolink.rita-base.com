@@ -150,6 +150,14 @@ const runWebRTCCheck = ({ policy = 'relay', myGlobalIP }: { policy?: 'relay' | '
         const answer = await res.json();
         await pc.setRemoteDescription(answer);
         logs.push('✅ setRemoteDescription 完了');
+
+        const stats = await pc.getStats();
+        for (const report of stats.values()) {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            await handleSuccessAndExit(report as RTCIceCandidatePairStats);
+            break;
+          }
+        }
       } catch (err) {
         logs.push('❌ WebRTC接続に失敗しました');
         if (err instanceof Error) logs.push(`❗詳細: ${err.message}`);
