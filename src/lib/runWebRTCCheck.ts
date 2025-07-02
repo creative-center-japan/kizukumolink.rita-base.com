@@ -2,11 +2,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }: { policy?: 'relay' | 'all'; timeoutMillisec?: number; myGlobalIP: string }): Promise<string[]> => {
+const runWebRTCCheck = ({ policy = 'relay', myGlobalIP }: { policy?: 'relay' | 'all'; myGlobalIP: string }): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let pingInterval: ReturnType<typeof setInterval> | null = null;
     let alreadyResolved = false;
 
     const config: RTCConfiguration = {
@@ -33,7 +31,6 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
     const pc = new RTCPeerConnection(config);
     logs.push('✅ PeerConnection を作成しました');
 
-    // 🎥 映像用の video タグ（診断用）
     const videoElement = document.createElement('video');
     videoElement.muted = true;
     videoElement.playsInline = true;
@@ -112,26 +109,10 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
 
       if (!alreadyResolved) {
         alreadyResolved = true;
-        if (pingInterval) clearInterval(pingInterval);
         if (pc.connectionState !== 'closed') pc.close();
         logs.push(isNg ? '❌ この接続は実際にはNGと判定されました' : '✅ この接続は有効です');
         resolve(logs);
       }
-    };
-
-    const checkCandidateLoop = async () => {
-      const start = Date.now();
-      while (!alreadyResolved && Date.now() - start < 30000) {
-        const stats = await pc.getStats();
-        for (const report of stats.values()) {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            await handleSuccessAndExit(report);
-            return;
-          }
-        }
-        await new Promise(res => setTimeout(res, 1000));
-      }
-      if (!alreadyResolved) logs.push('⚠ 30秒以内に candidate-pair: succeeded が見つかりませんでした');
     };
 
     pc.onconnectionstatechange = () => {
@@ -141,12 +122,9 @@ const runWebRTCCheck = ({ policy = 'relay', timeoutMillisec = 3000, myGlobalIP }
       }
     };
 
-    pc.onsignalingstatechange = () =>
-      logs.push('[WebRTC] signaling state: ' + pc.signalingState);
-    pc.oniceconnectionstatechange = () =>
-      logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-    pc.onicegatheringstatechange = () =>
-      logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
+    pc.onsignalingstatechange = () => logs.push('[WebRTC] signaling state: ' + pc.signalingState);
+    pc.oniceconnectionstatechange = () => logs.push('[ICE] connection state: ' + pc.iceConnectionState);
+    pc.onicegatheringstatechange = () => logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
 
     (async () => {
       try {
