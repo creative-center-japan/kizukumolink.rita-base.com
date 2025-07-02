@@ -1,8 +1,12 @@
-// runWebRTCCheck.ts（VPN判定強化・映像受信診断付き完全版）
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-const runWebRTCCheck = ({ policy = 'relay', myGlobalIP }: { policy?: 'relay' | 'all'; myGlobalIP: string }): Promise<string[]> => {
+const runWebRTCCheck = ({
+  policy = 'relay',
+  timeoutMillisec = 3000,
+  myGlobalIP,
+}: {
+  policy?: 'relay' | 'all';
+  timeoutMillisec?: number;
+  myGlobalIP: string;
+}): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
     let alreadyResolved = false;
@@ -114,6 +118,14 @@ const runWebRTCCheck = ({ policy = 'relay', myGlobalIP }: { policy?: 'relay' | '
         resolve(logs);
       }
     };
+
+    const timeout = setTimeout(() => {
+      if (!alreadyResolved) {
+        logs.push(`⚠ ${timeoutMillisec}ms 経過しても接続候補が見つからなかったためタイムアウト判定`);
+        pc.close();
+        resolve(logs);
+      }
+    }, timeoutMillisec);
 
     pc.onconnectionstatechange = () => {
       logs.push('[WebRTC] connection state: ' + pc.connectionState);
