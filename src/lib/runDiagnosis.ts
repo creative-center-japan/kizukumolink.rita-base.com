@@ -6,10 +6,10 @@ interface RunDiagnosisParams {
   setLoading: (val: boolean) => void;
   setDiagnosed: (val: boolean) => void;
   setPhase: (val: 1 | 2 | 3 | null) => void;
-  timeoutMillisec: number;
+  timeoutMillisec?: number;
 }
 
-export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPhase, timeoutMillisec }: RunDiagnosisParams): Promise<void> => {
+export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPhase, timeoutMillisec = 3000 }: RunDiagnosisParams): Promise<void> => {
   setLoading(true);
   setDiagnosed(false);
 
