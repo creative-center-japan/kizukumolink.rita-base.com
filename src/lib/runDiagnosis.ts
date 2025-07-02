@@ -14,7 +14,6 @@ export const runDiagnosis = async (
   setLoading: (val: boolean) => void,
   setDiagnosed: (val: boolean) => void,
   setPhase: (val: 1 | 2 | 3 | null) => void,
-  timeoutMillisec: number = 1000
 ): Promise<void> => {
   setLoading(true);
   setDiagnosed(false);
@@ -24,10 +23,8 @@ export const runDiagnosis = async (
   const phase3Logs: string[] = [];
 
   setPhase(1);
-
   // --- Phase 1：IP + FQDN ---
   phase1Logs.push("--- フェーズ1：サービス接続確認 ---");
-
   let ip = "取得失敗";
   try {
     const res = await fetch("https://api.ipify.org?format=json");
@@ -37,7 +34,6 @@ export const runDiagnosis = async (
 
   let fqdnStatus = "NG";
   let fqdnLogs: string[] = [];
-
   try {
     const res = await fetch("/api/fqdncheck");
     const result = await res.json();
@@ -46,17 +42,14 @@ export const runDiagnosis = async (
   } catch (err) {
     fqdnLogs.push(`❌ FQDNチェック失敗: ${(err as Error).message}`);
   }
-
   phase1Logs.push(`🔸実行日時: ${new Date().toLocaleString("ja-JP", { hour12: false })}`);
   phase1Logs.push(`🔸外部IP: ${ip}`);
   phase1Logs.push(`🔸サービスへの通信確認: ${fqdnStatus}`);
   phase1Logs.push(...fqdnLogs);
 
   setPhase(2);
-
   // --- Phase 2：ポート確認 ---
   phase2Logs.push("--- フェーズ2：ポート通信確認 ---");
-
   try {
     const res = await fetch("https://check-api.rita-base.com/check-json");
     const data = await res.json();
@@ -65,7 +58,6 @@ export const runDiagnosis = async (
     for (const [port, result] of Object.entries(data.tcp)) {
       phase2Logs.push(`ポート確認: TCP ${port} → ${result === "success" ? "OK" : "NG"}`);
     }
-
     phase2Logs.push("🔸 UDPポート確認:");
     for (const [port, result] of Object.entries(data.udp)) {
       phase2Logs.push(`ポート確認: UDP ${port} → ${result === "success" ? "OK" : "NG"}`);
@@ -82,17 +74,15 @@ export const runDiagnosis = async (
   }
 
   setPhase(3);
-
-  // --- Phase 3：WebRTC診断（relay限定→all） ---
+  // --- Phase 3：WebRTC診断 ---
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---");
-  const relayLogs = await runWebRTCCheck({ policy: 'relay', timeoutMillisec, myGlobalIP: ip });
+  const relayLogs = await runWebRTCCheck({ policy: 'relay', myGlobalIP: ip });
   phase3Logs.push(...relayLogs);
 
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---");
-  const allLogs = await runWebRTCCheck({ policy: 'all', timeoutMillisec, myGlobalIP: ip });
+  const allLogs = await runWebRTCCheck({ policy: 'all', myGlobalIP: ip });
   phase3Logs.push(...allLogs);
 
-  // ✅ 完全なログ統合
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
   setDiagnosed(true);
 };
