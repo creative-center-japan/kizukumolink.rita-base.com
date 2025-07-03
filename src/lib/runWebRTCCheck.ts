@@ -106,7 +106,7 @@ const runWebRTCCheck = ({
         }
 
         if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) ||
-            (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
+          (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
           logs.push('❌ srflx候補に private IP が含まれる → 異常なSTUN応答 → NG');
           isNg = true;
         }
@@ -159,7 +159,7 @@ const runWebRTCCheck = ({
 
         logs.push('[STEP] /offer へ POST 実行');
         const controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000);
+        setTimeout(() => controller.abort(), timeoutMillisec);
         const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
