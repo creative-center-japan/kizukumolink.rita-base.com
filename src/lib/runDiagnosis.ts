@@ -1,15 +1,20 @@
-// runDiagnosis.ts（VPN判定強化に対応）
+// runDiagnosis.ts - 各フェーズの診断処理をまとめる関数
+
 import runWebRTCCheck from "@/lib/runWebRTCCheck";
 
-interface RunDiagnosisParams {
+export const runDiagnosis = async ({
+  setStatus,
+  setLoading,
+  setDiagnosed,
+  setPhase,
+  timeoutMillisec = 1000
+}: {
   setStatus: (logs: string[]) => void;
   setLoading: (val: boolean) => void;
   setDiagnosed: (val: boolean) => void;
   setPhase: (val: 1 | 2 | 3 | null) => void;
   timeoutMillisec?: number;
-}
-
-export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPhase, timeoutMillisec = 3000 }: RunDiagnosisParams): Promise<void> => {
+}): Promise<void> => {
   setLoading(true);
   setDiagnosed(false);
 
@@ -18,6 +23,8 @@ export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPha
   const phase3Logs: string[] = [];
 
   setPhase(1);
+
+  // --- Phase 1：IP + FQDN ---
   phase1Logs.push("--- フェーズ1：サービス接続確認 ---");
 
   let ip = "取得失敗";
@@ -45,6 +52,8 @@ export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPha
   phase1Logs.push(...fqdnLogs);
 
   setPhase(2);
+
+  // --- Phase 2：ポート確認 ---
   phase2Logs.push("--- フェーズ2：ポート通信確認 ---");
 
   try {
@@ -72,12 +81,14 @@ export const runDiagnosis = async ({ setStatus, setLoading, setDiagnosed, setPha
   }
 
   setPhase(3);
+
+  // --- Phase 3：WebRTC診断（relay限定→all） ---
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---");
-  const relayLogs = await runWebRTCCheck({ policy: 'relay', myGlobalIP: ip });
+  const relayLogs = await runWebRTCCheck({ policy: "relay", myGlobalIP: ip, timeoutMillisec });
   phase3Logs.push(...relayLogs);
 
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---");
-  const allLogs = await runWebRTCCheck({ policy: 'all', myGlobalIP: ip });
+  const allLogs = await runWebRTCCheck({ policy: "all", myGlobalIP: ip, timeoutMillisec });
   phase3Logs.push(...allLogs);
 
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
