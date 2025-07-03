@@ -1,11 +1,40 @@
+// runWebRTCCheck.ts（VPN判定強化・映像受信診断付き完全版）
+
+// ✅ 自前の型定義（先頭に1回だけ！）
+type MyIceCandidateStats = RTCStats & {
+  candidateType: 'host' | 'srflx' | 'relay' | 'prflx';
+  ip?: string;
+  address?: string;
+  port?: number;
+  protocol?: string;
+  candidate?: string;
+};
+
+// ✅ 型ガード関数
+const isIceCandidateStats = (stat: RTCStats | undefined): stat is MyIceCandidateStats => {
+  return stat?.type === 'local-candidate' || stat?.type === 'remote-candidate';
+};
+
+// ✅ IP抽出関数
+const extractIP = (c: MyIceCandidateStats | undefined): string => {
+  if (!c) return '';
+  const match = c.candidate?.match(/candidate:\d+ \d+ \w+ \d+ ([0-9.]+) \d+ typ/);
+  return c.address || c.ip || (match ? match[1] : '');
+};
+
+const isPrivateIP = (ip: string): boolean =>
+  /^10\./.test(ip) ||
+  /^192\.168\./.test(ip) ||
+  /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+
 const runWebRTCCheck = ({
   policy = 'relay',
-  timeoutMillisec = 3000,
   myGlobalIP,
+  timeoutMillisec = 3000
 }: {
   policy?: 'relay' | 'all';
-  timeoutMillisec?: number;
   myGlobalIP: string;
+  timeoutMillisec?: number;
 }): Promise<string[]> => {
   return new Promise((resolve) => {
     const logs: string[] = [];
@@ -31,7 +60,6 @@ const runWebRTCCheck = ({
     };
 
     logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
-
     const pc = new RTCPeerConnection(config);
     logs.push('✅ PeerConnection を作成しました');
 
@@ -48,27 +76,18 @@ const runWebRTCCheck = ({
       videoElement.srcObject = stream;
     };
 
-    const extractIP = (c: any): string => {
-      if (!c) return '';
-      return c.address || c.ip || (() => {
-        const match = c.candidate?.match(/candidate:\d+ \d+ [a-zA-Z]+ \d+ ([0-9.]+) \d+ typ/);
-        return match ? match[1] : '';
-      })();
-    };
-
-    const isPrivateIP = (ip: string): boolean => {
-      return /^10\./.test(ip) || /^192\.168\./.test(ip) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
-    };
-
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
-      const local = stats.get(report.localCandidateId) as any;
-      const remote = stats.get(report.remoteCandidateId) as any;
+      const localStat = stats.get(report.localCandidateId);
+      const remoteStat = stats.get(report.remoteCandidateId);
 
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
       let isNg = false;
 
-      if (local && remote) {
+      if (isIceCandidateStats(localStat) && isIceCandidateStats(remoteStat)) {
+        const local = localStat;
+        const remote = remoteStat;
+
         logs.push(`【 接続方式候補 】${local.candidateType}`);
         logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
 
@@ -86,7 +105,8 @@ const runWebRTCCheck = ({
           isNg = true;
         }
 
-        if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) || (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
+        if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) ||
+            (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
           logs.push('❌ srflx候補に private IP が含まれる → 異常なSTUN応答 → NG');
           isNg = true;
         }
@@ -103,10 +123,10 @@ const runWebRTCCheck = ({
 
       for (const r of stats.values()) {
         if (r.type === 'candidate-pair') {
-          const l = stats.get(r.localCandidateId) as any;
-          const rm = stats.get(r.remoteCandidateId) as any;
-          const lt = l?.candidateType ?? 'unknown';
-          const rt = rm?.candidateType ?? 'unknown';
+          const local = stats.get(r.localCandidateId);
+          const remote = stats.get(r.remoteCandidateId);
+          const lt = isIceCandidateStats(local) ? local.candidateType : 'unknown';
+          const rt = isIceCandidateStats(remote) ? remote.candidateType : 'unknown';
           logs.push(`🔍 candidate-pair: ${lt} ⇄ ${rt} = ${r.state}`);
         }
       }
@@ -118,14 +138,6 @@ const runWebRTCCheck = ({
         resolve(logs);
       }
     };
-
-    const timeout = setTimeout(() => {
-      if (!alreadyResolved) {
-        logs.push(`⚠ ${timeoutMillisec}ms 経過しても接続候補が見つからなかったためタイムアウト判定`);
-        pc.close();
-        resolve(logs);
-      }
-    }, timeoutMillisec);
 
     pc.onconnectionstatechange = () => {
       logs.push('[WebRTC] connection state: ' + pc.connectionState);
@@ -147,14 +159,13 @@ const runWebRTCCheck = ({
 
         logs.push('[STEP] /offer へ POST 実行');
         const controller = new AbortController();
-        const timeoutTimer = setTimeout(() => controller.abort(), 5000);
+        setTimeout(() => controller.abort(), 5000);
         const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
           signal: controller.signal,
         });
-        clearTimeout(timeoutTimer);
 
         if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
         logs.push('✅ POST /offer 応答あり');
