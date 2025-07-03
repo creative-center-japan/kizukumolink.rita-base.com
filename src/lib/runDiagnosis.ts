@@ -7,7 +7,7 @@ export const runDiagnosis = async ({
   setLoading,
   setDiagnosed,
   setPhase,
-  timeoutMillisec = 1000
+  timeoutMillisec = 10000
 }: {
   setStatus: (logs: string[]) => void;
   setLoading: (val: boolean) => void;
