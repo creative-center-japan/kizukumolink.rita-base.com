@@ -30,7 +30,7 @@ const isPrivateIP = (ip: string): boolean =>
 const runWebRTCCheck = ({
   policy = 'relay',
   myGlobalIP,
-  timeoutMillisec = 10000
+  timeoutMillisec = 20000
 }: {
   policy?: 'relay' | 'all';
   myGlobalIP: string;

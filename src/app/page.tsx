@@ -92,7 +92,7 @@ export default function Home() {
   const [diagnosed, setDiagnosed] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
   const [phase, setPhase] = useState<1 | 2 | 3 | null>(null);
-  const timeoutMillisec = 15000;
+  const timeoutMillisec = 20000;
 
   return (
     <main className="min-h-screen bg-blue-50 text-gray-900 px-4 pt-6 pb-20">
