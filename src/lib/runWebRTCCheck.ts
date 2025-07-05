@@ -63,6 +63,18 @@ const runWebRTCCheck = ({
     const pc = new RTCPeerConnection(config);
     logs.push('✅ PeerConnection を作成しました');
 
+
+    // ✅ DataChannel 作成
+    const channel = pc.createDataChannel("test-channel");
+    channel.onopen = () => {
+      logs.push("✅ DataChannel open イベントが発火しました");
+      channel.send("ping");
+    };
+    channel.onmessage = (event) => {
+      logs.push(`📨 DataChannel メッセージ受信: ${event.data}`);
+    };
+
+    // ✅ Videoトラックをリクエスト
     pc.addTransceiver("video", { direction: "recvonly" });
 
     const videoElement = document.createElement('video');
