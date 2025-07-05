@@ -63,6 +63,8 @@ const runWebRTCCheck = ({
     const pc = new RTCPeerConnection(config);
     logs.push('✅ PeerConnection を作成しました');
 
+    pc.addTransceiver("video", { direction: "recvonly" });
+
     const videoElement = document.createElement('video');
     videoElement.muted = true;
     videoElement.playsInline = true;
