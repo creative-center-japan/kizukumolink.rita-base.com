@@ -1,31 +1,4 @@
-// runWebRTCCheck.ts（デバッグログ付き）
-
-// ✅ 自前の型定義
-type MyIceCandidateStats = RTCStats & {
-  candidateType: 'host' | 'srflx' | 'relay' | 'prflx';
-  ip?: string;
-  address?: string;
-  port?: number;
-  protocol?: string;
-  candidate?: string;
-};
-
-// ✅ 型ガード関数
-const isIceCandidateStats = (stat: RTCStats | undefined): stat is MyIceCandidateStats => {
-  return stat?.type === 'local-candidate' || stat?.type === 'remote-candidate';
-};
-
-// ✅ IP抽出関数
-const extractIP = (c: MyIceCandidateStats | undefined): string => {
-  if (!c) return '';
-  const match = c.candidate?.match(/candidate:\d+ \d+ \w+ \d+ ([0-9.]+) \d+ typ/);
-  return c.address || c.ip || (match ? match[1] : '');
-};
-
-const isPrivateIP = (ip: string): boolean =>
-  /^10\./.test(ip) ||
-  /^192\.168\./.test(ip) ||
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+// runWebRTCCheck.ts（デバッグログ付き・未使用変数削除済み）
 
 const runWebRTCCheck = ({
   policy = 'relay',
@@ -65,7 +38,6 @@ const runWebRTCCheck = ({
     logs.push('✅ PeerConnection を作成しました');
     console.log('✅ PeerConnection 作成済');
 
-    // ✅ DataChannel 作成
     const channel = pc.createDataChannel("test-channel");
     channel.onopen = () => {
       logs.push("✅ DataChannel open イベントが発火しました");
@@ -77,7 +49,6 @@ const runWebRTCCheck = ({
       console.log("📨 DataChannel 受信:", event.data);
     };
 
-    // ✅ Videoトラックをリクエスト
     pc.addTransceiver("video", { direction: "recvonly" });
 
     const videoElement = document.createElement('video');
@@ -96,9 +67,6 @@ const runWebRTCCheck = ({
 
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       const stats = await pc.getStats();
-      const localStat = stats.get(report.localCandidateId);
-      const remoteStat = stats.get(report.remoteCandidateId);
-
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
       console.log(`✅ ICE Success: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
 
