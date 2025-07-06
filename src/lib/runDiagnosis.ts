@@ -7,7 +7,7 @@ export const runDiagnosis = async ({
   setLoading,
   setDiagnosed,
   setPhase,
-  timeoutMillisec = 30000
+  timeoutMillisec = 30000,
 }: {
   setStatus: (logs: string[]) => void;
   setLoading: (val: boolean) => void;
@@ -84,11 +84,11 @@ export const runDiagnosis = async ({
 
   // --- Phase 3：WebRTC診断（relay限定→all） ---
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（relay限定） ---");
-  const relayLogs = await runWebRTCCheck({ policy: "relay", myGlobalIP: ip, timeoutMillisec });
+  const relayLogs = await runWebRTCCheck({ policy: "relay", timeoutMillisec });
   phase3Logs.push(...relayLogs);
 
   phase3Logs.push("--- フェーズ3：映像通信（WebRTC）確認（P2P含む） ---");
-  const allLogs = await runWebRTCCheck({ policy: "all", myGlobalIP: ip, timeoutMillisec });
+  const allLogs = await runWebRTCCheck({ policy: "all", timeoutMillisec });
   phase3Logs.push(...allLogs);
 
   setStatus([...phase1Logs, ...phase2Logs, ...phase3Logs]);
