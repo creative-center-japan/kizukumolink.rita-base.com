@@ -1,4 +1,4 @@
-// runWebRTCCheck.ts（デバッグログ付き・未使用変数削除済み）
+// runWebRTCCheck.ts（ログ付き・内部ステータスの確認強化版）
 
 const runWebRTCCheck = ({
   policy = 'relay',
@@ -66,6 +66,13 @@ const runWebRTCCheck = ({
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
       console.log(`✅ ICE Success: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
+
+      const stats = await pc.getStats();
+      for (const [key, stat] of stats) {
+        if (stat.type === 'candidate-pair') {
+          logs.push(`🔍 candidate-pair: ${stat.localCandidateId} ⇄ ${stat.remoteCandidateId}, state=${stat.state}`);
+        }
+      }
 
       if (!alreadyResolved) {
         alreadyResolved = true;
