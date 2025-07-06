@@ -68,7 +68,7 @@ const runWebRTCCheck = ({
       console.log(`✅ ICE Success: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
 
       const stats = await pc.getStats();
-      for (const [key, stat] of stats) {
+      for (const stat of stats.values()) {
         if (stat.type === 'candidate-pair') {
           logs.push(`🔍 candidate-pair: ${stat.localCandidateId} ⇄ ${stat.remoteCandidateId}, state=${stat.state}`);
         }
