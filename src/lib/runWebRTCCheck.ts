@@ -2,11 +2,9 @@
 
 const runWebRTCCheck = ({
   policy = 'relay',
-  myGlobalIP,
   timeoutMillisec = 30000
 }: {
   policy?: 'relay' | 'all';
-  myGlobalIP: string;
   timeoutMillisec?: number;
 }): Promise<string[]> => {
   return new Promise((resolve) => {
@@ -66,7 +64,6 @@ const runWebRTCCheck = ({
     };
 
     const handleSuccessAndExit = async (report: RTCIceCandidatePairStats) => {
-      const stats = await pc.getStats();
       logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
       console.log(`✅ ICE Success: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
 
