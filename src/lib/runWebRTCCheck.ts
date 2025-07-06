@@ -1,6 +1,6 @@
-// runWebRTCCheck.ts（VPN判定強化・映像受信診断付き完全版）
+// runWebRTCCheck.ts（デバッグログ付き）
 
-// ✅ 自前の型定義（先頭に1回だけ！）
+// ✅ 自前の型定義
 type MyIceCandidateStats = RTCStats & {
   candidateType: 'host' | 'srflx' | 'relay' | 'prflx';
   ip?: string;
@@ -60,18 +60,21 @@ const runWebRTCCheck = ({
     };
 
     logs.push(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
+    console.log(`[設定] ICEポリシー = ${policy.toUpperCase()}`);
     const pc = new RTCPeerConnection(config);
     logs.push('✅ PeerConnection を作成しました');
-
+    console.log('✅ PeerConnection 作成済');
 
     // ✅ DataChannel 作成
     const channel = pc.createDataChannel("test-channel");
     channel.onopen = () => {
       logs.push("✅ DataChannel open イベントが発火しました");
+      console.log("✅ DataChannel opened");
       channel.send("ping");
     };
     channel.onmessage = (event) => {
       logs.push(`📨 DataChannel メッセージ受信: ${event.data}`);
+      console.log("📨 DataChannel 受信:", event.data);
     };
 
     // ✅ Videoトラックをリクエスト
@@ -86,6 +89,7 @@ const runWebRTCCheck = ({
 
     pc.ontrack = (event) => {
       logs.push('🎥 映像トラックを受信しました（ontrack 発火）');
+      console.log('🎥 映像トラック ontrack 発火');
       const stream = event.streams[0];
       videoElement.srcObject = stream;
     };
@@ -95,83 +99,36 @@ const runWebRTCCheck = ({
       const localStat = stats.get(report.localCandidateId);
       const remoteStat = stats.get(report.remoteCandidateId);
 
-      logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId} [nominated=${report.nominated}]`);
-      let isNg = false;
-
-      if (isIceCandidateStats(localStat) && isIceCandidateStats(remoteStat)) {
-        const local = localStat;
-        const remote = remoteStat;
-
-        logs.push(`【 接続方式候補 】${local.candidateType}`);
-        logs.push(`【 接続形態 】${local.candidateType === 'relay' ? 'TURNリレー（中継）' : 'P2P（直接）'}`);
-
-        const localIP = extractIP(local);
-        const remoteIP = extractIP(remote);
-        logs.push(`🧪 判定用: localIP=${localIP}, remoteIP=${remoteIP}, myGlobalIP=${myGlobalIP}`);
-
-        if (local.candidateType === 'host' && remote.candidateType === 'host') {
-          logs.push('❌ nominatedペアが host ⇄ host → ローカル通信判定 → NG');
-          isNg = true;
-        }
-
-        if (remote.candidateType === 'srflx' && remoteIP === myGlobalIP) {
-          logs.push('❌ remote候補にVPN出口IPが出現 → 自己ループ/NAT崩壊疑い → NG');
-          isNg = true;
-        }
-
-        if ((local.candidateType === 'srflx' && isPrivateIP(localIP)) ||
-          (remote.candidateType === 'srflx' && isPrivateIP(remoteIP))) {
-          logs.push('❌ srflx候補に private IP が含まれる → 異常なSTUN応答 → NG');
-          isNg = true;
-        }
-
-        if (local.candidateType === 'host' && localIP && !isPrivateIP(localIP) && !/^127\./.test(localIP)) {
-          logs.push(`❌ host候補にグローバルIP（${localIP}）→ 異常構成/VPN疑い → NG`);
-          isNg = true;
-        }
-
-        if (local.candidateType === 'srflx' && localIP !== myGlobalIP) {
-          logs.push(`🟡 local srflx IP が VPN出口と異なる → VPN疑い（ログのみ）`);
-        }
-      }
-
-      for (const r of stats.values()) {
-        if (r.type === 'candidate-pair') {
-          const local = stats.get(r.localCandidateId);
-          const remote = stats.get(r.remoteCandidateId);
-          const lt = isIceCandidateStats(local) ? local.candidateType : 'unknown';
-          const rt = isIceCandidateStats(remote) ? remote.candidateType : 'unknown';
-          logs.push(`🔍 candidate-pair: ${lt} ⇄ ${rt} = ${r.state}`);
-        }
-      }
+      logs.push(`✅ WebRTC接続成功: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
+      console.log(`✅ ICE Success: ${report.localCandidateId} ⇄ ${report.remoteCandidateId}`);
 
       if (!alreadyResolved) {
         alreadyResolved = true;
         if (pc.connectionState !== 'closed') pc.close();
-        logs.push(isNg ? '❌ この接続は実際にはNGと判定されました' : '✅ この接続は有効です');
+        logs.push('✅ この接続は有効です');
         resolve(logs);
       }
     };
 
     pc.onconnectionstatechange = () => {
       logs.push('[WebRTC] connection state: ' + pc.connectionState);
-      if (pc.connectionState === 'closed') {
-        logs.push('❌ RTCPeerConnection が切断されました');
-      }
+      console.log('[WebRTC] connection state:', pc.connectionState);
     };
-
-    pc.onsignalingstatechange = () => logs.push('[WebRTC] signaling state: ' + pc.signalingState);
-    pc.oniceconnectionstatechange = () => logs.push('[ICE] connection state: ' + pc.iceConnectionState);
-    pc.onicegatheringstatechange = () => logs.push('[ICE] gathering state: ' + pc.iceGatheringState);
+    pc.onsignalingstatechange = () => console.log('[Signaling]', pc.signalingState);
+    pc.oniceconnectionstatechange = () => console.log('[ICE Conn]', pc.iceConnectionState);
+    pc.onicegatheringstatechange = () => console.log('[ICE Gather]', pc.iceGatheringState);
 
     (async () => {
       try {
         logs.push('[STEP] offer 生成 開始');
+        console.log('[STEP] createOffer...');
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         logs.push('✅ createOffer & setLocalDescription 完了');
+        console.log('✅ SDP作成完了（先頭50文字）:', offer.sdp?.slice(0, 50));
 
         logs.push('[STEP] /offer へ POST 実行');
+        console.log('[HTTP] POST /offer 開始');
         const controller = new AbortController();
         setTimeout(() => controller.abort(), timeoutMillisec);
         const res = await fetch('https://webrtc-answer.rita-base.com/offer', {
@@ -183,20 +140,35 @@ const runWebRTCCheck = ({
 
         if (!res.ok) throw new Error(`POST /offer failed: status=${res.status}`);
         logs.push('✅ POST /offer 応答あり');
+        console.log('[HTTP] /offer 成功');
 
         const answer = await res.json();
         await pc.setRemoteDescription(answer);
         logs.push('✅ setRemoteDescription 完了');
+        console.log('✅ setRemoteDescription 完了');
 
         const stats = await pc.getStats();
+        let successFound = false;
         for (const report of stats.values()) {
           if (report.type === 'candidate-pair' && report.state === 'succeeded') {
             await handleSuccessAndExit(report as RTCIceCandidatePairStats);
+            successFound = true;
             break;
+          }
+        }
+
+        if (!successFound) {
+          logs.push('❌ ICE 成功候補が見つかりませんでした');
+          console.log('❌ ICE失敗: succeededなcandidate-pairなし');
+          if (!alreadyResolved) {
+            alreadyResolved = true;
+            pc.close();
+            resolve(logs);
           }
         }
       } catch (err) {
         logs.push('❌ WebRTC接続に失敗しました');
+        console.error('❌ 接続エラー:', err);
         if (err instanceof Error) logs.push(`❗詳細: ${err.message}`);
         else logs.push(`❗詳細(unknown): ${JSON.stringify(err)}`);
         pc.close();
